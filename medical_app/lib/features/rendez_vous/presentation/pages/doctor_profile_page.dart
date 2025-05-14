@@ -112,7 +112,11 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           "Profil du médecin",
@@ -144,7 +148,7 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                 style: GoogleFonts.raleway(
                   fontSize: 18.sp,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: theme.textTheme.titleLarge?.color,
                 ),
               ),
             ),
@@ -169,7 +173,7 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                 style: GoogleFonts.raleway(
                   fontSize: 18.sp,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: theme.textTheme.titleLarge?.color,
                 ),
               ),
             ),
@@ -191,7 +195,7 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                           child: Text(
                             "Aucun commentaire disponible",
                             style: GoogleFonts.raleway(
-                              color: Colors.grey[600],
+                              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
                               fontSize: 16.sp,
                             ),
                           ),
@@ -199,80 +203,58 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                       )
                     : ListView.builder(
                         shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
+                        physics: NeverScrollableScrollPhysics(),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w),
                         itemCount: _ratings.length,
                         itemBuilder: (context, index) {
-                          return _buildCommentCard(_ratings[index]);
+                          return _buildRatingItem(_ratings[index]);
                         },
                       ),
             
-            // Book appointment button
-            if (widget.canBookAppointment && widget.onBookAppointment != null)
-              Padding(
-                padding: EdgeInsets.all(16.w),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor,
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                    ),
-                    onPressed: widget.onBookAppointment,
-                    child: Text(
-                      "Prendre rendez-vous",
-                      style: GoogleFonts.raleway(
-                        color: Colors.white,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            
-            SizedBox(height: 20.h),
+            SizedBox(height: 100.h), // Extra space at bottom for FAB
           ],
         ),
       ),
+      floatingActionButton: widget.canBookAppointment
+          ? FloatingActionButton.extended(
+              onPressed: widget.onBookAppointment,
+              icon: Icon(Icons.calendar_today),
+              label: Text("Prendre RDV"),
+              backgroundColor: AppColors.primaryColor,
+            )
+          : null,
     );
   }
 
   Widget _buildDoctorHeaderCard() {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     return Card(
       margin: EdgeInsets.all(16.w),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
       elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.r),
+      ),
       child: Padding(
-        padding: EdgeInsets.all(20.w),
+        padding: EdgeInsets.all(16.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  height: 70.h,
-                  width: 70.w,
+                  height: 80.h,
+                  width: 80.w,
                   decoration: BoxDecoration(
                     color: AppColors.primaryColor,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primaryColor.withOpacity(0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(16.r),
                   ),
                   child: Icon(
                     Icons.person,
                     color: Colors.white,
-                    size: 40.sp,
+                    size:
+                    40.sp,
                   ),
                 ),
                 SizedBox(width: 16.w),
@@ -285,7 +267,7 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                         style: GoogleFonts.raleway(
                           fontSize: 20.sp,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: theme.textTheme.titleLarge?.color,
                         ),
                       ),
                       SizedBox(height: 4.h),
@@ -293,8 +275,7 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                         widget.doctor.speciality ?? "Spécialité non spécifiée",
                         style: GoogleFonts.raleway(
                           fontSize: 16.sp,
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w500,
+                          color: theme.textTheme.bodyMedium?.color,
                         ),
                       ),
                     ],
@@ -302,195 +283,196 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                 ),
               ],
             ),
-            Divider(height: 30.h, thickness: 1),
+            
+            Divider(height: 24.h),
             
             // Contact info
-            Row(
-              children: [
-                Icon(
-                  Icons.email_outlined,
-                  color: AppColors.primaryColor,
-                  size: 20.sp,
-                ),
-                SizedBox(width: 8.w),
-                Text(
-                  widget.doctor.email,
-                  style: GoogleFonts.raleway(
-                    fontSize: 14.sp,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-              ],
+            _buildInfoRow(
+              Icons.phone,
+              widget.doctor.phoneNumber ?? "Non spécifié",
             ),
-            SizedBox(height: 8.h),
-            if (widget.doctor.phoneNumber != null && widget.doctor.phoneNumber!.isNotEmpty)
-              Row(
-                children: [
-                  Icon(
-                    Icons.phone_outlined,
-                    color: AppColors.primaryColor,
-                    size: 20.sp,
-                  ),
-                  SizedBox(width: 8.w),
-                  Text(
-                    widget.doctor.phoneNumber!,
-                    style: GoogleFonts.raleway(
-                      fontSize: 14.sp,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                ],
-              ),
+            _buildInfoRow(
+              Icons.mail,
+              widget.doctor.email ?? "Non spécifié",
+            ),
+            _buildInfoRow(
+              Icons.location_on,
+              "Adresse non spécifiée",
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text) {
+    final theme = Theme.of(context);
+    
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 18.sp,
+            color: AppColors.primaryColor,
+          ),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.raleway(
+                fontSize: 14.sp,
+                color: theme.textTheme.bodyMedium?.color,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildRatingSummary(double averageRating, int ratingCount) {
-    return Card(
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      margin: EdgeInsets.symmetric(horizontal: 16.w),
+      decoration: BoxDecoration(
+        color: isDarkMode ? theme.colorScheme.surface : Colors.grey[100],
+        borderRadius: BorderRadius.circular(16.r),
       ),
-      elevation: 2,
-      child: Padding(
-        padding: EdgeInsets.all(16.w),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(16.w),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
+      child: Row(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
                 averageRating.toStringAsFixed(1),
-                style: GoogleFonts.raleway(
-                  fontSize: 26.sp,
+                style: GoogleFonts.poppins(
+                  fontSize: 24.sp,
                   fontWeight: FontWeight.bold,
-                  color: Colors.amber.shade800,
+                  color: theme.textTheme.titleLarge?.color,
                 ),
               ),
-            ),
-            SizedBox(width: 16.w),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                RatingBar.builder(
-                  initialRating: averageRating,
-                  direction: Axis.horizontal,
-                  allowHalfRating: true,
-                  itemCount: 5,
-                  itemSize: 24.sp,
-                  ignoreGestures: true,
-                  itemBuilder: (context, _) => const Icon(
-                    Icons.star,
-                    color: Colors.amber,
-                  ),
-                  onRatingUpdate: (rating) {},
+              RatingBar.builder(
+                initialRating: averageRating,
+                minRating: 0,
+                direction: Axis.horizontal,
+                allowHalfRating: true,
+                itemCount: 5,
+                itemSize: 20.sp,
+                ignoreGestures: true,
+                unratedColor: isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                itemBuilder: (context, _) => Icon(
+                  Icons.star,
+                  color: Colors.amber,
                 ),
-                SizedBox(height: 4.h),
-                Text(
-                  "$ratingCount évaluations",
-                  style: GoogleFonts.raleway(
-                    fontSize: 14.sp,
-                    color: Colors.grey.shade600,
-                  ),
+                onRatingUpdate: (_) {},
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                "$ratingCount évaluations",
+                style: GoogleFonts.raleway(
+                  fontSize: 14.sp,
+                  color: theme.textTheme.bodySmall?.color,
                 ),
-              ],
+              ),
+            ],
+          ),
+          Spacer(),
+          CircleAvatar(
+            radius: 26.r,
+            backgroundColor: AppColors.primaryColor,
+            child: Icon(
+              Icons.star,
+              color: Colors.white,
+              size: 24.sp,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildCommentCard(DoctorRatingEntity rating) {
+  Widget _buildRatingItem(DoctorRatingEntity rating) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     return Card(
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      margin: EdgeInsets.only(bottom: 12.h),
+      elevation: 2,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
       ),
-      elevation: 1,
       child: Padding(
-        padding: EdgeInsets.all(16.w),
+        padding: EdgeInsets.all(12.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: AppColors.primaryColor.withOpacity(0.2),
-                  radius: 20.sp,
+                  backgroundColor: isDarkMode ? theme.colorScheme.surface : Colors.grey[200],
+                  radius: 20.r,
                   child: Text(
-                    rating.patientName != null && rating.patientName!.isNotEmpty
-                        ? rating.patientName![0]
-                        : "P",
+                    (rating.patientName != null && rating.patientName!.isNotEmpty) 
+                      ? rating.patientName![0].toUpperCase() 
+                      : "?",
                     style: GoogleFonts.raleway(
-                      color: AppColors.primaryColor,
+                      fontSize: 16.sp,
                       fontWeight: FontWeight.bold,
+                      color: theme.textTheme.titleMedium?.color,
                     ),
                   ),
                 ),
-                SizedBox(width: 12.w),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      rating.patientName ?? "Patient",
-                      style: GoogleFonts.raleway(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      DateFormat('dd MMM yyyy').format(rating.createdAt),
-                      style: GoogleFonts.raleway(
-                        fontSize: 12.sp,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 8.w,
-                    vertical: 4.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade100,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.star,
-                        color: Colors.amber,
-                        size: 16.sp,
-                      ),
-                      SizedBox(width: 4.w),
                       Text(
-                        rating.rating.toString(),
+                        rating.patientName ?? "",
                         style: GoogleFonts.raleway(
-                          fontSize: 14.sp,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.bold,
-                          color: Colors.amber.shade800,
+                          color: theme.textTheme.titleMedium?.color,
+                        ),
+                      ),
+                      Text(
+                        DateFormat('dd/MM/yyyy').format(rating.createdAt),
+                        style: GoogleFonts.raleway(
+                          fontSize: 12.sp,
+                          color: theme.textTheme.bodySmall?.color,
                         ),
                       ),
                     ],
                   ),
                 ),
+                Row(
+                  children: [
+                    Icon(Icons.star, color: Colors.amber, size: 16.sp),
+                    SizedBox(width: 4.w),
+                    Text(
+                      rating.rating.toString(),
+                      style: GoogleFonts.raleway(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold,
+                        color: theme.textTheme.bodyMedium?.color,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
             if (rating.comment != null && rating.comment!.isNotEmpty) ...[
-              SizedBox(height: 12.h),
+              SizedBox(height: 8.h),
               Text(
                 rating.comment!,
                 style: GoogleFonts.raleway(
                   fontSize: 14.sp,
-                  color: Colors.grey.shade800,
+                  color: theme.textTheme.bodyMedium?.color,
                 ),
               ),
             ],

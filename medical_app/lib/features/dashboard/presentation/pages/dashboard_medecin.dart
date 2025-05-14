@@ -239,8 +239,11 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: isLoading
           ? Center(
             child: Column(
@@ -252,7 +255,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                     "Chargement de votre tableau de bord...",
                     style: GoogleFonts.raleway(
                       fontSize: 16.sp,
-                      color: Colors.grey[700],
+                      color: theme.textTheme.bodyMedium?.color,
                     ),
                   ),
                 ],
@@ -271,6 +274,8 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
   }
 
   Widget _buildDashboardContent() {
+    final theme = Theme.of(context);
+    
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: Padding(
@@ -317,7 +322,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                       state.message,
                       style: GoogleFonts.raleway(
                         fontSize: 15.sp,
-                        color: Colors.grey[800],
+                        color: theme.textTheme.bodyMedium?.color,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -374,7 +379,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   style: GoogleFonts.poppins(
                     fontSize: 24.sp,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: theme.textTheme.headlineMedium?.color,
                   ),
                 ),
                 SizedBox(height: 4.h),
@@ -382,7 +387,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   "Voici l'aperçu de votre journée",
                   style: GoogleFonts.raleway(
                     fontSize: 14.sp,
-                    color: Colors.grey[600],
+                    color: theme.textTheme.bodySmall?.color,
                   ),
                 ),
                 SizedBox(height: 24.h),
@@ -392,10 +397,10 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   'Statistiques',
                   style: GoogleFonts.poppins(
                     fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                    fontWeight: FontWeight.bold,
+                    color: theme.textTheme.titleLarge?.color,
+                  ),
                 ),
-              ),
                 SizedBox(height: 12.h),
                 
                 GridView.count(
@@ -473,7 +478,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   style: GoogleFonts.poppins(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: theme.textTheme.titleLarge?.color,
                   ),
                 ),
                 SizedBox(height: 12.h),
@@ -529,7 +534,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                       style: GoogleFonts.poppins(
                         fontSize: 18.sp,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: theme.textTheme.titleLarge?.color,
                       ),
                     ),
                     TextButton(
@@ -571,7 +576,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                             Icon(
                               Icons.event_busy,
                               size: 48.sp,
-                              color: Colors.grey,
+                              color: theme.colorScheme.secondary.withOpacity(0.6),
                             ),
                             SizedBox(height: 16.h),
                             Text(
@@ -579,8 +584,8 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                               style: GoogleFonts.raleway(
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey[600],
-                            ),
+                                color: theme.textTheme.titleMedium?.color,
+                              ),
                             ),
                             SizedBox(height: 8.h),
                             Text(
@@ -588,7 +593,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                               textAlign: TextAlign.center,
                               style: GoogleFonts.raleway(
                                 fontSize: 14.sp,
-                                color: Colors.grey[500],
+                                color: theme.textTheme.bodySmall?.color,
                               ),
                             ),
                             SizedBox(height: 16.h),
@@ -609,7 +614,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                                 "Actualiser",
                                 style: GoogleFonts.raleway(
                                   fontSize: 14.sp,
-                                fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
@@ -701,6 +706,9 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
   }
 
   Widget _buildAppointmentCard(AppointmentEntity appointment) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     // Format the date in a more readable format
     final formattedDate = appointment.appointmentDate.day.toString().padLeft(2, '0') + '/' +
                         appointment.appointmentDate.month.toString().padLeft(2, '0') + '/' +
@@ -744,7 +752,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
           );
         },
         borderRadius: BorderRadius.circular(12.r),
-                child: Padding(
+        child: Padding(
           padding: EdgeInsets.all(16.w),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -767,15 +775,15 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
               
               // Appointment details
               Expanded(
-                  child: Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                  children: [
                     Text(
                       appointment.patientName,
                       style: GoogleFonts.raleway(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: theme.textTheme.bodyLarge?.color,
                       ),
                     ),
                     SizedBox(height: 4.h),
@@ -783,7 +791,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                       appointment.appointmentType ?? 'Consultation',
                       style: GoogleFonts.raleway(
                         fontSize: 14.sp,
-                        color: Colors.grey[600],
+                        color: theme.textTheme.bodySmall?.color,
                       ),
                     ),
                     SizedBox(height: 8.h),
@@ -797,15 +805,15 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                             Icon(
                               Icons.calendar_today,
                               size: 16.sp,
-                              color: Colors.grey[600],
+                              color: theme.textTheme.bodySmall?.color,
                             ),
                             SizedBox(width: 4.w),
                             Text(
                               formattedDate,
                               style: GoogleFonts.raleway(
                                 fontSize: 14.sp,
-                                color: Colors.grey[600],
-                      ),
+                                color: theme.textTheme.bodySmall?.color,
+                              ),
                             ),
                           ],
                         ),
@@ -815,14 +823,14 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                             Icon(
                               Icons.access_time,
                               size: 16.sp,
-                              color: Colors.grey[600],
+                              color: theme.textTheme.bodySmall?.color,
                             ),
                             SizedBox(width: 4.w),
                             Text(
                               formattedTime,
                               style: GoogleFonts.raleway(
                                 fontSize: 14.sp,
-                                color: Colors.grey[600],
+                                color: theme.textTheme.bodySmall?.color,
                               ),
                             ),
                           ],
@@ -831,7 +839,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                     ),
                   ],
                 ),
-                      ),
+              ),
 
               // Status badge
               Container(
@@ -840,15 +848,15 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   color: statusColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8.r),
                 ),
-                          child: Text(
+                child: Text(
                   appointment.status.toUpperCase(),
                   style: GoogleFonts.raleway(
                     fontSize: 10.sp,
                     fontWeight: FontWeight.bold,
                     color: statusColor,
-                          ),
-                        ),
-                      ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),

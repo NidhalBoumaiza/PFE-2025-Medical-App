@@ -20,48 +20,50 @@ class AppThemes {
   static const darkDividerColor = Color(0xFF424242);
 
   // Light Theme
-  static ThemeData lightTheme = ThemeData.light().copyWith(
+  static final ThemeData lightTheme = ThemeData.light().copyWith(
     primaryColor: primaryColor,
-    scaffoldBackgroundColor: lightBackgroundColor,
+    scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+    colorScheme: const ColorScheme.light(
+      primary: primaryColor,
+      secondary: primaryColor,
+      surface: Colors.white,
+      background: Color(0xFFF8F9FA),
+      error: Colors.red,
+      onBackground: Color(0xFF121212),
+      onSurface: Color(0xFF121212),
+      onPrimary: Colors.white,
+      onSecondary: Colors.white,
+      brightness: Brightness.light,
+    ),
+    cardTheme: CardTheme(
+      color: Colors.white,
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+    ),
+    textTheme: TextTheme(
+      titleLarge: TextStyle(color: Color(0xFF121212), fontWeight: FontWeight.bold),
+      titleMedium: TextStyle(color: Color(0xFF121212), fontWeight: FontWeight.w600),
+      titleSmall: TextStyle(color: Color(0xFF424242)),
+      bodyLarge: TextStyle(color: Color(0xFF212121)),
+      bodyMedium: TextStyle(color: Color(0xFF424242)),
+      bodySmall: TextStyle(color: Color(0xFF616161)),
+    ),
+    dividerTheme: const DividerThemeData(
+      color: Color(0xFFEEEEEE),
+      thickness: 1,
+    ),
+    iconTheme: const IconThemeData(
+      color: Color(0xFF424242),
+    ),
     appBarTheme: const AppBarTheme(
       backgroundColor: primaryColor,
       foregroundColor: Colors.white,
       elevation: 0,
     ),
-    colorScheme: const ColorScheme.light(
-      primary: primaryColor,
-      secondary: primaryColor,
-      onPrimary: Colors.white,
-      background: lightBackgroundColor,
-      surface: lightCardColor,
-      onSurface: lightTextColor,
-    ),
-    cardTheme: CardTheme(
-      color: lightCardColor,
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-    ),
-    dividerTheme: const DividerThemeData(
-      color: lightDividerColor,
-      thickness: 1,
-    ),
-    textTheme: GoogleFonts.ralewayTextTheme(
-      ThemeData.light().textTheme.copyWith(
-        displayLarge: GoogleFonts.raleway(color: lightTextColor),
-        displayMedium: GoogleFonts.raleway(color: lightTextColor),
-        displaySmall: GoogleFonts.raleway(color: lightTextColor),
-        headlineMedium: GoogleFonts.raleway(color: lightTextColor),
-        headlineSmall: GoogleFonts.raleway(color: lightTextColor),
-        titleLarge: GoogleFonts.raleway(color: lightTextColor),
-        titleMedium: GoogleFonts.raleway(color: lightTextColor),
-        titleSmall: GoogleFonts.raleway(color: lightTextColor),
-        bodyLarge: GoogleFonts.raleway(color: lightTextColor),
-        bodyMedium: GoogleFonts.raleway(color: lightTextColor),
-        bodySmall: GoogleFonts.raleway(color: lightSecondaryTextColor),
-        labelLarge: GoogleFonts.raleway(color: lightTextColor),
-      ),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: Colors.white,
+      selectedItemColor: primaryColor,
+      unselectedItemColor: Color(0xFF9E9E9E),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
@@ -206,30 +208,23 @@ class AppThemes {
   // Dark Theme
   static ThemeData darkTheme = ThemeData.dark().copyWith(
     primaryColor: primaryColor,
-    scaffoldBackgroundColor: darkBackgroundColor,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: primaryColor,
-      foregroundColor: Colors.white,
-      elevation: 0,
-    ),
-    colorScheme: const ColorScheme.dark(
+    scaffoldBackgroundColor: const Color(0xFF121212),
+    colorScheme: ColorScheme.dark(
       primary: primaryColor,
       secondary: primaryColor,
+      surface: const Color(0xFF1E1E1E),
+      background: const Color(0xFF121212),
+      error: Colors.red[700]!,
+      onBackground: Colors.white,
+      onSurface: Colors.white,
       onPrimary: Colors.white,
-      background: darkBackgroundColor,
-      surface: darkCardColor,
-      onSurface: darkTextColor,
+      onSecondary: Colors.white,
+      brightness: Brightness.dark,
     ),
     cardTheme: CardTheme(
-      color: darkCardColor,
+      color: const Color(0xFF1E1E1E),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-    ),
-    dividerTheme: const DividerThemeData(
-      color: darkDividerColor,
-      thickness: 1,
+      shadowColor: Colors.black.withOpacity(0.5),
     ),
     textTheme: GoogleFonts.ralewayTextTheme(
       ThemeData.dark().textTheme.copyWith(
@@ -246,6 +241,23 @@ class AppThemes {
         bodySmall: GoogleFonts.raleway(color: darkSecondaryTextColor),
         labelLarge: GoogleFonts.raleway(color: darkTextColor),
       ),
+    ),
+    dividerTheme: const DividerThemeData(
+      color: Color(0xFF2C2C2C),
+      thickness: 1,
+    ),
+    iconTheme: IconThemeData(
+      color: Colors.grey[300],
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: primaryColor,
+      foregroundColor: Colors.white,
+      elevation: 0,
+    ),
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      backgroundColor: const Color(0xFF1E1E1E),
+      selectedItemColor: primaryColor,
+      unselectedItemColor: Colors.grey[500],
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(

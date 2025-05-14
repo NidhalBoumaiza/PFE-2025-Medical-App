@@ -122,8 +122,12 @@ class _ProfilePatientState extends State<ProfilePatient> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     return SafeArea(
       child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
         body: BlocConsumer<UpdateUserBloc, UpdateUserState>(
           listener: (context, state) {
             if (state is UpdateUserSuccess) {
@@ -142,14 +146,15 @@ class _ProfilePatientState extends State<ProfilePatient> {
             return _patient == null
                 ? const Center(child: CircularProgressIndicator(color: AppColors.primaryColor))
                 : SingleChildScrollView(
-                    padding: EdgeInsets.only(left: 16.w, right: 16.w, top: 24.h, bottom: 16.h),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryColor.withOpacity(0.1),
+                            color: isDarkMode 
+                              ? AppColors.primaryColor.withOpacity(0.15)
+                              : AppColors.primaryColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           padding: EdgeInsets.all(16.w),
@@ -160,7 +165,7 @@ class _ProfilePatientState extends State<ProfilePatient> {
                                   Container(
                                     padding: EdgeInsets.all(4.w),
                                     decoration: BoxDecoration(
-                                      color: AppColors.whiteColor,
+                                      color: isDarkMode ? Colors.grey[800] : AppColors.whiteColor,
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
@@ -183,24 +188,23 @@ class _ProfilePatientState extends State<ProfilePatient> {
                                   Positioned(
                                     bottom: 0,
                                     right: 0,
-                                    child: Container(
-                                      width: 32.w,
-                                      height: 32.h,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF2fa7bb),
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black26,
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
+                                    child: GestureDetector(
+                                      onTap: _changeProfilePicture,
+                                      child: Container(
+                                        padding: EdgeInsets.all(8.w),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primaryColor,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: isDarkMode ? Colors.grey[800]! : Colors.white,
+                                            width: 2,
                                           ),
-                                        ],
-                                      ),
-                                      child: IconButton(
-                                        padding: EdgeInsets.zero,
-                                        icon: Icon(Icons.camera_alt, color: AppColors.whiteColor, size: 18.sp),
-                                        onPressed: _changeProfilePicture,
+                                        ),
+                                        child: Icon(
+                                          Icons.camera_alt,
+                                          color: Colors.white,
+                                          size: 16.sp,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -208,11 +212,11 @@ class _ProfilePatientState extends State<ProfilePatient> {
                               ),
                               SizedBox(height: 16.h),
                               Text(
-                                '${_patient!.name} ${_patient!.lastName}',
+                                _patient!.name + " " + _patient!.lastName,
                                 style: GoogleFonts.raleway(
                                   fontSize: 20.sp,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                  color: theme.textTheme.titleLarge?.color,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -221,7 +225,7 @@ class _ProfilePatientState extends State<ProfilePatient> {
                                 _patient!.email,
                                 style: GoogleFonts.raleway(
                                   fontSize: 14.sp,
-                                  color: Colors.black54,
+                                  color: isDarkMode ? Colors.grey[300] : Colors.black54,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -229,23 +233,121 @@ class _ProfilePatientState extends State<ProfilePatient> {
                           ),
                         ),
                         SizedBox(height: 20.h),
-                        Text(
-                          'personal_information'.tr,
-                          style: GoogleFonts.raleway(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          child: Text(
+                            'personal_information'.tr,
+                            style: GoogleFonts.raleway(
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.bold,
+                              color: theme.textTheme.titleLarge?.color,
+                            ),
                           ),
                         ),
                         SizedBox(height: 12.h),
                         _buildInfoTile('phone_number_label'.tr, _patient!.phoneNumber),
                         _buildInfoTile('gender'.tr, _patient!.gender),
-                        _buildInfoTile('date_of_birth_label'.tr,
-                            _patient!.dateOfBirth?.toIso8601String().split('T').first ?? 'Non spécifiée'),
-                        _buildInfoTile('antecedent'.tr, _patient!.antecedent),
+                        _buildInfoTile(
+                          'date_of_birth_label'.tr,
+                          _patient!.dateOfBirth?.toIso8601String().split('T').first ?? 'Non spécifiée',
+                        ),
+                        _buildInfoTile(
+                          'antecedent'.tr,
+                          _patient!.antecedent ?? 'rien',
+                        ),
                         SizedBox(height: 20.h),
-                        
-
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          child: Text(
+                            'settings'.tr,
+                            style: GoogleFonts.raleway(
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.bold,
+                              color: theme.textTheme.titleLarge?.color,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 12.h),
+                        _buildSettingsTile(
+                          Icons.notifications,
+                          'notifications'.tr,
+                          Switch(
+                            value: _notificationsEnabled,
+                            onChanged: (value) {
+                              setState(() {
+                                _notificationsEnabled = value;
+                              });
+                            },
+                            activeColor: AppColors.primaryColor,
+                          ),
+                        ),
+                        _buildSettingsTile(
+                          Icons.language,
+                          'language'.tr,
+                          DropdownButton<String>(
+                            value: _selectedLanguage,
+                            underline: const SizedBox(),
+                            dropdownColor: isDarkMode ? Colors.grey[800] : Colors.white,
+                            items: _languages.map((String language) {
+                              return DropdownMenuItem<String>(
+                                value: language,
+                                child: Text(
+                                  language,
+                                  style: TextStyle(
+                                    color: theme.textTheme.bodyMedium?.color,
+                                    fontSize: 14.sp,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              if (newValue != null) {
+                                _changeLanguage(newValue);
+                              }
+                            },
+                          ),
+                        ),
+                        _buildSettingsTile(
+                          Icons.brightness_4,
+                          'dark_mode'.tr,
+                          BlocBuilder<ThemeCubit, ThemeState>(
+                            builder: (context, state) {
+                              final isThemeDark = state is ThemeLoaded && state.themeMode == ThemeMode.dark;
+                              return Switch(
+                                value: isThemeDark,
+                                onChanged: (_) => context.read<ThemeCubit>().toggleTheme(),
+                                activeColor: AppColors.primaryColor,
+                              );
+                            },
+                          ),
+                        ),
+                        SizedBox(height: 24.h),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _showLogoutDialog,
+                              icon: Icon(Icons.logout, size: 18.sp),
+                              label: Text(
+                                'logout'.tr,
+                                style: GoogleFonts.raleway(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(vertical: 12.h),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 32.h),
                       ],
                     ),
                   );
@@ -256,32 +358,77 @@ class _ProfilePatientState extends State<ProfilePatient> {
   }
 
   Widget _buildInfoTile(String label, String value) {
-    return Card(
-      margin: EdgeInsets.only(bottom: 10.h),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: GoogleFonts.raleway(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            Text(
-              value,
-              style: GoogleFonts.raleway(
-                fontSize: 14.sp,
-                color: Colors.black54,
-              ),
-            ),
-          ],
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.grey[800] : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        title: Text(
+          label,
+          style: GoogleFonts.raleway(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+            color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+          ),
         ),
+        trailing: Text(
+          value,
+          style: GoogleFonts.raleway(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
+            color: theme.textTheme.bodyLarge?.color,
+          ),
+        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      ),
+    );
+  }
+
+  Widget _buildSettingsTile(IconData icon, String label, Widget trailing) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.grey[800] : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: AppColors.primaryColor,
+          size: 20.sp,
+        ),
+        title: Text(
+          label,
+          style: GoogleFonts.raleway(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+            color: theme.textTheme.bodyLarge?.color,
+          ),
+        ),
+        trailing: trailing,
+        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       ),
     );
   }

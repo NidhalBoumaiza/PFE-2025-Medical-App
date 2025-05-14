@@ -209,6 +209,12 @@ class _HomePatientState extends State<HomePatient> {
     int? badgeCount,
     Color? color,
   }) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
+    final textColor = color ?? (isDarkMode ? theme.textTheme.bodyLarge?.color : Colors.white);
+    final iconColor = color ?? (isDarkMode ? theme.textTheme.bodyLarge?.color : Colors.white);
+  
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Material(
@@ -224,7 +230,7 @@ class _HomePatientState extends State<HomePatient> {
                 Icon(
                   icon,
                   size: 22,
-                  color: color ?? Colors.white,
+                  color: iconColor,
                 ),
                 SizedBox(width: 16),
                 Expanded(
@@ -233,7 +239,7 @@ class _HomePatientState extends State<HomePatient> {
                     style: GoogleFonts.raleway(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: color ?? Colors.white,
+                      color: textColor,
                     ),
                   ),
                 ),
@@ -263,6 +269,9 @@ class _HomePatientState extends State<HomePatient> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     print ("1111111111111111111111111111111") ;
     print ("userId : $userId") ;
     return SafeArea(
@@ -283,7 +292,7 @@ class _HomePatientState extends State<HomePatient> {
           }
         },
         child: Scaffold(
-          backgroundColor: AppColors.whiteColor,
+          backgroundColor: theme.scaffoldBackgroundColor,
           appBar: AppBar(
             title: Text(
               _selectedIndex == 1 ? 'Mes rendez-vous' : 'MediLink',
@@ -320,9 +329,12 @@ class _HomePatientState extends State<HomePatient> {
 
           bottomNavigationBar: Container(
             decoration: BoxDecoration(
+              color: isDarkMode ? theme.colorScheme.surface : AppColors.whiteColor,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.textSecondary.withOpacity(0.2),
+                  color: isDarkMode 
+                      ? Colors.black.withOpacity(0.3) 
+                      : AppColors.textSecondary.withOpacity(0.2),
                   spreadRadius: 1,
                   blurRadius: 10,
                   offset: const Offset(0, -2),
@@ -335,11 +347,13 @@ class _HomePatientState extends State<HomePatient> {
                 items: _navItems,
                 currentIndex: _selectedIndex,
                 selectedItemColor: AppColors.primaryColor,
-                unselectedItemColor: AppColors.textSecondary,
+                unselectedItemColor: isDarkMode 
+                    ? theme.textTheme.bodySmall?.color?.withOpacity(0.7) 
+                    : AppColors.textSecondary,
                 showSelectedLabels: true,
                 showUnselectedLabels: true,
                 type: BottomNavigationBarType.fixed,
-                backgroundColor: AppColors.whiteColor,
+                backgroundColor: isDarkMode ? theme.colorScheme.surface : AppColors.whiteColor,
                 elevation: 10,
                 selectedLabelStyle: GoogleFonts.raleway(fontSize: 12, fontWeight: FontWeight.bold),
                 unselectedLabelStyle: GoogleFonts.raleway(fontSize: 12, fontWeight: FontWeight.w500),
@@ -360,14 +374,17 @@ class _HomePatientState extends State<HomePatient> {
               shadowColor: Colors.black26,
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF2fa7bb),
-                      const Color(0xFF2fa7bb).withOpacity(0.85),
-                    ],
-                  ),
+                  color: isDarkMode ? theme.colorScheme.surface : null,
+                  gradient: isDarkMode 
+                    ? null
+                    : LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF2fa7bb),
+                          const Color(0xFF2fa7bb).withOpacity(0.85),
+                        ],
+                      ),
                   borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
                 ),
                 child: Column(
@@ -389,11 +406,11 @@ class _HomePatientState extends State<HomePatient> {
                             ),
                             child: CircleAvatar(
                               radius: 40,
-                              backgroundColor: AppColors.whiteColor,
+                              backgroundColor: isDarkMode ? theme.colorScheme.primary.withOpacity(0.2) : AppColors.whiteColor,
                               child: Icon(
                                 Icons.person,
                                 size: 36,
-                                color: const Color(0xFF2fa7bb),
+                                color: isDarkMode ? theme.colorScheme.primary : const Color(0xFF2fa7bb),
                               ),
                             ),
                           ),
@@ -402,7 +419,7 @@ class _HomePatientState extends State<HomePatient> {
                             patientName,
                             style: GoogleFonts.raleway(
                               fontSize: 18,
-                              color: AppColors.whiteColor,
+                              color: isDarkMode ? theme.textTheme.bodyLarge?.color : AppColors.whiteColor,
                               fontWeight: FontWeight.bold,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -413,7 +430,9 @@ class _HomePatientState extends State<HomePatient> {
                             'Patient',
                             style: GoogleFonts.raleway(
                               fontSize: 14,
-                              color: AppColors.whiteColor.withOpacity(0.8),
+                              color: isDarkMode 
+                                  ? theme.textTheme.bodyMedium?.color 
+                                  : AppColors.whiteColor.withOpacity(0.8),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -422,7 +441,9 @@ class _HomePatientState extends State<HomePatient> {
                             email,
                             style: GoogleFonts.raleway(
                               fontSize: 14,
-                              color: AppColors.whiteColor.withOpacity(0.7),
+                              color: isDarkMode 
+                                  ? theme.textTheme.bodySmall?.color 
+                                  : AppColors.whiteColor.withOpacity(0.7),
                             ),
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
@@ -503,23 +524,23 @@ class _HomePatientState extends State<HomePatient> {
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             child: BlocBuilder<ThemeCubit, ThemeState>(
                               builder: (context, state) {
-                                final isDarkMode = state is ThemeLoaded ? state.themeMode == ThemeMode.dark : false;
+                                final isDarkModeState = state is ThemeLoaded ? state.themeMode == ThemeMode.dark : false;
                                 return Row(
                                   children: [
                                     Icon(
-                                      isDarkMode
+                                      isDarkModeState
                                           ? FontAwesomeIcons.moon 
                                           : FontAwesomeIcons.sun,
-                                      color: Colors.white,
+                                      color: isDarkMode ? theme.textTheme.bodyLarge?.color : Colors.white,
                                       size: 18,
                                     ),
                                     const SizedBox(width: 16),
                                     Text(
-                                      isDarkMode
+                                      isDarkModeState
                                           ? 'dark_mode'.tr 
                                           : 'light_mode'.tr,
                                       style: GoogleFonts.raleway(
-                                        color: Colors.white,
+                                        color: isDarkMode ? theme.textTheme.bodyLarge?.color : Colors.white,
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
                                       ),

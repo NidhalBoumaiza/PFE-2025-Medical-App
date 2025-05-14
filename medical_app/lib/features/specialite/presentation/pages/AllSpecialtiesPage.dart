@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/utils/navigation_with_transition.dart';
 import '../../../rendez_vous/presentation/pages/RendezVousPatient.dart';
+import '../../../../core/utils/app_colors.dart';
 
 class AllSpecialtiesPage extends StatefulWidget {
   final List<Map<String, dynamic>> specialties;
@@ -39,10 +40,14 @@ class _AllSpecialtiesPageState extends State<AllSpecialtiesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Spécialités"),
-        backgroundColor: const Color(0xFF2FA7BB),
+        backgroundColor: AppColors.primaryColor,
         leading: IconButton(
           icon: const Icon(
             Icons.chevron_left,
@@ -61,17 +66,18 @@ class _AllSpecialtiesPageState extends State<AllSpecialtiesPage> {
             // Search Bar
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDarkMode ? theme.cardColor : Colors.white,
                 borderRadius: BorderRadius.circular(25),
-                border: Border.all(color: const Color(0xFF2fa7bb).withOpacity(0.3)),
+                border: Border.all(color: AppColors.primaryColor.withOpacity(0.3)),
               ),
               child: TextField(
+                style: TextStyle(color: theme.textTheme.bodyMedium?.color),
                 decoration: InputDecoration(
                   hintText: "Trouver médecin, spécialité...",
-                  hintStyle: const TextStyle(color: Color(0xFF2fa7bb)),
+                  hintStyle: TextStyle(color: isDarkMode ? AppColors.primaryColor.withOpacity(0.7) : AppColors.primaryColor),
                   prefixIcon: const Icon(
                     Icons.search,
-                    color: Color(0xFF2fa7bb),
+                    color: AppColors.primaryColor,
                   ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
@@ -101,40 +107,39 @@ class _AllSpecialtiesPageState extends State<AllSpecialtiesPage> {
                       );
                     },
                     child: Card(
-                      elevation: 0,
-                      color: Colors.white,
+                      elevation: 3,
+                      color: theme.cardColor,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(15),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            _filteredSpecialties[index]['image']!,
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.contain,
-                            color: const Color(0xFF2fa7bb),
-                            colorBlendMode: BlendMode.srcIn,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(
-                                Icons.error,
-                                size: 40,
-                                color: Colors.red,
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _filteredSpecialties[index]['text']!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w500,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ColorFiltered(
+                              colorFilter: ColorFilter.mode(
+                                AppColors.primaryColor,
+                                BlendMode.srcATop,
+                              ),
+                              child: Image.asset(
+                                _filteredSpecialties[index]['image']!,
+                                width: 50,
+                                height: 50,
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            Text(
+                              _filteredSpecialties[index]['text']!,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: theme.textTheme.bodyLarge?.color,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );

@@ -45,7 +45,11 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           widget.isDoctor ? 'Mes Ordonnances' : 'Mes Ordonnances',
@@ -61,7 +65,7 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
         builder: (context, state) {
           if (state is PrescriptionLoading) {
             return const Center(
-              child: CircularProgressIndicator(),
+              child: CircularProgressIndicator(color: AppColors.primaryColor),
             );
           } else if (state is DoctorPrescriptionsLoaded && widget.isDoctor) {
             return _buildPrescriptionsList(state.prescriptions);
@@ -82,6 +86,7 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
                     'Erreur: ${state.message}',
                     style: GoogleFonts.raleway(
                       fontSize: 16.sp,
+                      color: theme.textTheme.bodyMedium?.color,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -95,6 +100,7 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryColor,
+                      foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(
                         horizontal: 16.w,
                         vertical: 8.h,
@@ -111,7 +117,7 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
                 children: [
                   Icon(
                     Icons.medical_services_outlined,
-                    color: Colors.grey,
+                    color: isDarkMode ? theme.iconTheme.color?.withOpacity(0.4) : Colors.grey,
                     size: 60.sp,
                   ),
                   SizedBox(height: 16.h),
@@ -119,7 +125,7 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
                     'Chargement des ordonnances...',
                     style: GoogleFonts.raleway(
                       fontSize: 16.sp,
-                      color: Colors.grey[600],
+                      color: theme.textTheme.bodyMedium?.color,
                     ),
                   ),
                 ],
@@ -132,6 +138,9 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
   }
 
   Widget _buildPrescriptionsList(List<PrescriptionEntity> prescriptions) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     if (prescriptions.isEmpty) {
       return Center(
         child: Column(
@@ -139,7 +148,7 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
           children: [
             Icon(
               Icons.medical_services_outlined,
-              color: Colors.grey,
+              color: isDarkMode ? theme.iconTheme.color?.withOpacity(0.4) : Colors.grey,
               size: 60.sp,
             ),
             SizedBox(height: 16.h),
@@ -148,7 +157,7 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
               style: GoogleFonts.raleway(
                 fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
+                color: theme.textTheme.titleMedium?.color,
               ),
             ),
             SizedBox(height: 8.h),
@@ -158,7 +167,7 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
                   : 'Vous n\'avez pas encore reçu d\'ordonnance',
               style: GoogleFonts.raleway(
                 fontSize: 14.sp,
-                color: Colors.grey[600],
+                color: theme.textTheme.bodySmall?.color,
               ),
               textAlign: TextAlign.center,
             ),
@@ -171,6 +180,7 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
       onRefresh: () async {
         _loadPrescriptions();
       },
+      color: AppColors.primaryColor,
       child: ListView.builder(
         padding: EdgeInsets.all(16.w),
         itemCount: prescriptions.length,
@@ -183,6 +193,8 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
   }
 
   Widget _buildPrescriptionCard(PrescriptionEntity prescription) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
     final medicationCount = prescription.medications.length;
     
     return Card(
@@ -191,6 +203,7 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.r),
       ),
+      color: theme.cardColor,
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -229,6 +242,7 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
                       style: GoogleFonts.raleway(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
+                        color: theme.textTheme.titleMedium?.color,
                       ),
                     ),
                   ),
@@ -241,10 +255,10 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
                     : 'Médecin: Dr. ${prescription.doctorName}',
                 style: GoogleFonts.raleway(
                   fontSize: 14.sp,
-                  color: Colors.grey[700],
+                  color: theme.textTheme.bodyMedium?.color,
                 ),
               ),
-              Divider(height: 20.h),
+              Divider(height: 20.h, color: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -252,7 +266,7 @@ class _PrescriptionsListPageState extends State<PrescriptionsListPage> {
                     '$medicationCount médicament${medicationCount > 1 ? 's' : ''}',
                     style: GoogleFonts.raleway(
                       fontSize: 14.sp,
-                      color: Colors.grey[600],
+                      color: theme.textTheme.bodySmall?.color,
                     ),
                   ),
                   Row(

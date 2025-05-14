@@ -20,6 +20,8 @@ class AppointmentListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
     final formattedDate = DateFormat('dd/MM/yyyy').format(appointment.appointmentDate);
     final formattedTime = DateFormat('HH:mm').format(appointment.appointmentDate);
 
@@ -52,7 +54,7 @@ class AppointmentListItem extends StatelessWidget {
                     style: GoogleFonts.raleway(
                       fontWeight: FontWeight.bold,
                       fontSize: 15.sp,
-                      color: Colors.black87,
+                      color: theme.textTheme.bodyLarge?.color,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -62,7 +64,7 @@ class AppointmentListItem extends StatelessWidget {
                     appointment.appointmentType ?? 'Consultation',
                     style: GoogleFonts.raleway(
                       fontSize: 13.sp,
-                      color: Colors.grey.shade600,
+                      color: theme.textTheme.bodySmall?.color,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -73,7 +75,7 @@ class AppointmentListItem extends StatelessWidget {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: isDarkMode ? theme.colorScheme.surface : Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -83,7 +85,7 @@ class AppointmentListItem extends StatelessWidget {
                     style: GoogleFonts.raleway(
                       fontWeight: FontWeight.bold,
                       fontSize: 12.sp,
-                      color: Colors.grey.shade700,
+                      color: isDarkMode ? theme.textTheme.bodySmall?.color : Colors.grey.shade700,
                     ),
                   ),
                   Text(
@@ -91,7 +93,7 @@ class AppointmentListItem extends StatelessWidget {
                     style: GoogleFonts.raleway(
                       fontWeight: FontWeight.bold,
                       fontSize: 14.sp,
-                      color: Colors.black87,
+                      color: theme.textTheme.bodyLarge?.color,
                     ),
                   ),
                 ],

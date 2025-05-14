@@ -24,6 +24,8 @@ class DashboardStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -35,7 +37,7 @@ class DashboardStatCard extends StatelessWidget {
           padding: EdgeInsets.all(12.w),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
-            color: backgroundColor ?? Colors.white,
+            color: backgroundColor ?? theme.cardColor,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -52,7 +54,7 @@ class DashboardStatCard extends StatelessWidget {
                 style: GoogleFonts.poppins(
                   fontSize: 22.sp,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: theme.textTheme.bodyLarge?.color,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -64,7 +66,7 @@ class DashboardStatCard extends StatelessWidget {
                 style: GoogleFonts.raleway(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: theme.textTheme.bodyLarge?.color,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

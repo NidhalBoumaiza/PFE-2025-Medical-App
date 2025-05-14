@@ -111,8 +111,11 @@ class _DashboardpatientState extends State<Dashboardpatient> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -120,12 +123,12 @@ class _DashboardpatientState extends State<Dashboardpatient> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // "Que cherchez-vous ?" Section
-              const Text(
+              Text(
                 'Que cherchez-vous ?',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: theme.textTheme.headlineMedium?.color,
                 ),
               ),
               const SizedBox(height: 16),
@@ -171,7 +174,7 @@ class _DashboardpatientState extends State<Dashboardpatient> {
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(15),
-                              color: Colors.white,
+                              color: theme.cardColor,
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -185,10 +188,10 @@ class _DashboardpatientState extends State<Dashboardpatient> {
                                 Text(
                                   searchItems[index]['text'],
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
+                                    color: theme.textTheme.bodyLarge?.color,
                                   ),
                                 ),
                               ],
@@ -206,12 +209,12 @@ class _DashboardpatientState extends State<Dashboardpatient> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Spécialités',
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: theme.textTheme.headlineMedium?.color,
                     ),
                   ),
                   TextButton(
@@ -255,7 +258,7 @@ class _DashboardpatientState extends State<Dashboardpatient> {
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(15),
-                              color: Colors.white,
+                              color: theme.cardColor,
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -280,11 +283,10 @@ class _DashboardpatientState extends State<Dashboardpatient> {
                                 Text(
                                   specialtiesWithImages[index]['text']!,
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    //fontWeight: FontWeight.w600,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
+                                    color: theme.textTheme.bodyLarge?.color,
                                   ),
                                 ),
                               ],
@@ -302,12 +304,12 @@ class _DashboardpatientState extends State<Dashboardpatient> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Premiers Secours',
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: theme.textTheme.headlineMedium?.color,
                     ),
                   ),
                   TextButton(
@@ -364,10 +366,10 @@ class _DashboardpatientState extends State<Dashboardpatient> {
                             padding: const EdgeInsets.symmetric(horizontal: 8.0),
                             child: Text(
                               firstAidVideos[index]['text']!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 25,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: theme.textTheme.headlineSmall?.color,
                               ),
                             ),
                           ),
@@ -383,13 +385,15 @@ class _DashboardpatientState extends State<Dashboardpatient> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
                   firstAidVideos.length,
-                      (index) => Container(
+                  (index) => Container(
                     margin: const EdgeInsets.symmetric(horizontal: 4.0),
                     width: 10.0,
                     height: 10.0,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _currentPage == index ? Colors.teal : Colors.grey.shade400,
+                      color: _currentPage == index 
+                        ? AppColors.primaryColor 
+                        : (isDarkMode ? Colors.grey.shade600 : Colors.grey.shade400),
                     ),
                   ),
                 ),

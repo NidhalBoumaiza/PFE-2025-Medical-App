@@ -62,6 +62,9 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
 
   Future<void> _confirmRendezVous(
       BuildContext context, MedecinEntity doctor) async {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -69,12 +72,16 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
           'Confirmer la consultation',
           style: GoogleFonts.raleway(
             fontWeight: FontWeight.bold,
+            color: theme.textTheme.titleLarge?.color,
           ),
         ),
         content: Text(
           'Voulez-vous confirmer la consultation avec Dr. ${doctor.name} ${doctor.lastName} pour le ${DateFormat('dd/MM/yyyy à HH:mm').format(widget.startTime)} ?',
-          style: GoogleFonts.raleway(),
+          style: GoogleFonts.raleway(
+            color: theme.textTheme.bodyMedium?.color,
+          ),
         ),
+        backgroundColor: theme.dialogTheme.backgroundColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -84,13 +91,14 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
             child: Text(
               'Annuler',
               style: GoogleFonts.raleway(
-                color: Colors.grey[700],
+                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8),
               ),
             ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryColor,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -99,7 +107,6 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
             child: Text(
               'Confirmer',
               style: GoogleFonts.raleway(
-                color: Colors.white,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -124,8 +131,11 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'Médecins disponibles',
@@ -155,7 +165,7 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
                   style: GoogleFonts.raleway(
                     fontSize: 20.sp,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: theme.textTheme.titleLarge?.color,
                   ),
                 ),
                 SizedBox(height: 4.h),
@@ -163,7 +173,7 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
                   'Rendez-vous le ${DateFormat('dd/MM/yyyy à HH:mm').format(widget.startTime)}',
                   style: GoogleFonts.raleway(
                     fontSize: 14.sp,
-                    color: Colors.grey[600],
+                    color: theme.textTheme.bodySmall?.color,
                   ),
                 ),
               ],
@@ -206,7 +216,9 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
                             Icon(
                               Icons.search_off,
                               size: 64.sp,
-                              color: Colors.grey[400],
+                              color: isDarkMode 
+                                ? theme.iconTheme.color?.withOpacity(0.4)
+                                : Colors.grey[400],
                             ),
                             SizedBox(height: 16.h),
                             Text(
@@ -214,7 +226,7 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
                               textAlign: TextAlign.center,
                               style: GoogleFonts.raleway(
                                 fontSize: 16.sp,
-                                color: Colors.grey[600],
+                                color: theme.textTheme.bodyMedium?.color,
                               ),
                             ),
                           ],
@@ -242,6 +254,9 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
   }
   
   Widget _buildDoctorCard(MedecinEntity doctor) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     return Card(
       margin: EdgeInsets.symmetric(vertical: 8.h, horizontal: 4.w),
       shape: RoundedRectangleBorder(
@@ -281,7 +296,7 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
                           style: GoogleFonts.raleway(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: theme.textTheme.titleMedium?.color,
                           ),
                         ),
                         SizedBox(height: 4.h),
@@ -289,7 +304,7 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
                           doctor.speciality ?? "",
                           style: GoogleFonts.raleway(
                             fontSize: 14.sp,
-                            color: Colors.grey[600],
+                            color: theme.textTheme.bodySmall?.color,
                           ),
                         ),
                         SizedBox(height: 4.h),
@@ -321,7 +336,7 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
                                   : "N/A",
                                 style: GoogleFonts.raleway(
                                   fontSize: 14.sp,
-                                  color: Colors.grey[700],
+                                  color: theme.textTheme.bodyMedium?.color,
                                 ),
                               ),
                             ],

@@ -63,8 +63,11 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: AppColors.whiteColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'notifications'.tr,
@@ -78,7 +81,7 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
         iconTheme: const IconThemeData(color: AppColors.whiteColor),
         actions: [
           IconButton(
-            icon: Icon(Icons.done_all, color: Colors.white),
+            icon: const Icon(Icons.done_all, color: Colors.white),
             onPressed: () {
               if (!_isLoading && _currentUser.id != null) {
                 context.read<NotificationBloc>().add(
@@ -92,7 +95,7 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
           ),
         ],
         leading: IconButton(
-          icon: Icon(
+          icon: const Icon(
             Icons.chevron_left,
             size: 30,
           ),
@@ -118,14 +121,16 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
                           Icon(
                             Icons.notifications_off,
                             size: 80.sp,
-                            color: Colors.grey[400],
+                            color: isDarkMode 
+                              ? theme.iconTheme.color?.withOpacity(0.4)
+                              : Colors.grey[400],
                           ),
                           SizedBox(height: 16.h),
                           Text(
                             'no_notifications'.tr,
                             style: GoogleFonts.raleway(
                               fontSize: 16.sp,
-                              color: Colors.grey[600],
+                              color: theme.textTheme.bodyMedium?.color,
                             ),
                           ),
                         ],
@@ -158,14 +163,16 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
                       Icon(
                         Icons.notifications_off,
                         size: 80.sp,
-                        color: Colors.grey[400],
+                        color: isDarkMode 
+                          ? theme.iconTheme.color?.withOpacity(0.4)
+                          : Colors.grey[400],
                       ),
                       SizedBox(height: 16.h),
                       Text(
                         'no_notifications'.tr,
                         style: GoogleFonts.raleway(
                           fontSize: 16.sp,
-                          color: Colors.grey[600],
+                          color: theme.textTheme.bodyMedium?.color,
                         ),
                       ),
                     ],
@@ -177,6 +184,9 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
   }
 
   Widget _buildFilterChips() {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -195,6 +205,9 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
   }
 
   Widget _buildFilterChip(String value, String label) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     final isSelected = _selectedFilter == value;
     return FilterChip(
       label: Text(
@@ -202,7 +215,7 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
         style: GoogleFonts.raleway(
           fontSize: 12,
           fontWeight: FontWeight.w500,
-          color: isSelected ? Colors.white : Colors.grey[700],
+          color: isSelected ? Colors.white : theme.textTheme.bodyMedium?.color,
         ),
       ),
       selected: isSelected,
@@ -214,9 +227,11 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
         }
       },
       selectedColor: AppColors.primaryColor,
-      backgroundColor: Colors.grey[100],
+      backgroundColor: isDarkMode 
+          ? theme.cardColor.withOpacity(0.3) 
+          : Colors.grey[100],
       checkmarkColor: Colors.white,
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
@@ -226,6 +241,9 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
   }
 
   Widget _buildNotificationList(List<NotificationEntity> notifications) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     final filteredNotifications = _selectedFilter == 'all'
         ? notifications
         : notifications.where((n) {
@@ -249,13 +267,19 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.notifications_off, size: 48, color: Colors.grey[400]),
-            SizedBox(height: 16),
+            Icon(
+              Icons.notifications_off, 
+              size: 48, 
+              color: isDarkMode 
+                ? theme.iconTheme.color?.withOpacity(0.4)
+                : Colors.grey[400]
+            ),
+            const SizedBox(height: 16),
             Text(
               'no_notifications'.tr,
               style: GoogleFonts.raleway(
                 fontSize: 14,
-                color: Colors.grey[600],
+                color: theme.textTheme.bodyMedium?.color,
               ),
             ),
           ],
@@ -274,170 +298,222 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
   }
 
   Widget _buildDismissibleNotification(NotificationEntity notification) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
     return Dismissible(
       key: Key(notification.id),
-      direction: DismissDirection.endToStart,
       background: Container(
-        margin: EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: Colors.red[400],
-          borderRadius: BorderRadius.circular(15),
-        ),
+        color: Colors.red,
         alignment: Alignment.centerRight,
-        padding: EdgeInsets.only(right: 20),
-        child: Icon(Icons.delete, color: Colors.white, size: 24),
+        padding: EdgeInsets.only(right: 16.w),
+        child: Icon(Icons.delete, color: Colors.white, size: 24.sp),
       ),
+      direction: DismissDirection.endToStart,
       confirmDismiss: (direction) async {
         return await showDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            title: Text('delete_notification'.tr),
-            content: Text('confirm_delete_notification'.tr),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text('cancel'.tr),
+          builder: (BuildContext context) {
+            return AlertDialog(
+              backgroundColor: theme.cardColor,
+              title: Text(
+                'confirmation'.tr,
+                style: TextStyle(color: theme.textTheme.titleLarge?.color),
               ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: Text('delete'.tr, style: const TextStyle(color: Colors.red)),
+              content: Text(
+                'delete_notification_confirm'.tr,
+                style: TextStyle(color: theme.textTheme.bodyMedium?.color),
               ),
-            ],
-          ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text(
+                    'cancel'.tr,
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: Text(
+                    'delete'.tr,
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
       onDismissed: (direction) {
         context.read<NotificationBloc>().add(
-          DeleteNotificationEvent(notificationId: notification.id),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('notification_deleted'.tr),
+          DeleteNotificationEvent(
+            notificationId: notification.id,
           ),
         );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('notification_deleted'.tr)),
+        );
       },
-      child: _buildNotificationCard(notification),
-    );
-  }
-
-  Widget _buildNotificationCard(NotificationEntity notification) {
-    return Card(
-      margin: EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.r),
-        side: notification.isRead
-            ? BorderSide.none
-            : BorderSide(color: AppColors.primaryColor.withOpacity(0.5), width: 1),
-      ),
       child: InkWell(
         onTap: () {
-          // Mark as read when tapped
           if (!notification.isRead) {
             context.read<NotificationBloc>().add(
-              MarkNotificationAsReadEvent(notificationId: notification.id),
+              MarkNotificationAsReadEvent(
+                notificationId: notification.id,
+              ),
             );
           }
-          _navigateToDetails(notification);
+          
+          _handleNotificationTap(notification);
         },
-        borderRadius: BorderRadius.circular(15.r),
-        child: Padding(
-          padding: EdgeInsets.all(16.r),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildNotificationIcon(notification.type),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          notification.title,
-                          style: GoogleFonts.raleway(
-                            fontSize: 16.sp,
-                            fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
+        child: Card(
+          margin: EdgeInsets.only(bottom: 12.h),
+          elevation: 1,
+          color: notification.isRead 
+            ? theme.cardColor
+            : isDarkMode
+              ? AppColors.primaryColor.withOpacity(0.15) 
+              : AppColors.primaryColor.withOpacity(0.05),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.r),
+            side: BorderSide(
+              color: notification.isRead 
+                ? isDarkMode ? Colors.grey.shade800 : Colors.grey.shade300
+                : AppColors.primaryColor.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(12.h),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _getNotificationTypeIcon(notification.type),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              notification.title,
+                              style: GoogleFonts.raleway(
+                                fontSize: 14.sp,
+                                fontWeight: notification.isRead 
+                                  ? FontWeight.normal
+                                  : FontWeight.bold,
+                                color: theme.textTheme.bodyLarge?.color,
+                              ),
+                            ),
                           ),
+                          if (!notification.isRead)
+                            Container(
+                              width: 10.w,
+                              height: 10.h,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.primaryColor,
+                              ),
+                            ),
+                        ],
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        notification.body,
+                        style: GoogleFonts.raleway(
+                          fontSize: 12.sp,
+                          color: theme.textTheme.bodyMedium?.color,
                         ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          notification.body,
-                          style: GoogleFonts.raleway(
-                            fontSize: 14.sp,
-                            color: Colors.grey[600],
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 8.h),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _formatNotificationTime(notification.createdAt),
+                            style: GoogleFonts.raleway(
+                              fontSize: 10.sp,
+                              color: theme.textTheme.bodySmall?.color,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 8.h),
-                        Text(
-                          DateFormat('dd/MM/yyyy HH:mm').format(notification.createdAt),
-                          style: GoogleFonts.raleway(
-                            fontSize: 12.sp,
-                            color: Colors.grey[500],
+                          Icon(
+                            Icons.chevron_right,
+                            size: 18.sp,
+                            color: theme.textTheme.bodySmall?.color,
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              SizedBox(height: 12.h),
-              ElevatedButton(
-                onPressed: () => _navigateToDetails(notification),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryColor,
-                  padding: EdgeInsets.symmetric(vertical: 8.h),
-                  minimumSize: Size(double.infinity, 36.h),
                 ),
-                child: Text('view_details'.tr, style: TextStyle(color: Colors.white)),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildNotificationIcon(NotificationType type) {
-    IconData icon;
-    Color color;
-
+  Widget _getNotificationTypeIcon(NotificationType type) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    
+    IconData iconData;
+    Color iconColor;
+    Color backgroundColor;
+    
     switch (type) {
       case NotificationType.newAppointment:
-        icon = Icons.calendar_today;
-        color = Colors.orange;
-        break;
       case NotificationType.appointmentAccepted:
-        icon = Icons.check_circle;
-        color = Colors.green;
-        break;
       case NotificationType.appointmentRejected:
-        icon = Icons.cancel;
-        color = Colors.red;
-        break;
-      case NotificationType.newRating:
-        icon = Icons.star;
-        color = Colors.amber;
+        iconData = Icons.calendar_today;
+        iconColor = AppColors.primaryColor;
+        backgroundColor = isDarkMode 
+          ? AppColors.primaryColor.withOpacity(0.2)
+          : AppColors.primaryColor.withOpacity(0.1);
         break;
       case NotificationType.newPrescription:
-        icon = Icons.medical_services;
-        color = AppColors.primaryColor;
+        iconData = Icons.medical_services;
+        iconColor = Colors.green;
+        backgroundColor = isDarkMode 
+          ? Colors.green.withOpacity(0.2)
+          : Colors.green.withOpacity(0.1);
         break;
+      case NotificationType.newRating:
+        iconData = Icons.star;
+        iconColor = Colors.amber;
+        backgroundColor = isDarkMode 
+          ? Colors.amber.withOpacity(0.2)
+          : Colors.amber.withOpacity(0.1);
+        break;
+      default:
+        iconData = Icons.notifications;
+        iconColor = Colors.grey;
+        backgroundColor = isDarkMode 
+          ? Colors.grey.withOpacity(0.2)
+          : Colors.grey.withOpacity(0.1);
     }
 
     return Container(
-      padding: EdgeInsets.all(8.r),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8.r),
+        color: backgroundColor,
+        shape: BoxShape.circle,
       ),
-      child: Icon(icon, color: color, size: 24.sp),
+      padding: EdgeInsets.all(10.r),
+      child: Icon(
+        iconData,
+        color: iconColor,
+        size: 20.sp,
+      ),
     );
   }
-  
-  void _navigateToDetails(NotificationEntity notification) {
+
+  void _handleNotificationTap(NotificationEntity notification) {
     if (notification.appointmentId != null) {
       Navigator.push(
         context,
@@ -453,6 +529,21 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
           builder: (context) => OrdonnancesPage(),
         ),
       );
+    }
+  }
+
+  String _formatNotificationTime(DateTime createdAt) {
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m';
+    } else {
+      return '${difference.inSeconds}s';
     }
   }
 }
