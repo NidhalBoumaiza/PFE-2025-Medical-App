@@ -1,0 +1,480 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:medical_app/core/utils/app_colors.dart';
+import 'package:medical_app/core/utils/custom_snack_bar.dart';
+import 'package:medical_app/core/utils/navigation_with_transition.dart';
+import 'package:medical_app/cubit/theme_cubit/theme_cubit.dart';
+import 'package:medical_app/features/authentication/domain/entities/medecin_entity.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../authentication/presentation/pages/login_screen.dart';
+import 'blocs/BLoC update profile/update_user_bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class ProfilMedecin extends StatefulWidget {
+  const ProfilMedecin({Key? key}) : super(key: key);
+
+  @override
+  State<ProfilMedecin> createState() => _ProfilMedecinState();
+}
+
+class _ProfilMedecinState extends State<ProfilMedecin> {
+  MedecinEntity? _medecin;
+  bool _notificationsEnabled = true;
+  String _selectedLanguage = 'Français';
+  final List<String> _languages = ['Français', 'English', 'العربية'];
+  final Map<String, String> _languageCodes = {
+    'Français': 'fr',
+    'English': 'en',
+    'العربية': 'ar'
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedLanguage = _getLanguageFromLocale(Get.locale?.languageCode ?? 'fr');
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString('CACHED_USER');
+    if (userJson != null) {
+      final userMap = jsonDecode(userJson) as Map<String, dynamic>;
+      setState(() {
+        _medecin = MedecinEntity.create(
+          id: userMap['id'] as String?,
+          name: userMap['name'] as String,
+          lastName: userMap['lastName'] as String,
+          email: userMap['email'] as String,
+          role: userMap['role'] as String,
+          gender: userMap['gender'] as String,
+          phoneNumber: userMap['phoneNumber'] as String,
+          dateOfBirth: userMap['dateOfBirth'] != null
+              ? DateTime.parse(userMap['dateOfBirth'] as String)
+              : null,
+          speciality: userMap['speciality'] as String?,
+          numLicence: userMap['numLicence'] as String?,
+          accountStatus: userMap['accountStatus'] as bool?,
+          verificationCode: userMap['verificationCode'] as int?,
+          validationCodeExpiresAt: userMap['validationCodeExpiresAt'] != null
+              ? DateTime.parse(userMap['validationCodeExpiresAt'] as String)
+              : null,
+          appointmentDuration: userMap['appointmentDuration'] as int,
+        );
+      });
+    }
+  }
+
+  String _getLanguageFromLocale(String localeCode) {
+    switch (localeCode) {
+      case 'fr': return 'Français';
+      case 'en': return 'English';
+      case 'ar': return 'العربية';
+      default: return 'Français';
+    }
+  }
+
+  void _changeLanguage(String? newValue) {
+    if (newValue != null) {
+      setState(() => _selectedLanguage = newValue);
+      final localeCode = _languageCodes[newValue];
+      if (localeCode != null) Get.updateLocale(Locale(localeCode));
+    }
+  }
+
+  void _showLogoutDialog() {
+    Get.dialog(
+      AlertDialog(
+        title: Text('logout'.tr, style: GoogleFonts.raleway(fontSize: 22.sp)),
+        content: Text('confirm_logout'.tr, style: GoogleFonts.raleway(fontSize: 18.sp)),
+        actions: [
+          TextButton(
+            onPressed: Get.back,
+            child: Text('cancel'.tr, style: GoogleFonts.raleway(fontSize: 16.sp)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Get.back();
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('CACHED_USER');
+                await prefs.remove('TOKEN');
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Déconnexion réussie", style: GoogleFonts.raleway(fontSize: 16.sp))),
+                );
+
+                navigateToAnotherScreenWithSlideTransitionFromRightToLeftPushReplacement(
+                  context,
+                  const LoginScreen(),
+                );
+              } catch (e) {
+                showErrorSnackBar(context, 'Failed to logout: $e');
+              }
+            },
+            child: Text('logout'.tr, style: GoogleFonts.raleway(fontSize: 16.sp, color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _changeProfilePicture() {
+    Get.snackbar('info'.tr, 'change_profile_picture_message'.tr);
+  }
+
+  void _showAppointmentDurationDialog() {
+    int selectedDuration = _medecin?.appointmentDuration ?? 30;
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(
+                'Durée de consultation',
+                style: GoogleFonts.raleway(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20.sp,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Choisissez la durée standard de vos consultations:',
+                    style: GoogleFonts.raleway(
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  SizedBox(height: 24.h),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Durée: ',
+                        style: GoogleFonts.raleway(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      DropdownButton<int>(
+                        value: selectedDuration,
+                        items: [15, 20, 30, 45, 60, 90, 120].map((int value) {
+                          return DropdownMenuItem<int>(
+                            value: value,
+                            child: Text(
+                              '$value minutes',
+                              style: GoogleFonts.raleway(
+                                fontSize: 16.sp,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (int? newValue) {
+                          if (newValue != null) {
+                            setState(() {
+                              selectedDuration = newValue;
+                            });
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(
+                    'Annuler',
+                    style: GoogleFonts.raleway(
+                      color: Colors.grey,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    try {
+                      if (_medecin?.id != null) {
+                        // Update Firestore
+                        final FirebaseFirestore firestore = FirebaseFirestore.instance;
+                        await firestore.collection('medecins').doc(_medecin!.id).update({
+                          'appointmentDuration': selectedDuration,
+                        });
+                        
+                        // Update local state
+                        setState(() {
+                          _medecin = MedecinEntity(
+                            id: _medecin!.id,
+                            name: _medecin!.name,
+                            lastName: _medecin!.lastName,
+                            email: _medecin!.email,
+                            role: _medecin!.role,
+                            gender: _medecin!.gender,
+                            phoneNumber: _medecin!.phoneNumber,
+                            dateOfBirth: _medecin!.dateOfBirth,
+                            speciality: _medecin!.speciality,
+                            numLicence: _medecin!.numLicence,
+                            appointmentDuration: selectedDuration,
+                          );
+                        });
+                        
+                        // Show success message
+                        showSuccessSnackBar(
+                          context, 
+                          'Durée de consultation mise à jour'
+                        );
+                      }
+                    } catch (e) {
+                      // Show error message
+                      showErrorSnackBar(
+                        context, 
+                        'Erreur lors de la mise à jour: $e'
+                      );
+                    }
+                    // Close dialog
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(
+                    'Confirmer',
+                    style: GoogleFonts.raleway(
+                      color: AppColors.primaryColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Scaffold(
+        body: BlocConsumer<UpdateUserBloc, UpdateUserState>(
+          listener: (context, state) {
+            if (state is UpdateUserSuccess) {
+              setState(() {
+                _medecin = state.user as MedecinEntity;
+              });
+              showSuccessSnackBar(context, 'profile_saved_successfully'.tr);
+            } else if (state is UpdateUserFailure) {
+              showErrorSnackBar(context, state.message);
+            }
+          },
+          builder: (context, state) {
+            if (state is UpdateUserLoading) {
+              return const Center(child: CircularProgressIndicator(color: AppColors.primaryColor));
+            }
+            return _medecin == null
+                ? const Center(child: CircularProgressIndicator(color: AppColors.primaryColor))
+                : SingleChildScrollView(
+              padding: EdgeInsets.only(left: 16.w, right: 16.w, top: 24.h, bottom: 16.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding: EdgeInsets.all(16.w),
+                    child: Column(
+                      children: [
+                        Stack(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(4.w),
+                              decoration: BoxDecoration(
+                                color: AppColors.whiteColor,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primaryColor.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: CircleAvatar(
+                                radius: 50.r,
+                                backgroundColor: AppColors.primaryColor.withOpacity(0.2),
+                                child: Icon(
+                                  Icons.person,
+                                  size: 60.sp,
+                                  color: AppColors.primaryColor,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 32.w,
+                                height: 32.h,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2fa7bb),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: IconButton(
+                                  padding: EdgeInsets.zero,
+                                  icon: Icon(Icons.camera_alt, color: AppColors.whiteColor, size: 18.sp),
+                                  onPressed: _changeProfilePicture,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16.h),
+                        Text(
+                          'Dr. ${_medecin!.name} ${_medecin!.lastName}',
+                          style: GoogleFonts.raleway(
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 4.h),
+                        Text(
+                          _medecin!.speciality ?? 'Non spécifiée',
+                          style: GoogleFonts.raleway(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.primaryColor,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 4.h),
+                        Text(
+                          _medecin!.email,
+                          style: GoogleFonts.raleway(
+                            fontSize: 14.sp,
+                            color: Colors.black54,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 20.h),
+                  Text(
+                    'personal_information'.tr,
+                    style: GoogleFonts.raleway(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  _buildInfoTile('phone_number_label'.tr, _medecin!.phoneNumber),
+                  _buildInfoTile('gender'.tr, _medecin!.gender),
+                  _buildInfoTile('date_of_birth_label'.tr,
+                      _medecin!.dateOfBirth?.toIso8601String().split('T').first ?? 'Non spécifiée'),
+                  SizedBox(height: 20.h),
+                  Text(
+                    'professional_information'.tr,
+                    style: GoogleFonts.raleway(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  _buildInfoTile('speciality'.tr, _medecin!.speciality ?? 'Non spécifiée'),
+                  _buildInfoTile('license_number'.tr, _medecin!.numLicence ?? 'Non spécifié'),
+                  _buildInfoTile('Durée de consultation', '${_medecin!.appointmentDuration} minutes'),
+                  
+                  SizedBox(height: 8.h),
+                  Card(
+                    elevation: 2,
+                    margin: EdgeInsets.only(bottom: 10.h),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: InkWell(
+                      onTap: _showAppointmentDurationDialog,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Modifier la durée de consultation',
+                              style: GoogleFonts.raleway(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryColor,
+                              ),
+                            ),
+                            Icon(
+                              Icons.edit,
+                              color: AppColors.primaryColor,
+                              size: 20.sp,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoTile(String label, String value) {
+    return Card(
+      margin: EdgeInsets.only(bottom: 10.h),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.raleway(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            Text(
+              value,
+              style: GoogleFonts.raleway(
+                fontSize: 14.sp,
+                color: Colors.black54,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
