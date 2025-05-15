@@ -12,7 +12,7 @@ class ConversationsBloc extends Bloc<ConversationsEvent, ConversationsState> {
   StreamSubscription<List<ConversationEntity>>? _conversationsSubscription;
 
   ConversationsBloc({required this.getConversationsUseCase})
-      : super(const ConversationsInitial()) {
+    : super(const ConversationsInitial()) {
     on<FetchConversationsEvent>(_onFetchConversations);
     on<SubscribeToConversationsEvent>(_onSubscribeToConversations);
     on<ConversationsUpdatedEvent>(_onConversationsUpdated);
@@ -20,20 +20,22 @@ class ConversationsBloc extends Bloc<ConversationsEvent, ConversationsState> {
   }
 
   Future<void> _onFetchConversations(
-      FetchConversationsEvent event,
-      Emitter<ConversationsState> emit,
-      ) async {
+    FetchConversationsEvent event,
+    Emitter<ConversationsState> emit,
+  ) async {
     emit(ConversationsLoading(conversations: _currentConversations));
     final failureOrConversations = await getConversationsUseCase(
       userId: event.userId,
       isDoctor: event.isDoctor,
     );
     failureOrConversations.fold(
-          (failure) => emit(ConversationsError(
-        message: mapFailureToMessage(failure),
-        conversations: _currentConversations,
-      )),
-          (conversations) {
+      (failure) => emit(
+        ConversationsError(
+          message: mapFailureToMessage(failure),
+          conversations: _currentConversations,
+        ),
+      ),
+      (conversations) {
         _currentConversations = conversations;
         emit(ConversationsLoaded(conversations: conversations));
       },
@@ -41,9 +43,9 @@ class ConversationsBloc extends Bloc<ConversationsEvent, ConversationsState> {
   }
 
   Future<void> _onSubscribeToConversations(
-      SubscribeToConversationsEvent event,
-      Emitter<ConversationsState> emit,
-      ) async {
+    SubscribeToConversationsEvent event,
+    Emitter<ConversationsState> emit,
+  ) async {
     emit(ConversationsLoading(conversations: _currentConversations));
     try {
       await _conversationsSubscription?.cancel();
@@ -52,7 +54,7 @@ class ConversationsBloc extends Bloc<ConversationsEvent, ConversationsState> {
         isDoctor: event.isDoctor,
       );
       _conversationsSubscription = stream.listen(
-            (conversations) {
+        (conversations) {
           add(ConversationsUpdatedEvent(conversations: conversations));
         },
         onError: (error) {
@@ -60,29 +62,57 @@ class ConversationsBloc extends Bloc<ConversationsEvent, ConversationsState> {
         },
       );
     } catch (e) {
-      emit(ConversationsError(
-        message: 'Failed to subscribe to conversations: $e',
-        conversations: _currentConversations,
-      ));
+      emit(
+        ConversationsError(
+          message: 'Failed to subscribe to conversations: $e',
+          conversations: _currentConversations,
+        ),
+      );
     }
   }
 
   void _onConversationsUpdated(
-      ConversationsUpdatedEvent event,
-      Emitter<ConversationsState> emit,
-      ) {
-    _currentConversations = event.conversations;
-    emit(ConversationsLoaded(conversations: event.conversations));
+    ConversationsUpdatedEvent event,
+    Emitter<ConversationsState> emit,
+  ) {
+    // Handle read status updates more intelligently
+    final updatedConversations =
+        event.conversations.map((serverConversation) {
+          // Try to find the same conversation in our current list
+          final existingConversation = _currentConversations.firstWhere(
+            (c) => c.id == serverConversation.id,
+            orElse: () => serverConversation,
+          );
+
+          // If this is an existing conversation and the only thing that changed is the read status,
+          // prioritize the local version if the local version shows it as read
+          if (existingConversation.id == serverConversation.id &&
+              existingConversation.lastMessageRead &&
+              !serverConversation.lastMessageRead) {
+            print(
+              'Preserving local read status for conversation ${serverConversation.id}',
+            );
+            return existingConversation;
+          }
+
+          // Otherwise use the server version
+          return serverConversation;
+        }).toList();
+
+    _currentConversations = updatedConversations;
+    emit(ConversationsLoaded(conversations: updatedConversations));
   }
 
   void _onConversationsStreamError(
-      ConversationsStreamErrorEvent event,
-      Emitter<ConversationsState> emit,
-      ) {
-    emit(ConversationsError(
-      message: 'Stream error: ${event.error}',
-      conversations: _currentConversations,
-    ));
+    ConversationsStreamErrorEvent event,
+    Emitter<ConversationsState> emit,
+  ) {
+    emit(
+      ConversationsError(
+        message: 'Stream error: ${event.error}',
+        conversations: _currentConversations,
+      ),
+    );
   }
 
   @override

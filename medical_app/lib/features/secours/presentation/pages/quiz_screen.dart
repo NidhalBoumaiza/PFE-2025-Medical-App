@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class QuizScreen extends StatefulWidget {
   final String videoTitle;
@@ -18,24 +19,24 @@ class _QuizScreenState extends State<QuizScreen> {
   // Sample quiz questions related to first aid
   final List<Map<String, dynamic>> _questions = [
     {
-      'question': 'Quelle est la fréquence recommandée des compressions thoraciques lors d\'une RCP pour un adulte ?',
+      'question': 'cpr_frequency_question'.tr,
       'answers': [
-        {'text': '60-80 par minute', 'isCorrect': false},
-        {'text': '100-120 par minute', 'isCorrect': true},
+        {'text': 'cpr_frequency_answer1'.tr, 'isCorrect': false},
+        {'text': 'cpr_frequency_answer2'.tr, 'isCorrect': true},
       ],
     },
     {
-      'question': 'Quelle est la première étape pour gérer une hémorragie externe ?',
+      'question': 'bleeding_question'.tr,
       'answers': [
-        {'text': 'Appeler les secours', 'isCorrect': false},
-        {'text': 'Appliquer une pression directe', 'isCorrect': true},
+        {'text': 'bleeding_answer1'.tr, 'isCorrect': false},
+        {'text': 'bleeding_answer2'.tr, 'isCorrect': true},
       ],
     },
     {
-      'question': 'Que faut-il faire si une personne s’étouffe et ne peut pas parler ?',
+      'question': 'choking_question'.tr,
       'answers': [
-        {'text': 'Effectuer la manœuvre de Heimlich', 'isCorrect': true},
-        {'text': 'Donner de l’eau à boire', 'isCorrect': false},
+        {'text': 'choking_answer1'.tr, 'isCorrect': true},
+        {'text': 'choking_answer2'.tr, 'isCorrect': false},
       ],
     },
   ];
@@ -75,7 +76,7 @@ class _QuizScreenState extends State<QuizScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Quiz - ${widget.videoTitle}",
+          "${'quiz'.tr} - ${widget.videoTitle}",
           style: theme.textTheme.titleLarge?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -121,7 +122,7 @@ class _QuizScreenState extends State<QuizScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                "Question ${_currentQuestionIndex + 1}/${_questions.length}",
+                "${'question'.tr} ${_currentQuestionIndex + 1}/${_questions.length}",
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -170,37 +171,67 @@ class _QuizScreenState extends State<QuizScreen> {
                           // Answer Options
                           Expanded(
                             child: ListView.builder(
-                              itemCount: (currentQuestion['answers'] as List<Map<String, dynamic>>).length,
+                              itemCount:
+                                  (currentQuestion['answers']
+                                          as List<Map<String, dynamic>>)
+                                      .length,
                               itemBuilder: (context, index) {
-                                final answer = currentQuestion['answers'][index];
+                                final answer =
+                                    currentQuestion['answers'][index];
                                 return Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8.0,
+                                  ),
                                   child: GestureDetector(
-                                    onTap: _showFeedback
-                                        ? null
-                                        : () {
-                                      _answerQuestion(answer['isCorrect'], index);
-                                    },
+                                    onTap:
+                                        _showFeedback
+                                            ? null
+                                            : () {
+                                              _answerQuestion(
+                                                answer['isCorrect'],
+                                                index,
+                                              );
+                                            },
                                     child: AnimatedOpacity(
-                                      opacity: _showFeedback && _selectedAnswerIndex != index ? 0.6 : 1.0,
-                                      duration: const Duration(milliseconds: 300),
+                                      opacity:
+                                          _showFeedback &&
+                                                  _selectedAnswerIndex != index
+                                              ? 0.6
+                                              : 1.0,
+                                      duration: const Duration(
+                                        milliseconds: 300,
+                                      ),
                                       child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 300),
-                                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                                        duration: const Duration(
+                                          milliseconds: 300,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 16,
+                                          horizontal: 20,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: _showFeedback && _selectedAnswerIndex == index
-                                              ? (answer['isCorrect']
-                                              ? const Color(0xFF2FA7BB)
-                                              : Colors.red)
-                                              : Colors.white,
+                                          color:
+                                              _showFeedback &&
+                                                      _selectedAnswerIndex ==
+                                                          index
+                                                  ? (answer['isCorrect']
+                                                      ? const Color(0xFF2FA7BB)
+                                                      : Colors.red)
+                                                  : Colors.white,
                                           border: Border.all(
-                                            color: const Color(0xFF2FA7BB).withOpacity(0.5),
+                                            color: const Color(
+                                              0xFF2FA7BB,
+                                            ).withOpacity(0.5),
                                             width: 2,
                                           ),
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.grey.withOpacity(0.2),
+                                              color: Colors.grey.withOpacity(
+                                                0.2,
+                                              ),
                                               spreadRadius: 1,
                                               blurRadius: 6,
                                               offset: const Offset(0, 3),
@@ -208,23 +239,32 @@ class _QuizScreenState extends State<QuizScreen> {
                                           ],
                                         ),
                                         child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             Expanded(
                                               child: Text(
                                                 answer['text'],
-                                                style: theme.textTheme.bodyLarge?.copyWith(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: _showFeedback && _selectedAnswerIndex == index
-                                                      ? Colors.white
-                                                      : Colors.black87,
-                                                ),
+                                                style: theme.textTheme.bodyLarge
+                                                    ?.copyWith(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color:
+                                                          _showFeedback &&
+                                                                  _selectedAnswerIndex ==
+                                                                      index
+                                                              ? Colors.white
+                                                              : Colors.black87,
+                                                    ),
                                               ),
                                             ),
-                                            if (_showFeedback && _selectedAnswerIndex == index)
+                                            if (_showFeedback &&
+                                                _selectedAnswerIndex == index)
                                               Icon(
-                                                answer['isCorrect'] ? Icons.check_circle : Icons.cancel,
+                                                answer['isCorrect']
+                                                    ? Icons.check_circle
+                                                    : Icons.cancel,
                                                 color: Colors.white,
                                                 size: 24,
                                               ),
@@ -246,20 +286,30 @@ class _QuizScreenState extends State<QuizScreen> {
                                 scale: 1.0,
                                 duration: const Duration(milliseconds: 200),
                                 child: ElevatedButton(
-                                  onPressed: _currentQuestionIndex == _questions.length - 1
-                                      ? () => _finishQuiz(context)
-                                      : _nextQuestion,
+                                  onPressed:
+                                      _currentQuestionIndex ==
+                                              _questions.length - 1
+                                          ? () => _finishQuiz(context)
+                                          : _nextQuestion,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF2FA7BB),
-                                    padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 48,
+                                      vertical: 16,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     elevation: 4,
-                                    shadowColor: const Color(0xFF2FA7BB).withOpacity(0.3),
+                                    shadowColor: const Color(
+                                      0xFF2FA7BB,
+                                    ).withOpacity(0.3),
                                   ),
                                   child: Text(
-                                    _currentQuestionIndex == _questions.length - 1 ? "Terminer" : "Suivant",
+                                    _currentQuestionIndex ==
+                                            _questions.length - 1
+                                        ? "finish".tr
+                                        : "next".tr,
                                     style: theme.textTheme.labelLarge?.copyWith(
                                       fontSize: 18,
                                       color: Colors.white,

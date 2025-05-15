@@ -64,9 +64,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: 20.h),
-                  
+
                   // Header image
                   Center(
                     child: Image.asset(
@@ -75,9 +75,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: 200.w,
                     ),
                   ),
-                  
+
                   SizedBox(height: 30.h),
-                  
+
                   // Form fields
                   Form(
                     key: _formKey,
@@ -93,9 +93,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: Colors.black87,
                           ),
                         ),
-                        
+
                         SizedBox(height: 10.h),
-                        
+
                         // Email field
                         Container(
                           decoration: BoxDecoration(
@@ -168,17 +168,18 @@ class _LoginScreenState extends State<LoginScreen> {
                               if (value == null || value.isEmpty) {
                                 return "L'email est obligatoire".tr;
                               }
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                  .hasMatch(value)) {
+                              if (!RegExp(
+                                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                              ).hasMatch(value)) {
                                 return "Veuillez entrer un email valide".tr;
                               }
                               return null;
                             },
                           ),
                         ),
-                        
+
                         SizedBox(height: 24.h),
-                        
+
                         // Password label
                         Text(
                           "Mot de passe",
@@ -188,9 +189,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: Colors.black87,
                           ),
                         ),
-                        
+
                         SizedBox(height: 10.h),
-                        
+
                         // Password field
                         Container(
                           decoration: BoxDecoration(
@@ -287,7 +288,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                   ),
-                  
+
                   // Forgot password
                   Align(
                     alignment: Alignment.centerRight,
@@ -296,7 +297,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => ForgotPasswordScreen()),
+                            builder: (context) => ForgotPasswordScreen(),
+                          ),
                         );
                       },
                       child: Text(
@@ -309,19 +311,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: 24.h),
                   // Login button
                   BlocConsumer<LoginBloc, LoginState>(
                     listener: (context, state) async {
                       if (state is LoginSuccess) {
                         showSuccessSnackBar(context, "login_success".tr);
-                        if (state.user.role == "medecin"){
+                        if (state.user.role == "medecin") {
                           navigateToAnotherScreenWithSlideTransitionFromRightToLeftPushReplacement(
                             context,
                             const HomeMedecin(),
                           );
-                        }else {
+                        } else {
                           navigateToAnotherScreenWithSlideTransitionFromRightToLeftPushReplacement(
                             context,
                             const HomePatient(),
@@ -346,37 +348,39 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             elevation: 2,
                           ),
-                          onPressed: isLoading
-                              ? null
-                              : () {
-                                  if (_formKey.currentState!.validate()) {
-                                    context.read<LoginBloc>().add(
-                                      LoginWithEmailAndPassword(
-                                        email: emailController.text,
-                                        password: passwordController.text,
-                                      ),
-                                    );
-                                  }
-                                },
-                          child: isLoading
-                              ? CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 3,
-                                )
-                              : Text(
-                                  "connect_button_text".tr,
-                                  style: GoogleFonts.raleway(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w600,
+                          onPressed:
+                              isLoading
+                                  ? () {} // Keep button enabled but do nothing while loading
+                                  : () {
+                                    if (_formKey.currentState!.validate()) {
+                                      context.read<LoginBloc>().add(
+                                        LoginWithEmailAndPassword(
+                                          email: emailController.text,
+                                          password: passwordController.text,
+                                        ),
+                                      );
+                                    }
+                                  },
+                          child:
+                              isLoading
+                                  ? CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 3,
+                                  )
+                                  : Text(
+                                    "connect_button_text".tr,
+                                    style: GoogleFonts.raleway(
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                ),
                         ),
                       );
                     },
                   ),
-                  
+
                   SizedBox(height: 30.h),
-                  
+
                   // No account row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -407,9 +411,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
-                  
+
                   SizedBox(height: 30.h),
-                  
+
                   // Or login with divider
                   Row(
                     children: [
@@ -431,25 +435,25 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
-                  
+
                   SizedBox(height: 24.h),
-                  
+
                   // Google login button
                   BlocConsumer<LoginBloc, LoginState>(
                     listener: (context, state) async {
                       if (state is LoginSuccess) {
                         showSuccessSnackBar(context, "login_success".tr);
-                       if (state.user.role == "medecin"){
-                         navigateToAnotherScreenWithSlideTransitionFromRightToLeftPushReplacement(
-                           context,
-                           const HomeMedecin(),
-                         );
-                       }else {
-                         navigateToAnotherScreenWithSlideTransitionFromRightToLeftPushReplacement(
-                           context,
-                           const HomePatient(),
-                         );
-                       }
+                        if (state.user.role == "medecin") {
+                          navigateToAnotherScreenWithSlideTransitionFromRightToLeftPushReplacement(
+                            context,
+                            const HomeMedecin(),
+                          );
+                        } else {
+                          navigateToAnotherScreenWithSlideTransitionFromRightToLeftPushReplacement(
+                            context,
+                            const HomePatient(),
+                          );
+                        }
                       } else if (state is LoginError) {
                         showErrorSnackBar(context, "invalid_credentials".tr);
                       }
@@ -461,18 +465,27 @@ class _LoginScreenState extends State<LoginScreen> {
                         height: 55.h,
                         margin: EdgeInsets.only(bottom: 30.h),
                         child: ElevatedButton.icon(
-                          icon: Icon(
-                            FontAwesomeIcons.google,
-                            size: 18.sp,
-                            color: Colors.white,
-                          ),
-                          label: Text(
-                            "continue_with_google".tr,
-                            style: GoogleFonts.raleway(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          icon:
+                              isLoading
+                                  ? SizedBox(width: 18.sp, height: 18.sp)
+                                  : Icon(
+                                    FontAwesomeIcons.google,
+                                    size: 18.sp,
+                                    color: Colors.white,
+                                  ),
+                          label:
+                              isLoading
+                                  ? CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 3,
+                                  )
+                                  : Text(
+                                    "continue_with_google".tr,
+                                    style: GoogleFonts.raleway(
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryColor,
                             foregroundColor: Colors.white,
@@ -481,11 +494,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             elevation: 2,
                           ),
-                          onPressed: isLoading
-                              ? null
-                              : () {
-                                  context.read<LoginBloc>().add(LoginWithGoogle());
-                                },
+                          onPressed:
+                              isLoading
+                                  ? () {} // Keep button enabled but do nothing while loading
+                                  : () {
+                                    context.read<LoginBloc>().add(
+                                      LoginWithGoogle(),
+                                    );
+                                  },
                         ),
                       );
                     },

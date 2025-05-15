@@ -51,11 +51,11 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   bool hasRatedAppointment = false;
   bool isAppointmentPast = false;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
+
   // Variables to store appointment rating data
   bool _isLoadingRating = false;
   DoctorRatingEntity? _appointmentRating;
-  
+
   // Add these variables for prescription
   bool _isLoadingPrescription = false;
   PrescriptionEntity? _appointmentPrescription;
@@ -64,7 +64,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   void initState() {
     super.initState();
     initializeDateFormatting('fr_FR', null);
-    
+
     _rendezVousBloc = di.sl<RendezVousBloc>();
     _ratingBloc = di.sl<RatingBloc>();
     _prescriptionBloc = di.sl<PrescriptionBloc>();
@@ -74,7 +74,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   Future<void> _loadUser() async {
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString('CACHED_USER');
-    
+
     if (userJson != null) {
       try {
         final userMap = jsonDecode(userJson) as Map<String, dynamic>;
@@ -82,43 +82,47 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
           currentUser = UserModel.fromJson(userMap);
           isLoading = false;
         });
-        
+
         // Check and update past appointments
         if (currentUser?.id != null) {
-          _rendezVousBloc.add(CheckAndUpdatePastAppointments(
-            userId: currentUser!.id!,
-            userRole: currentUser!.role,
-          ));
+          _rendezVousBloc.add(
+            CheckAndUpdatePastAppointments(
+              userId: currentUser!.id!,
+              userRole: currentUser!.role,
+            ),
+          );
         }
-        
+
         // Check if appointment is in the past based on endTime if available
         DateTime appointmentEndTime;
         if (widget.appointment.endTime != null) {
           appointmentEndTime = widget.appointment.endTime!;
         } else {
           // Fallback to estimated duration if endTime not available
-          appointmentEndTime = widget.appointment.startTime.add(const Duration(minutes: 30));
+          appointmentEndTime = widget.appointment.startTime.add(
+            const Duration(minutes: 30),
+          );
         }
-        
+
         setState(() {
           isAppointmentPast = DateTime.now().isAfter(appointmentEndTime);
         });
-        
+
         // Load if user has already rated this appointment
-        if (widget.appointment.id != null && 
-            currentUser?.id != null && 
+        if (widget.appointment.id != null &&
+            currentUser?.id != null &&
             currentUser?.role == 'patient' &&
             widget.appointment.status == 'completed') {
           _checkIfRatedAppointment();
         }
-        
+
         // If this is a doctor viewing a completed appointment, fetch its rating
-        if (widget.appointment.id != null && 
+        if (widget.appointment.id != null &&
             currentUser?.role == 'medecin' &&
             widget.appointment.status == 'completed') {
           _fetchAppointmentRating();
         }
-        
+
         // Check if appointment has prescription
         if (widget.appointment.id != null) {
           _fetchAppointmentPrescription();
@@ -137,14 +141,16 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   }
 
   void _checkIfRatedAppointment() {
-    if (widget.appointment.id != null && 
-        currentUser?.id != null && 
+    if (widget.appointment.id != null &&
+        currentUser?.id != null &&
         currentUser?.role == 'patient' &&
         widget.appointment.status == 'completed') {
-      _ratingBloc.add(CheckPatientRatedAppointment(
-        patientId: currentUser!.id!,
-        rendezVousId: widget.appointment.id!,
-      ));
+      _ratingBloc.add(
+        CheckPatientRatedAppointment(
+          patientId: currentUser!.id!,
+          rendezVousId: widget.appointment.id!,
+        ),
+      );
     }
   }
 
@@ -152,72 +158,76 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   void _cancelAppointment() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          "Confirmer l'annulation",
-          style: GoogleFonts.raleway(
-            fontWeight: FontWeight.bold,
-            fontSize: 16.sp,
-          ),
-        ),
-        content: Text(
-          "Voulez-vous vraiment annuler ce rendez-vous ?",
-          style: GoogleFonts.raleway(fontSize: 14.sp),
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              "Non",
+      builder:
+          (context) => AlertDialog(
+            title: Text(
+              "Confirmer l'annulation",
               style: GoogleFonts.raleway(
-                fontSize: 14.sp,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              if (widget.appointment.id != null && 
-                  widget.appointment.patientId != null && 
-                  widget.appointment.doctorId != null && 
-                  widget.appointment.patientName != null && 
-                  widget.appointment.doctorName != null) {
-                    
-                setState(() {
-                  isCancelling = true;
-                });
-                
-                _rendezVousBloc.add(UpdateRendezVousStatus(
-                  rendezVousId: widget.appointment.id!,
-                  status: "cancelled",
-                  patientId: widget.appointment.patientId!,
-                  doctorId: widget.appointment.doctorId!,
-                  patientName: widget.appointment.patientName!,
-                  doctorName: widget.appointment.doctorName!,
-                ));
-              }
-              Navigator.pop(context);
-            },
-            child: Text(
-              "Oui",
-              style: GoogleFonts.raleway(
-                fontSize: 14.sp,
-                color: Colors.red,
                 fontWeight: FontWeight.bold,
+                fontSize: 16.sp,
               ),
             ),
+            content: Text(
+              "Voulez-vous vraiment annuler ce rendez-vous ?",
+              style: GoogleFonts.raleway(fontSize: 14.sp),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  "Non",
+                  style: GoogleFonts.raleway(
+                    fontSize: 14.sp,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (widget.appointment.id != null &&
+                      widget.appointment.patientId != null &&
+                      widget.appointment.doctorId != null &&
+                      widget.appointment.patientName != null &&
+                      widget.appointment.doctorName != null) {
+                    setState(() {
+                      isCancelling = true;
+                    });
+
+                    _rendezVousBloc.add(
+                      UpdateRendezVousStatus(
+                        rendezVousId: widget.appointment.id!,
+                        status: "cancelled",
+                        patientId: widget.appointment.patientId!,
+                        doctorId: widget.appointment.doctorId!,
+                        patientName: widget.appointment.patientName!,
+                        doctorName: widget.appointment.doctorName!,
+                      ),
+                    );
+                  }
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  "Oui",
+                  style: GoogleFonts.raleway(
+                    fontSize: 14.sp,
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   // Function to submit a rating
   void _submitRating() {
-    if (currentUser == null || 
-        currentUser!.id == null || 
-        widget.appointment.doctorId == null || 
+    if (currentUser == null ||
+        currentUser!.id == null ||
+        widget.appointment.doctorId == null ||
         widget.appointment.id == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -227,7 +237,9 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
           ),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
       return;
@@ -238,7 +250,8 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
       patientId: currentUser!.id!,
       patientName: currentUser!.name + ' ' + currentUser!.lastName,
       rating: _rating,
-      comment: _commentController.text.isNotEmpty ? _commentController.text : null,
+      comment:
+          _commentController.text.isNotEmpty ? _commentController.text : null,
       rendezVousId: widget.appointment.id!,
     );
 
@@ -278,7 +291,9 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   // Calculate appointment duration in minutes
   String _getAppointmentDuration() {
     if (widget.appointment.endTime != null) {
-      final duration = widget.appointment.endTime!.difference(widget.appointment.startTime);
+      final duration = widget.appointment.endTime!.difference(
+        widget.appointment.startTime,
+      );
       final minutes = duration.inMinutes;
       if (minutes >= 60) {
         final hours = minutes ~/ 60;
@@ -300,10 +315,12 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   // Fetch doctor info from Firestore
   Future<MedecinEntity?> _fetchDoctorInfo(String doctorId) async {
     try {
-      final doctorDoc = await _firestore.collection('medecins').doc(doctorId).get();
-      
+      final doctorDoc =
+          await _firestore.collection('medecins').doc(doctorId).get();
+
       if (doctorDoc.exists) {
-        Map<String, dynamic> doctorData = doctorDoc.data() as Map<String, dynamic>;
+        Map<String, dynamic> doctorData =
+            doctorDoc.data() as Map<String, dynamic>;
         return MedecinEntity(
           id: doctorId,
           name: doctorData['name'] ?? '',
@@ -325,35 +342,36 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
   void _navigateToDoctorProfile() async {
     if (widget.appointment.doctorId == null) return;
-    
+
     // Show loading indicator
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(
-          color: AppColors.primaryColor,
-        ),
-      ),
+      builder:
+          (context) => const Center(
+            child: CircularProgressIndicator(color: AppColors.primaryColor),
+          ),
     );
-    
+
     // Try to fetch doctor from Firestore
-    MedecinEntity? doctorEntity = await _fetchDoctorInfo(widget.appointment.doctorId!);
-    
+    MedecinEntity? doctorEntity = await _fetchDoctorInfo(
+      widget.appointment.doctorId!,
+    );
+
     // Dismiss loading indicator
     Navigator.pop(context);
-    
+
     // If fetch failed, create a basic doctor entity with available info
     if (doctorEntity == null) {
       final doctorName = widget.appointment.doctorName ?? '';
       final nameArray = doctorName.split(' ');
       final firstName = nameArray.isNotEmpty ? nameArray[0] : '';
       final lastName = nameArray.length > 1 ? nameArray[1] : '';
-      
+
       doctorEntity = MedecinEntity(
         id: widget.appointment.doctorId!,
         name: firstName,
-        lastName: lastName, 
+        lastName: lastName,
         email: "docteur@medical-app.com",
         speciality: widget.appointment.speciality,
         role: 'doctor',
@@ -361,15 +379,16 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
         phoneNumber: "+212 600000000",
       );
     }
-    
+
     // Now doctorEntity is guaranteed to be non-null
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => DoctorProfilePage(
-          doctor: doctorEntity!,
-          canBookAppointment: false,
-        ),
+        builder:
+            (context) => DoctorProfilePage(
+              doctor: doctorEntity!,
+              canBookAppointment: false,
+            ),
       ),
     );
   }
@@ -377,10 +396,12 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   // Fetch patient info from Firestore
   Future<PatientEntity?> _fetchPatientInfo(String patientId) async {
     try {
-      final patientDoc = await _firestore.collection('patients').doc(patientId).get();
-      
+      final patientDoc =
+          await _firestore.collection('patients').doc(patientId).get();
+
       if (patientDoc.exists) {
-        Map<String, dynamic> patientData = patientDoc.data() as Map<String, dynamic>;
+        Map<String, dynamic> patientData =
+            patientDoc.data() as Map<String, dynamic>;
         return PatientEntity(
           id: patientId,
           name: patientData['name'] ?? '',
@@ -389,11 +410,12 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
           role: patientData['role'] ?? 'patient',
           gender: patientData['gender'] ?? 'unknown',
           phoneNumber: patientData['phoneNumber'] ?? '',
-          dateOfBirth: patientData['dateOfBirth'] != null
-              ? (patientData['dateOfBirth'] is Timestamp)
-                  ? (patientData['dateOfBirth'] as Timestamp).toDate()
-                  : DateTime.parse(patientData['dateOfBirth'])
-              : null,
+          dateOfBirth:
+              patientData['dateOfBirth'] != null
+                  ? (patientData['dateOfBirth'] is Timestamp)
+                      ? (patientData['dateOfBirth'] as Timestamp).toDate()
+                      : DateTime.parse(patientData['dateOfBirth'])
+                  : null,
           antecedent: patientData['antecedent'] ?? '',
         );
       }
@@ -406,35 +428,36 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
   void _navigateToPatientProfile() async {
     if (widget.appointment.patientId == null) return;
-    
+
     // Show loading indicator
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(
-          color: AppColors.primaryColor,
-        ),
-      ),
+      builder:
+          (context) => const Center(
+            child: CircularProgressIndicator(color: AppColors.primaryColor),
+          ),
     );
-    
+
     // Try to fetch patient from Firestore
-    PatientEntity? patientEntity = await _fetchPatientInfo(widget.appointment.patientId!);
-    
+    PatientEntity? patientEntity = await _fetchPatientInfo(
+      widget.appointment.patientId!,
+    );
+
     // Dismiss loading indicator
     Navigator.pop(context);
-    
+
     // If fetch failed, create a basic patient entity with available info
     if (patientEntity == null) {
       final patientName = widget.appointment.patientName ?? '';
       final nameArray = patientName.split(' ');
       final firstName = nameArray.isNotEmpty ? nameArray[0] : '';
       final lastName = nameArray.length > 1 ? nameArray[1] : '';
-      
+
       patientEntity = PatientEntity(
         id: widget.appointment.patientId!,
         name: firstName,
-        lastName: lastName, 
+        lastName: lastName,
         email: "patient@medical-app.com",
         role: 'patient',
         gender: 'unknown',
@@ -442,69 +465,91 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
         antecedent: "",
       );
     }
-    
+
     // Now patientEntity is guaranteed to be non-null
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PatientProfilePage(
-          patient: patientEntity!,
-        ),
+        builder: (context) => PatientProfilePage(patient: patientEntity!),
       ),
     );
   }
-  
+
   void _createPrescription() async {
     if (widget.appointment.patientId == null) return;
-    
+
     // Show loading indicator
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(
-          color: AppColors.primaryColor,
-        ),
-      ),
+      builder:
+          (context) => const Center(
+            child: CircularProgressIndicator(color: AppColors.primaryColor),
+          ),
     );
-    
+
     // Try to fetch patient from Firestore for medical history
-    PatientEntity? patientEntity = await _fetchPatientInfo(widget.appointment.patientId!);
-    
+    PatientEntity? patientEntity = await _fetchPatientInfo(
+      widget.appointment.patientId!,
+    );
+
     // Dismiss loading indicator
     Navigator.pop(context);
-    
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CreatePrescriptionPage(
-          appointment: widget.appointment,
-          patient: patientEntity,
-        ),
+        builder:
+            (context) => CreatePrescriptionPage(
+              appointment: widget.appointment,
+              patient: patientEntity,
+            ),
       ),
     );
-    
-    // If prescription was created successfully, refresh the appointment status
+
+    // If prescription was created successfully, refresh the prescription data
     if (result == true && widget.appointment.id != null) {
-      _rendezVousBloc.add(FetchRendezVous(patientId: widget.appointment.patientId));
+      // Fetch the updated prescription
+      _fetchAppointmentPrescription();
+
+      // Also refresh the appointment status
+      _rendezVousBloc.add(
+        FetchRendezVous(patientId: widget.appointment.patientId),
+      );
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Ordonnance créée avec succès !",
+            style: GoogleFonts.raleway(),
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
     }
   }
 
   // Fetch appointment rating and comment
   Future<void> _fetchAppointmentRating() async {
     if (widget.appointment.id == null) return;
-    
+
     setState(() {
       _isLoadingRating = true;
     });
-    
+
     try {
-      final ratingDoc = await _firestore
-          .collection('ratings')
-          .where('rendezVousId', isEqualTo: widget.appointment.id)
-          .limit(1)
-          .get();
-      
+      final ratingDoc =
+          await _firestore
+              .collection('ratings')
+              .where('rendezVousId', isEqualTo: widget.appointment.id)
+              .limit(1)
+              .get();
+
       if (ratingDoc.docs.isNotEmpty) {
         final data = ratingDoc.docs.first.data();
         setState(() {
@@ -515,9 +560,10 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
             patientName: data['patientName'],
             rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
             comment: data['comment'],
-            createdAt: (data['createdAt'] is Timestamp) 
-                ? (data['createdAt'] as Timestamp).toDate() 
-                : DateTime.now(),
+            createdAt:
+                (data['createdAt'] is Timestamp)
+                    ? (data['createdAt'] as Timestamp).toDate()
+                    : DateTime.now(),
             rendezVousId: data['rendezVousId'] ?? '',
           );
         });
@@ -534,29 +580,23 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   // Add this method to fetch prescription
   void _fetchAppointmentPrescription() {
     if (widget.appointment.id == null) return;
-    
+
     setState(() {
       _isLoadingPrescription = true;
     });
-    
-    _prescriptionBloc.add(GetPrescriptionByAppointmentId(
-      appointmentId: widget.appointment.id!,
-    ));
+
+    _prescriptionBloc.add(
+      GetPrescriptionByAppointmentId(appointmentId: widget.appointment.id!),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider<RendezVousBloc>(
-          create: (context) => _rendezVousBloc,
-        ),
-        BlocProvider<RatingBloc>(
-          create: (context) => _ratingBloc,
-        ),
-        BlocProvider<PrescriptionBloc>(
-          create: (context) => _prescriptionBloc,
-        ),
+        BlocProvider<RendezVousBloc>(create: (context) => _rendezVousBloc),
+        BlocProvider<RatingBloc>(create: (context) => _ratingBloc),
+        BlocProvider<PrescriptionBloc>(create: (context) => _prescriptionBloc),
       ],
       child: MultiBlocListener(
         listeners: [
@@ -574,23 +614,27 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                     ),
                     backgroundColor: AppColors.primaryColor,
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 );
-                Navigator.pop(context, true); // Return true to indicate cancellation
+                Navigator.pop(
+                  context,
+                  true,
+                ); // Return true to indicate cancellation
               } else if (state is RendezVousError) {
                 setState(() {
                   isCancelling = false;
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      state.message,
-                      style: GoogleFonts.raleway(),
-                    ),
+                    content: Text(state.message, style: GoogleFonts.raleway()),
                     backgroundColor: Colors.red,
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 );
               }
@@ -614,19 +658,20 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                     ),
                     backgroundColor: AppColors.primaryColor,
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 );
               } else if (state is RatingError) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      state.message,
-                      style: GoogleFonts.raleway(),
-                    ),
+                    content: Text(state.message, style: GoogleFonts.raleway()),
                     backgroundColor: Colors.red,
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 );
               }
@@ -651,13 +696,12 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      state.message,
-                      style: GoogleFonts.raleway(),
-                    ),
+                    content: Text(state.message, style: GoogleFonts.raleway()),
                     backgroundColor: Colors.red,
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 );
               }
@@ -677,352 +721,410 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
             backgroundColor: AppColors.primaryColor,
             elevation: 2,
             leading: IconButton(
-              icon: const Icon(Icons.chevron_left, size: 28, color: Colors.white),
+              icon: const Icon(
+                Icons.chevron_left,
+                size: 28,
+                color: Colors.white,
+              ),
               onPressed: () => Navigator.of(context).pop(),
             ),
           ),
           floatingActionButton: null,
-          body: isLoading
-              ? Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primaryColor,
-                  ),
-                )
-              : SingleChildScrollView(
-                  child: Padding(
-                    padding: EdgeInsets.all(16.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Appointment card
-                        Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 4,
-                          child: Padding(
-                            padding: EdgeInsets.all(20.w),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Status badge
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      "Statut:",
-                                      style: GoogleFonts.raleway(
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey[700],
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 16.w,
-                                        vertical: 8.h,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _getStatusColor(widget.appointment.status),
-                                        borderRadius: BorderRadius.circular(30),
-                                      ),
-                                      child: Text(
-                                        _getStatusText(widget.appointment.status),
-                                        style: GoogleFonts.raleway(
-                                          fontSize: 14.sp,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                
-                                Divider(height: 30.h, thickness: 1),
-                                
-                                // Doctor info
-                                Text(
-                                  "Médecin:",
-                                  style: GoogleFonts.raleway(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                                SizedBox(height: 12.h),
-                                Row(
-                                  children: [
-                                    Container(
-                                      height: 60.h,
-                                      width: 60.w,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primaryColor,
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: AppColors.primaryColor.withOpacity(0.3),
-                                            blurRadius: 10,
-                                            offset: Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: InkWell(
-                                        onTap: widget.appointment.doctorId != null ? _navigateToDoctorProfile : null,
-                                        child: Icon(
-                                          Icons.person,
-                                          color: Colors.white,
-                                          size: 36.sp,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 16.w),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          InkWell(
-                                            onTap: widget.appointment.doctorId != null ? _navigateToDoctorProfile : null,
-                                            child: Text(
-                                              widget.appointment.doctorName != null
-                                                  ? "Dr. ${widget.appointment.doctorName}"
-                                                  : "Médecin à assigner",
-                                              style: GoogleFonts.raleway(
-                                                fontSize: 18.sp,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.black87,
-                                              ),
-                                            ),
-                                          ),
-                                          SizedBox(height: 4.h),
-                                          Text(
-                                            widget.appointment.speciality ?? 'Spécialité non spécifiée',
-                                            style: GoogleFonts.raleway(
-                                              fontSize: 16.sp,
-                                              color: Colors.grey.shade600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                
-                                Divider(height: 30.h, thickness: 1),
-                                
-                                // Patient info (shown only for doctors)
-                                if (currentUser?.role == 'medecin')
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+          body:
+              isLoading
+                  ? Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primaryColor,
+                    ),
+                  )
+                  : SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Appointment card
+                          Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 4,
+                            child: Padding(
+                              padding: EdgeInsets.all(20.w),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Status badge
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            "Patient:",
-                                            style: GoogleFonts.raleway(
-                                              fontSize: 16.sp,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.grey[700],
-                                            ),
-                                          ),
-                                          TextButton.icon(
-                                            onPressed: _navigateToPatientProfile,
-                                            icon: Icon(
-                                              Icons.person,
-                                              size: 18.sp,
-                                              color: AppColors.primaryColor,
-                                            ),
-                                            label: Text(
-                                              "Voir profil",
-                                              style: GoogleFonts.raleway(
-                                                fontSize: 14.sp,
-                                                fontWeight: FontWeight.w600,
-                                                color: AppColors.primaryColor,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 8.h),
                                       Text(
-                                        widget.appointment.patientName ?? "Patient inconnu",
+                                        "Statut:",
                                         style: GoogleFonts.raleway(
-                                          fontSize: 18.sp,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.grey[700],
                                         ),
                                       ),
-                                      SizedBox(height: 16.h),
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 16.w,
+                                          vertical: 8.h,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _getStatusColor(
+                                            widget.appointment.status,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            30,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _getStatusText(
+                                            widget.appointment.status,
+                                          ),
+                                          style: GoogleFonts.raleway(
+                                            fontSize: 14.sp,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   ),
-                                
-                                // Date and time information with better layout
-                                Text(
-                                  "Informations du rendez-vous:",
-                                  style: GoogleFonts.raleway(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey[700],
+
+                                  Divider(height: 30.h, thickness: 1),
+
+                                  // Doctor info
+                                  Text(
+                                    "Médecin:",
+                                    style: GoogleFonts.raleway(
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[700],
+                                    ),
                                   ),
-                                ),
-                                SizedBox(height: 12.h),
-                                Container(
-                                  padding: EdgeInsets.all(16.w),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[50],
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey[200]!),
-                                  ),
-                                  child: Column(
+                                  SizedBox(height: 12.h),
+                                  Row(
                                     children: [
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.calendar_today,
-                                            color: AppColors.primaryColor,
-                                            size: 24.sp,
+                                      Container(
+                                        height: 60.h,
+                                        width: 60.w,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primaryColor,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
                                           ),
-                                          SizedBox(width: 12.w),
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'Date',
-                                                style: GoogleFonts.raleway(
-                                                  fontSize: 14.sp,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.grey[700],
-                                                ),
-                                              ),
-                                              Text(
-                                                DateFormat('EEEE d MMMM yyyy', 'fr_FR')
-                                                    .format(widget.appointment.startTime),
-                                                style: GoogleFonts.raleway(
-                                                  fontSize: 16.sp,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ],
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.primaryColor
+                                                  .withOpacity(0.3),
+                                              blurRadius: 10,
+                                              offset: Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: InkWell(
+                                          onTap:
+                                              widget.appointment.doctorId !=
+                                                      null
+                                                  ? _navigateToDoctorProfile
+                                                  : null,
+                                          child: Icon(
+                                            Icons.person,
+                                            color: Colors.white,
+                                            size: 36.sp,
                                           ),
-                                        ],
+                                        ),
                                       ),
-                                      SizedBox(height: 16.h),
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.access_time,
-                                            color: AppColors.primaryColor,
-                                            size: 24.sp,
-                                          ),
-                                          SizedBox(width: 12.w),
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'Heure',
+                                      SizedBox(width: 16.w),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            InkWell(
+                                              onTap:
+                                                  widget.appointment.doctorId !=
+                                                          null
+                                                      ? _navigateToDoctorProfile
+                                                      : null,
+                                              child: Text(
+                                                widget.appointment.doctorName !=
+                                                        null
+                                                    ? "Dr. ${widget.appointment.doctorName}"
+                                                    : "Médecin à assigner",
                                                 style: GoogleFonts.raleway(
-                                                  fontSize: 14.sp,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.grey[700],
-                                                ),
-                                              ),
-                                              Text(
-                                                DateFormat('HH:mm').format(widget.appointment.startTime),
-                                                style: GoogleFonts.raleway(
+                                                  fontSize: 18.sp,
                                                   fontWeight: FontWeight.bold,
-                                                  fontSize: 16.sp,
                                                   color: Colors.black87,
                                                 ),
                                               ),
-                                              SizedBox(height: 4.h),
-                                              Text(
-                                                "Durée: ${_getAppointmentDuration()}",
-                                                style: GoogleFonts.raleway(
-                                                  fontSize: 14.sp,
-                                                  color: Colors.black54,
-                                                ),
+                                            ),
+                                            SizedBox(height: 4.h),
+                                            Text(
+                                              widget.appointment.speciality ??
+                                                  'Spécialité non spécifiée',
+                                              style: GoogleFonts.raleway(
+                                                fontSize: 16.sp,
+                                                color: Colors.grey.shade600,
                                               ),
-                                            ],
-                                          ),
-                                        ],
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ],
                                   ),
-                                ),
-                                
-                                // Cancel button (only show if not cancelled and not in the past)
-                                if (widget.appointment.status != "cancelled" && !isAppointmentPast)
-                                  Padding(
-                                    padding: EdgeInsets.only(top: 24.h),
-                                    child: SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton.icon(
-                                        onPressed: isCancelling ? null : _cancelAppointment,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.red,
-                                          padding: EdgeInsets.symmetric(vertical: 14.h),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          disabledBackgroundColor: Colors.red.withOpacity(0.6),
-                                          elevation: 2,
-                                        ),
-                                        icon: isCancelling 
-                                            ? SizedBox(
-                                                height: 20.sp, 
-                                                width: 20.sp, 
-                                                child: CircularProgressIndicator(
-                                                  color: Colors.white,
-                                                  strokeWidth: 2.w,
-                                                ),
-                                              )
-                                            : Icon(
-                                                Icons.cancel_outlined,
-                                                color: Colors.white,
-                                                size: 22.sp,
+
+                                  Divider(height: 30.h, thickness: 1),
+
+                                  // Patient info (shown only for doctors)
+                                  if (currentUser?.role == 'medecin')
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              "Patient:",
+                                              style: GoogleFonts.raleway(
+                                                fontSize: 16.sp,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.grey[700],
                                               ),
-                                        label: Text(
-                                          isCancelling ? "Annulation en cours..." : "Annuler le rendez-vous",
+                                            ),
+                                            TextButton.icon(
+                                              onPressed:
+                                                  _navigateToPatientProfile,
+                                              icon: Icon(
+                                                Icons.person,
+                                                size: 18.sp,
+                                                color: AppColors.primaryColor,
+                                              ),
+                                              label: Text(
+                                                "Voir profil",
+                                                style: GoogleFonts.raleway(
+                                                  fontSize: 14.sp,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.primaryColor,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(height: 8.h),
+                                        Text(
+                                          widget.appointment.patientName ??
+                                              "Patient inconnu",
                                           style: GoogleFonts.raleway(
-                                            color: Colors.white,
-                                            fontSize: 16.sp,
-                                            fontWeight: FontWeight.w600,
+                                            fontSize: 18.sp,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        SizedBox(height: 16.h),
+                                      ],
+                                    ),
+
+                                  // Date and time information with better layout
+                                  Text(
+                                    "Informations du rendez-vous:",
+                                    style: GoogleFonts.raleway(
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                  SizedBox(height: 12.h),
+                                  Container(
+                                    padding: EdgeInsets.all(16.w),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[50],
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.grey[200]!,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.calendar_today,
+                                              color: AppColors.primaryColor,
+                                              size: 24.sp,
+                                            ),
+                                            SizedBox(width: 12.w),
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Date',
+                                                  style: GoogleFonts.raleway(
+                                                    fontSize: 14.sp,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.grey[700],
+                                                  ),
+                                                ),
+                                                Text(
+                                                  DateFormat(
+                                                    'EEEE d MMMM yyyy',
+                                                    'fr_FR',
+                                                  ).format(
+                                                    widget
+                                                        .appointment
+                                                        .startTime,
+                                                  ),
+                                                  style: GoogleFonts.raleway(
+                                                    fontSize: 16.sp,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(height: 16.h),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.access_time,
+                                              color: AppColors.primaryColor,
+                                              size: 24.sp,
+                                            ),
+                                            SizedBox(width: 12.w),
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Heure',
+                                                  style: GoogleFonts.raleway(
+                                                    fontSize: 14.sp,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.grey[700],
+                                                  ),
+                                                ),
+                                                Text(
+                                                  DateFormat('HH:mm').format(
+                                                    widget
+                                                        .appointment
+                                                        .startTime,
+                                                  ),
+                                                  style: GoogleFonts.raleway(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16.sp,
+                                                    color: Colors.black87,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 4.h),
+                                                Text(
+                                                  "Durée: ${_getAppointmentDuration()}",
+                                                  style: GoogleFonts.raleway(
+                                                    fontSize: 14.sp,
+                                                    color: Colors.black54,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  // Cancel button (only show if not cancelled and not in the past)
+                                  if (widget.appointment.status !=
+                                          "cancelled" &&
+                                      !isAppointmentPast)
+                                    Padding(
+                                      padding: EdgeInsets.only(top: 24.h),
+                                      child: SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          onPressed:
+                                              isCancelling
+                                                  ? null
+                                                  : _cancelAppointment,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: 14.h,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            disabledBackgroundColor: Colors.red
+                                                .withOpacity(0.6),
+                                            elevation: 2,
+                                          ),
+                                          icon:
+                                              isCancelling
+                                                  ? SizedBox(
+                                                    height: 20.sp,
+                                                    width: 20.sp,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          color: Colors.white,
+                                                          strokeWidth: 2.w,
+                                                        ),
+                                                  )
+                                                  : Icon(
+                                                    Icons.cancel_outlined,
+                                                    color: Colors.white,
+                                                    size: 22.sp,
+                                                  ),
+                                          label: Text(
+                                            isCancelling
+                                                ? "Annulation en cours..."
+                                                : "Annuler le rendez-vous",
+                                            style: GoogleFonts.raleway(
+                                              color: Colors.white,
+                                              fontSize: 16.sp,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        
-                        // Always show prescription section for doctors, or show only for completed/past appointments for patients
-                        if (currentUser?.role == 'medecin' || 
-                            widget.appointment.status == 'completed' || 
-                            (widget.appointment.status == 'accepted' && isAppointmentPast))
-                          _buildPrescriptionSection(),
-                        
-                        // Only show rating section when it's not a doctor view and appointment is completed
-                        if (!widget.isDoctor && 
-                            widget.appointment.status == 'completed' && 
-                            isAppointmentPast && 
-                            currentUser?.role == 'patient')
-                          _buildRatingSection(),
-                          
-                        // Show rating from patient when doctor is viewing a completed appointment
-                        if (widget.isDoctor && 
-                            widget.appointment.status == 'completed' && 
-                            isAppointmentPast && 
-                            currentUser?.role == 'medecin')
-                          _buildDoctorViewRatingSection(),
 
-                        // Add a prominent Add Prescription button for doctors
-                        _buildAddPrescriptionButton(),
-                      ],
+                          // Always show prescription section for doctors, or show only for completed/past appointments for patients
+                          if (currentUser?.role == 'medecin' ||
+                              widget.appointment.status == 'completed' ||
+                              (widget.appointment.status == 'accepted' &&
+                                  isAppointmentPast))
+                            _buildPrescriptionSection(),
+
+                          // Only show rating section when it's not a doctor view and appointment is completed
+                          if (!widget.isDoctor &&
+                              widget.appointment.status == 'completed' &&
+                              isAppointmentPast &&
+                              currentUser?.role == 'patient')
+                            _buildRatingSection(),
+
+                          // Show rating from patient when doctor is viewing a completed appointment
+                          if (widget.isDoctor &&
+                              widget.appointment.status == 'completed' &&
+                              isAppointmentPast &&
+                              currentUser?.role == 'medecin')
+                            _buildDoctorViewRatingSection(),
+
+                          // Add a prominent Add Prescription button for doctors
+                          _buildAddPrescriptionButton(),
+                        ],
+                      ),
                     ),
                   ),
-                ),
         ),
       ),
     );
@@ -1067,10 +1169,8 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
               itemCount: 5,
               itemSize: 36.sp,
               itemPadding: EdgeInsets.symmetric(horizontal: 4.w),
-              itemBuilder: (context, _) => Icon(
-                Icons.star,
-                color: Colors.amber,
-              ),
+              itemBuilder:
+                  (context, _) => Icon(Icons.star, color: Colors.amber),
               onRatingUpdate: (rating) {
                 setState(() {
                   _rating = rating;
@@ -1104,9 +1204,12 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
             child: ElevatedButton(
               onPressed: hasRatedAppointment ? null : _submitRating,
               style: ElevatedButton.styleFrom(
-                backgroundColor: hasRatedAppointment ? Colors.grey : AppColors.primaryColor,
+                backgroundColor:
+                    hasRatedAppointment ? Colors.grey : AppColors.primaryColor,
                 padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 12.h),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               child: Text(
                 hasRatedAppointment ? "Déjà évalué" : "Soumettre l'évaluation",
@@ -1157,7 +1260,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
         ),
       );
     }
-    
+
     return Container(
       margin: EdgeInsets.only(top: 24.h),
       padding: EdgeInsets.all(16.w),
@@ -1185,15 +1288,11 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
             ),
           ),
           SizedBox(height: 16.h),
-          
+
           if (_appointmentRating != null) ...[
             Row(
               children: [
-                Icon(
-                  Icons.person,
-                  size: 18.sp,
-                  color: Colors.grey[600],
-                ),
+                Icon(Icons.person, size: 18.sp, color: Colors.grey[600]),
                 SizedBox(width: 8.w),
                 Text(
                   _appointmentRating!.patientName ?? "Patient",
@@ -1210,10 +1309,10 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
               children: [
                 ...List.generate(5, (index) {
                   return Icon(
-                    index < _appointmentRating!.rating.floor() 
-                        ? Icons.star 
-                        : (index < _appointmentRating!.rating 
-                            ? Icons.star_half 
+                    index < _appointmentRating!.rating.floor()
+                        ? Icons.star
+                        : (index < _appointmentRating!.rating
+                            ? Icons.star_half
                             : Icons.star_border),
                     color: Colors.amber,
                     size: 24.sp,
@@ -1230,7 +1329,8 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                 ),
               ],
             ),
-            if (_appointmentRating!.comment != null && _appointmentRating!.comment!.isNotEmpty) ...[
+            if (_appointmentRating!.comment != null &&
+                _appointmentRating!.comment!.isNotEmpty) ...[
               SizedBox(height: 16.h),
               Text(
                 "Commentaire:",
@@ -1270,11 +1370,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
             Center(
               child: Column(
                 children: [
-                  Icon(
-                    Icons.star_border,
-                    size: 48.sp,
-                    color: Colors.grey[400],
-                  ),
+                  Icon(Icons.star_border, size: 48.sp, color: Colors.grey[400]),
                   SizedBox(height: 16.h),
                   Text(
                     "Pas encore d'évaluation",
@@ -1337,7 +1433,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
             ],
           ),
           SizedBox(height: 12.h),
-          
+
           if (_isLoadingPrescription)
             Center(
               child: Column(
@@ -1368,13 +1464,14 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => BlocProvider<PrescriptionBloc>.value(
-                            value: _prescriptionBloc,
-                            child: PrescriptionDetailsPage(
-                              prescription: _appointmentPrescription!,
-                              isDoctor: currentUser?.role == 'medecin',
-                            ),
-                          ),
+                          builder:
+                              (context) => BlocProvider<PrescriptionBloc>.value(
+                                value: _prescriptionBloc,
+                                child: PrescriptionDetailsPage(
+                                  prescription: _appointmentPrescription!,
+                                  isDoctor: currentUser?.role == 'medecin',
+                                ),
+                              ),
                         ),
                       ).then((_) {
                         // Refresh prescription data when returning
@@ -1481,48 +1578,82 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
   // Add a prominent Add Prescription button for doctors
   Widget _buildAddPrescriptionButton() {
-    if (currentUser?.role != 'medecin') {
+    // Only show for doctors and only for accepted or completed appointments
+    if (currentUser?.role != 'medecin' ||
+        (widget.appointment.status != "accepted" &&
+            widget.appointment.status != "completed")) {
       return SizedBox.shrink();
     }
-    
+
+    // Check if current time is before the appointment time
+    final now = DateTime.now();
+    final isBeforeAppointment = now.isBefore(widget.appointment.startTime);
+
     return Container(
       margin: EdgeInsets.only(top: 24.h, bottom: 24.h),
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: _appointmentPrescription == null
-            ? _createPrescription
-            : () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CreatePrescriptionPage(
-                      appointment: widget.appointment,
-                      existingPrescription: _appointmentPrescription,
-                    ),
-                  ),
-                ).then((result) {
-                  if (result == true) {
-                    _fetchAppointmentPrescription();
-                  }
-                });
-              },
+        onPressed:
+            isBeforeAppointment
+                ? null // Button is disabled if before appointment
+                : (_appointmentPrescription == null
+                    ? _createPrescription
+                    : () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => CreatePrescriptionPage(
+                                appointment: widget.appointment,
+                                existingPrescription: _appointmentPrescription,
+                              ),
+                        ),
+                      ).then((result) {
+                        if (result == true) {
+                          // Refresh the prescription data
+                          _fetchAppointmentPrescription();
+
+                          // Show success message
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                "Ordonnance modifiée avec succès !",
+                                style: GoogleFonts.raleway(),
+                              ),
+                              backgroundColor: Colors.green,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                        }
+                      });
+                    }),
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryColor,
+          backgroundColor:
+              isBeforeAppointment ? Colors.grey[300] : AppColors.primaryColor,
           padding: EdgeInsets.symmetric(vertical: 16.h),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.r),
           ),
-          elevation: 2,
+          elevation: isBeforeAppointment ? 0 : 2,
         ),
         icon: Icon(
-          _appointmentPrescription == null ? Icons.add : Icons.edit,
-          color: Colors.white,
+          isBeforeAppointment
+              ? Icons.access_time
+              : (_appointmentPrescription == null ? Icons.add : Icons.edit),
+          color: isBeforeAppointment ? Colors.grey[700] : Colors.white,
           size: 24.sp,
         ),
         label: Text(
-          _appointmentPrescription == null ? "Créer une ordonnance" : "Modifier l'ordonnance",
+          isBeforeAppointment
+              ? "Attendre jusqu'à la fin du rendez-vous"
+              : (_appointmentPrescription == null
+                  ? "Créer une ordonnance"
+                  : "Modifier l'ordonnance"),
           style: GoogleFonts.raleway(
-            color: Colors.white,
+            color: isBeforeAppointment ? Colors.grey[700] : Colors.white,
             fontSize: 16.sp,
             fontWeight: FontWeight.bold,
           ),
@@ -1536,4 +1667,4 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
     _commentController.dispose();
     super.dispose();
   }
-} 
+}

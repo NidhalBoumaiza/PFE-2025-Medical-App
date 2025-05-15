@@ -22,50 +22,104 @@ class NotificationsPatient extends StatefulWidget {
   State<NotificationsPatient> createState() => _NotificationsPatientState();
 }
 
-class _NotificationsPatientState extends State<NotificationsPatient> {
+class _NotificationsPatientState extends State<NotificationsPatient>
+    with AutomaticKeepAliveClientMixin {
   String _selectedFilter = 'all';
   late UserEntity _currentUser;
   bool _isLoading = true;
-  
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
+
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // This ensures notification refresh when page is navigated back to
+    if (!_isLoading && _currentUser.id != null) {
+      _refreshNotifications(showLoading: false);
+    }
+  }
+
   Future<void> _loadUserData() async {
     try {
       final authLocalDataSource = di.sl<AuthLocalDataSource>();
       final user = await authLocalDataSource.getUser();
-      
+
       setState(() {
         _currentUser = user;
-        _isLoading = false;
       });
-      
-      // Load notifications for the current user
-      context.read<NotificationBloc>().add(GetNotificationsEvent(userId: user.id!));
-      
-      // Mark all as read when the page is opened
-      context.read<NotificationBloc>().add(MarkAllNotificationsAsReadEvent(userId: user.id!));
-      
-      // Set up notifications stream
-      context.read<NotificationBloc>().add(GetNotificationsStreamEvent(userId: user.id!));
+
+      // Don't set _isLoading = false here, let it be driven by the notification bloc state
+      _refreshNotifications();
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error loading user data: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error loading user data: $e")));
     }
+  }
+
+  Future<void> _refreshNotifications({bool showLoading = true}) async {
+    if (_currentUser.id == null) return;
+
+    if (showLoading) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Set a timeout to ensure we don't get stuck loading
+      Future.delayed(Duration(seconds: 5), () {
+        if (mounted && _isLoading) {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Loading timed out. Pull to refresh again.'),
+            ),
+          );
+        }
+      });
+    }
+
+    try {
+      // Execute just one event at a time and let the bloc handle the rest
+      // This prevents multiple loading states from being triggered
+      context.read<NotificationBloc>().add(
+        GetNotificationsEvent(userId: _currentUser.id!),
+      );
+    } catch (e) {
+      // Handle any unexpected errors
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error refreshing: $e')));
+      }
+    }
+
+    return Future.delayed(const Duration(milliseconds: 500));
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
@@ -88,105 +142,193 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
                   MarkAllNotificationsAsReadEvent(userId: _currentUser.id!),
                 );
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('all_notifications_marked_as_read'.tr)),
+                  SnackBar(
+                    content: Text('all_notifications_marked_as_read'.tr),
+                  ),
                 );
               }
             },
           ),
         ],
         leading: IconButton(
-          icon: const Icon(
-            Icons.chevron_left,
-            size: 30,
-          ),
+          icon: const Icon(Icons.chevron_left, size: 30),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryColor))
-          : BlocBuilder<NotificationBloc, NotificationState>(
-              builder: (context, state) {
-                if (state is NotificationLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.primaryColor),
-                  );
-                } else if (state is NotificationsLoaded) {
-                  if (state.notifications.isEmpty) {
-                    return Center(
+      body: BlocConsumer<NotificationBloc, NotificationState>(
+        listenWhen: (previous, current) {
+          // Listen for these specific state changes
+          return current is NotificationsLoaded ||
+              current is NotificationError ||
+              current is NotificationInitial;
+        },
+        listener: (context, state) {
+          print('NotificationBloc state: ${state.runtimeType}');
+
+          if (state is NotificationsLoaded) {
+            // Only update to not loading when notifications are actually loaded
+            if (_isLoading) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+
+            // When notifications are loaded, also setup other notification features
+            if (_currentUser.id != null) {
+              // Set up notifications stream
+              context.read<NotificationBloc>().add(
+                GetNotificationsStreamEvent(userId: _currentUser.id!),
+              );
+
+              // Update unread count
+              context.read<NotificationBloc>().add(
+                GetUnreadNotificationsCountEvent(userId: _currentUser.id!),
+              );
+            }
+          } else if (state is NotificationError) {
+            print('Notification Error: ${state.message}');
+            if (_isLoading) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+          }
+        },
+        buildWhen: (previous, current) {
+          // Only rebuild for states that actually affect the UI
+          return current is NotificationsLoaded || current is NotificationError;
+        },
+        builder: (context, state) {
+          print('Building UI with state: ${state.runtimeType}');
+
+          // Show content based on loaded state
+          if (state is NotificationsLoaded) {
+            return RefreshIndicator(
+              key: _refreshIndicatorKey,
+              onRefresh: _refreshNotifications,
+              color: AppColors.primaryColor,
+              child:
+                  state.notifications.isEmpty
+                      ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.7,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.notifications_off,
+                                    size: 80.sp,
+                                    color:
+                                        isDarkMode
+                                            ? theme.iconTheme.color
+                                                ?.withOpacity(0.4)
+                                            : Colors.grey[400],
+                                  ),
+                                  SizedBox(height: 16.h),
+                                  Text(
+                                    'no_notifications'.tr,
+                                    style: GoogleFonts.raleway(
+                                      fontSize: 16.sp,
+                                      color: theme.textTheme.bodyMedium?.color,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                      : Column(
+                        children: [
+                          _buildFilterChips(),
+                          Expanded(
+                            child: _buildNotificationList(state.notifications),
+                          ),
+                        ],
+                      ),
+            );
+          } else if (state is NotificationError) {
+            return RefreshIndicator(
+              key: _refreshIndicatorKey,
+              onRefresh: _refreshNotifications,
+              color: AppColors.primaryColor,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.7,
+                    child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.notifications_off,
-                            size: 80.sp,
-                            color: isDarkMode 
-                              ? theme.iconTheme.color?.withOpacity(0.4)
-                              : Colors.grey[400],
+                            Icons.error_outline,
+                            size: 60.sp,
+                            color: Colors.red.withOpacity(0.7),
                           ),
                           SizedBox(height: 16.h),
                           Text(
-                            'no_notifications'.tr,
+                            state.message,
+                            textAlign: TextAlign.center,
                             style: GoogleFonts.raleway(
                               fontSize: 16.sp,
-                              color: theme.textTheme.bodyMedium?.color,
+                              color: Colors.red,
+                            ),
+                          ),
+                          SizedBox(height: 24.h),
+                          ElevatedButton.icon(
+                            onPressed: _refreshNotifications,
+                            icon: Icon(Icons.refresh),
+                            label: Text('retry'.tr),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24.w,
+                                vertical: 12.h,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    );
-                  }
-                  return Column(
-                    children: [
-                      _buildFilterChips(),
-                      Expanded(
-                        child: _buildNotificationList(state.notifications),
-                      ),
-                    ],
-                  );
-                } else if (state is NotificationError) {
-                  return Center(
-                    child: Text(
-                      state.message,
-                      style: GoogleFonts.raleway(
-                        fontSize: 16.sp,
-                        color: Colors.red,
-                      ),
                     ),
-                  );
-                }
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.notifications_off,
-                        size: 80.sp,
-                        color: isDarkMode 
-                          ? theme.iconTheme.color?.withOpacity(0.4)
-                          : Colors.grey[400],
-                      ),
-                      SizedBox(height: 16.h),
-                      Text(
-                        'no_notifications'.tr,
-                        style: GoogleFonts.raleway(
-                          fontSize: 16.sp,
-                          color: theme.textTheme.bodyMedium?.color,
-                        ),
-                      ),
-                    ],
                   ),
-                );
-              },
+                ],
+              ),
+            );
+          }
+
+          // Default loading indicator
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(color: AppColors.primaryColor),
+                SizedBox(height: 16.h),
+                Text(
+                  'loading_notifications'.tr,
+                  style: GoogleFonts.raleway(
+                    fontSize: 16.sp,
+                    color: theme.textTheme.bodyMedium?.color,
+                  ),
+                ),
+              ],
             ),
+          );
+        },
+      ),
     );
   }
 
   Widget _buildFilterChips() {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -207,7 +349,7 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
   Widget _buildFilterChip(String value, String label) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     final isSelected = _selectedFilter == value;
     return FilterChip(
       label: Text(
@@ -227,14 +369,11 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
         }
       },
       selectedColor: AppColors.primaryColor,
-      backgroundColor: isDarkMode 
-          ? theme.cardColor.withOpacity(0.3) 
-          : Colors.grey[100],
+      backgroundColor:
+          isDarkMode ? theme.cardColor.withOpacity(0.3) : Colors.grey[100],
       checkmarkColor: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       elevation: 0,
       shadowColor: Colors.transparent,
     );
@@ -243,24 +382,25 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
   Widget _buildNotificationList(List<NotificationEntity> notifications) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
-    final filteredNotifications = _selectedFilter == 'all'
-        ? notifications
-        : notifications.where((n) {
-            // Filter by notification type based on the selected filter
-            switch (_selectedFilter) {
-              case 'appointment':
-                return n.type == NotificationType.newAppointment ||
+
+    final filteredNotifications =
+        _selectedFilter == 'all'
+            ? notifications
+            : notifications.where((n) {
+              // Filter by notification type based on the selected filter
+              switch (_selectedFilter) {
+                case 'appointment':
+                  return n.type == NotificationType.newAppointment ||
                       n.type == NotificationType.appointmentAccepted ||
                       n.type == NotificationType.appointmentRejected;
-              case 'prescription':
-                return n.type == NotificationType.newPrescription;
-              case 'rating':
-                return n.type == NotificationType.newRating;
-              default:
-                return true;
-            }
-          }).toList();
+                case 'prescription':
+                  return n.type == NotificationType.newPrescription;
+                case 'rating':
+                  return n.type == NotificationType.newRating;
+                default:
+                  return true;
+              }
+            }).toList();
 
     if (filteredNotifications.isEmpty) {
       return Center(
@@ -268,11 +408,12 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.notifications_off, 
-              size: 48, 
-              color: isDarkMode 
-                ? theme.iconTheme.color?.withOpacity(0.4)
-                : Colors.grey[400]
+              Icons.notifications_off,
+              size: 48,
+              color:
+                  isDarkMode
+                      ? theme.iconTheme.color?.withOpacity(0.4)
+                      : Colors.grey[400],
             ),
             const SizedBox(height: 16),
             Text(
@@ -300,7 +441,7 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
   Widget _buildDismissibleNotification(NotificationEntity notification) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return Dismissible(
       key: Key(notification.id),
       background: Container(
@@ -334,10 +475,7 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: Text(
-                    'delete'.tr,
-                    style: TextStyle(color: Colors.red),
-                  ),
+                  child: Text('delete'.tr, style: TextStyle(color: Colors.red)),
                 ),
               ],
             );
@@ -346,40 +484,40 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
       },
       onDismissed: (direction) {
         context.read<NotificationBloc>().add(
-          DeleteNotificationEvent(
-            notificationId: notification.id,
-          ),
+          DeleteNotificationEvent(notificationId: notification.id),
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('notification_deleted'.tr)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('notification_deleted'.tr)));
       },
       child: InkWell(
         onTap: () {
           if (!notification.isRead) {
             context.read<NotificationBloc>().add(
-              MarkNotificationAsReadEvent(
-                notificationId: notification.id,
-              ),
+              MarkNotificationAsReadEvent(notificationId: notification.id),
             );
           }
-          
+
           _handleNotificationTap(notification);
         },
         child: Card(
           margin: EdgeInsets.only(bottom: 12.h),
           elevation: 1,
-          color: notification.isRead 
-            ? theme.cardColor
-            : isDarkMode
-              ? AppColors.primaryColor.withOpacity(0.15) 
-              : AppColors.primaryColor.withOpacity(0.05),
+          color:
+              notification.isRead
+                  ? theme.cardColor
+                  : isDarkMode
+                  ? AppColors.primaryColor.withOpacity(0.15)
+                  : AppColors.primaryColor.withOpacity(0.05),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10.r),
             side: BorderSide(
-              color: notification.isRead 
-                ? isDarkMode ? Colors.grey.shade800 : Colors.grey.shade300
-                : AppColors.primaryColor.withOpacity(0.3),
+              color:
+                  notification.isRead
+                      ? isDarkMode
+                          ? Colors.grey.shade800
+                          : Colors.grey.shade300
+                      : AppColors.primaryColor.withOpacity(0.3),
               width: 1,
             ),
           ),
@@ -402,9 +540,10 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
                               notification.title,
                               style: GoogleFonts.raleway(
                                 fontSize: 14.sp,
-                                fontWeight: notification.isRead 
-                                  ? FontWeight.normal
-                                  : FontWeight.bold,
+                                fontWeight:
+                                    notification.isRead
+                                        ? FontWeight.normal
+                                        : FontWeight.bold,
                                 color: theme.textTheme.bodyLarge?.color,
                               ),
                             ),
@@ -462,54 +601,51 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
   Widget _getNotificationTypeIcon(NotificationType type) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     IconData iconData;
     Color iconColor;
     Color backgroundColor;
-    
+
     switch (type) {
       case NotificationType.newAppointment:
       case NotificationType.appointmentAccepted:
       case NotificationType.appointmentRejected:
         iconData = Icons.calendar_today;
         iconColor = AppColors.primaryColor;
-        backgroundColor = isDarkMode 
-          ? AppColors.primaryColor.withOpacity(0.2)
-          : AppColors.primaryColor.withOpacity(0.1);
+        backgroundColor =
+            isDarkMode
+                ? AppColors.primaryColor.withOpacity(0.2)
+                : AppColors.primaryColor.withOpacity(0.1);
         break;
       case NotificationType.newPrescription:
         iconData = Icons.medical_services;
         iconColor = Colors.green;
-        backgroundColor = isDarkMode 
-          ? Colors.green.withOpacity(0.2)
-          : Colors.green.withOpacity(0.1);
+        backgroundColor =
+            isDarkMode
+                ? Colors.green.withOpacity(0.2)
+                : Colors.green.withOpacity(0.1);
         break;
       case NotificationType.newRating:
         iconData = Icons.star;
         iconColor = Colors.amber;
-        backgroundColor = isDarkMode 
-          ? Colors.amber.withOpacity(0.2)
-          : Colors.amber.withOpacity(0.1);
+        backgroundColor =
+            isDarkMode
+                ? Colors.amber.withOpacity(0.2)
+                : Colors.amber.withOpacity(0.1);
         break;
       default:
         iconData = Icons.notifications;
         iconColor = Colors.grey;
-        backgroundColor = isDarkMode 
-          ? Colors.grey.withOpacity(0.2)
-          : Colors.grey.withOpacity(0.1);
+        backgroundColor =
+            isDarkMode
+                ? Colors.grey.withOpacity(0.2)
+                : Colors.grey.withOpacity(0.1);
     }
 
     return Container(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: backgroundColor, shape: BoxShape.circle),
       padding: EdgeInsets.all(10.r),
-      child: Icon(
-        iconData,
-        color: iconColor,
-        size: 20.sp,
-      ),
+      child: Icon(iconData, color: iconColor, size: 20.sp),
     );
   }
 
@@ -518,17 +654,21 @@ class _NotificationsPatientState extends State<NotificationsPatient> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => AppointmentDetailsPage(id: notification.appointmentId!),
+          builder:
+              (context) =>
+                  AppointmentDetailsPage(id: notification.appointmentId!),
         ),
-      );
+      ).then(
+        (_) => _refreshNotifications(showLoading: false),
+      ); // Refresh on return
     } else if (notification.prescriptionId != null) {
       // Navigate to prescription details
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => OrdonnancesPage(),
-        ),
-      );
+        MaterialPageRoute(builder: (context) => OrdonnancesPage()),
+      ).then(
+        (_) => _refreshNotifications(showLoading: false),
+      ); // Refresh on return
     }
   }
 

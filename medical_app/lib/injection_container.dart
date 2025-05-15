@@ -74,6 +74,7 @@ import 'package:medical_app/features/ordonnance/domain/usecases/get_doctor_presc
 import 'package:medical_app/features/ordonnance/domain/usecases/get_patient_prescriptions_use_case.dart';
 import 'package:medical_app/features/ordonnance/domain/usecases/get_prescription_by_appointment_id_use_case.dart';
 import 'package:medical_app/features/ordonnance/domain/usecases/get_prescription_by_id_use_case.dart';
+import 'package:medical_app/features/ordonnance/domain/usecases/update_prescription_use_case.dart';
 import 'package:medical_app/features/ordonnance/presentation/bloc/prescription_bloc.dart';
 
 // Add notification feature imports
@@ -102,54 +103,66 @@ Future<void> init() async {
   sl.registerFactory(() => SignupBloc(createAccountUseCase: sl()));
   sl.registerFactory(() => UpdateUserBloc(updateUserUseCase: sl()));
   sl.registerFactory(() => ToggleCubit());
-  sl.registerFactory(() => ForgotPasswordBloc(sendVerificationCodeUseCase: sl()));
+  sl.registerFactory(
+    () => ForgotPasswordBloc(sendVerificationCodeUseCase: sl()),
+  );
   sl.registerFactory(() => VerifyCodeBloc(verifyCodeUseCase: sl()));
   sl.registerFactory(() => ResetPasswordBloc(changePasswordUseCase: sl()));
-  sl.registerFactory(() => RendezVousBloc(
-    fetchRendezVousUseCase: sl(),
-    updateRendezVousStatusUseCase: sl(),
-    createRendezVousUseCase: sl(),
-    fetchDoctorsBySpecialtyUseCase: sl(),
-    assignDoctorToRendezVousUseCase: sl(),
-    notificationBloc: sl<NotificationBloc>(),
-  ));
+  sl.registerFactory(
+    () => RendezVousBloc(
+      fetchRendezVousUseCase: sl(),
+      updateRendezVousStatusUseCase: sl(),
+      createRendezVousUseCase: sl(),
+      fetchDoctorsBySpecialtyUseCase: sl(),
+      assignDoctorToRendezVousUseCase: sl(),
+      notificationBloc: sl<NotificationBloc>(),
+    ),
+  );
   sl.registerFactory(() => ConversationsBloc(getConversationsUseCase: sl()));
-  sl.registerFactory(() => MessagerieBloc(
-    sendMessageUseCase: sl(),
-    getMessagesUseCase: sl(),
-    getMessagesStreamUseCase: sl(),
-  ));
-  
+  sl.registerFactory(
+    () => MessagerieBloc(
+      sendMessageUseCase: sl(),
+      getMessagesUseCase: sl(),
+      getMessagesStreamUseCase: sl(),
+    ),
+  );
+
   // Dashboard BLoC
-  sl.registerFactory(() => DashboardBloc(
-    getDoctorDashboardStatsUseCase: sl(),
-    getUpcomingAppointmentsUseCase: sl(),
-  ));
+  sl.registerFactory(
+    () => DashboardBloc(
+      getDoctorDashboardStatsUseCase: sl(),
+      getUpcomingAppointmentsUseCase: sl(),
+    ),
+  );
 
   // Prescription BLoC
-  sl.registerFactory(() => PrescriptionBloc(
-    createPrescriptionUseCase: sl(),
-    editPrescriptionUseCase: sl(),
-    getPatientPrescriptionsUseCase: sl(),
-    getDoctorPrescriptionsUseCase: sl(),
-    getPrescriptionByIdUseCase: sl(),
-    getPrescriptionByAppointmentIdUseCase: sl(),
-    updatePrescriptionUseCase: sl(),
-    notificationBloc: sl<NotificationBloc>(),
-  ));
+  sl.registerFactory(
+    () => PrescriptionBloc(
+      createPrescriptionUseCase: sl(),
+      editPrescriptionUseCase: sl(),
+      getPatientPrescriptionsUseCase: sl(),
+      getDoctorPrescriptionsUseCase: sl(),
+      getPrescriptionByIdUseCase: sl(),
+      getPrescriptionByAppointmentIdUseCase: sl(),
+      updatePrescriptionUseCase: sl(),
+      notificationBloc: sl<NotificationBloc>(),
+    ),
+  );
 
   // Notification BLoC
-  sl.registerFactory(() => NotificationBloc(
-    getNotificationsUseCase: sl(),
-    sendNotificationUseCase: sl(),
-    markNotificationAsReadUseCase: sl(),
-    markAllNotificationsAsReadUseCase: sl(),
-    deleteNotificationUseCase: sl(),
-    getUnreadNotificationsCountUseCase: sl(),
-    setupFCMUseCase: sl(),
-    saveFCMTokenUseCase: sl(),
-    getNotificationsStreamUseCase: sl(),
-  ));
+  sl.registerFactory(
+    () => NotificationBloc(
+      getNotificationsUseCase: sl(),
+      sendNotificationUseCase: sl(),
+      markNotificationAsReadUseCase: sl(),
+      markAllNotificationsAsReadUseCase: sl(),
+      deleteNotificationUseCase: sl(),
+      getUnreadNotificationsCountUseCase: sl(),
+      setupFCMUseCase: sl(),
+      saveFCMTokenUseCase: sl(),
+      getNotificationsStreamUseCase: sl(),
+    ),
+  );
 
   // Use Cases
   sl.registerLazySingleton(() => LoginUseCase(sl()));
@@ -167,7 +180,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetMessagesUseCase(sl()));
   sl.registerLazySingleton(() => GetMessagesStreamUseCase(sl()));
   sl.registerLazySingleton(() => SendVerificationCodeUseCase(sl()));
-  
+
   // Dashboard Use Cases
   sl.registerLazySingleton(() => GetDoctorDashboardStatsUseCase(sl()));
   sl.registerLazySingleton(() => GetUpcomingAppointmentsUseCase(sl()));
@@ -179,6 +192,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetDoctorPrescriptionsUseCase(sl()));
   sl.registerLazySingleton(() => GetPrescriptionByIdUseCase(sl()));
   sl.registerLazySingleton(() => GetPrescriptionByAppointmentIdUseCase(sl()));
+  sl.registerLazySingleton(() => UpdatePrescriptionUseCase(sl()));
 
   // Notification Use Cases
   sl.registerLazySingleton(() => GetNotificationsUseCase(sl()));
@@ -193,52 +207,37 @@ Future<void> init() async {
 
   // Repositories
   sl.registerLazySingleton<AuthRepository>(
-        () => AuthRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    () => AuthRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
   sl.registerLazySingleton<RendezVousRepository>(
-        () => RendezVousRepositoryImpl(
+    () => RendezVousRepositoryImpl(
       remoteDataSource: sl(),
       localDataSource: sl(),
       networkInfo: sl(),
     ),
   );
   sl.registerLazySingleton<MessagingRepository>(
-        () => MessagingRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    () => MessagingRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
-  
+
   // Dashboard Repository
   sl.registerLazySingleton<DashboardRepository>(
-    () => DashboardRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    () => DashboardRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
 
   // Prescription Repository
   sl.registerLazySingleton<PrescriptionRepository>(
-    () => PrescriptionRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    () => PrescriptionRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
 
   // Notification Repository
   sl.registerLazySingleton<NotificationRepository>(
-    () => NotificationRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    () => NotificationRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
 
   // Data Sources
   sl.registerLazySingleton<AuthRemoteDataSource>(
-        () => AuthRemoteDataSourceImpl(
+    () => AuthRemoteDataSourceImpl(
       firebaseAuth: sl(),
       firestore: sl(),
       googleSignIn: sl(),
@@ -246,39 +245,30 @@ Future<void> init() async {
     ),
   );
   sl.registerLazySingleton<AuthLocalDataSource>(
-        () => AuthLocalDataSourceImpl(sharedPreferences: sl()),
+    () => AuthLocalDataSourceImpl(sharedPreferences: sl()),
   );
   sl.registerLazySingleton<RendezVousRemoteDataSource>(
-        () => RendezVousRemoteDataSourceImpl(
-      firestore: sl(),
-      localDataSource: sl(),
-    ),
+    () =>
+        RendezVousRemoteDataSourceImpl(firestore: sl(), localDataSource: sl()),
   );
   sl.registerLazySingleton<RendezVousLocalDataSource>(
-        () => RendezVousLocalDataSourceImpl(sharedPreferences: sl()),
+    () => RendezVousLocalDataSourceImpl(sharedPreferences: sl()),
   );
   sl.registerLazySingleton<MessagingRemoteDataSource>(
-        () => MessagingRemoteDataSourceImpl(
-      firestore: sl(),
-      storage: sl(),
-    ),
+    () => MessagingRemoteDataSourceImpl(firestore: sl(), storage: sl()),
   );
   sl.registerLazySingleton<MessagingLocalDataSource>(
-        () => MessagingLocalDataSourceImpl(),
+    () => MessagingLocalDataSourceImpl(),
   );
-  
+
   // Dashboard DataSource
   sl.registerLazySingleton<DashboardRemoteDataSource>(
-    () => DashboardRemoteDataSourceImpl(
-      firestore: sl(),
-    ),
+    () => DashboardRemoteDataSourceImpl(firestore: sl()),
   );
 
   // Prescription DataSource
   sl.registerLazySingleton<PrescriptionRemoteDataSource>(
-    () => PrescriptionRemoteDataSourceImpl(
-      firestore: sl(),
-    ),
+    () => PrescriptionRemoteDataSourceImpl(firestore: sl()),
   );
 
   // Notification Data Sources
@@ -301,7 +291,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => FirebaseStorage.instance);
   sl.registerLazySingleton(() => GoogleSignIn());
   sl.registerLazySingleton<InternetConnectionChecker>(
-        () => InternetConnectionChecker.instance,
+    () => InternetConnectionChecker.instance,
   );
 
   // External - FCM and Local Notifications
@@ -322,14 +312,9 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetDoctorRatingsUseCase(sl()));
   sl.registerLazySingleton(() => GetDoctorAverageRatingUseCase(sl()));
   sl.registerLazySingleton<RatingRepository>(
-    () => RatingRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    () => RatingRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
   sl.registerLazySingleton<RatingRemoteDataSource>(
-    () => RatingRemoteDataSourceImpl(
-      firestore: sl(),
-    ),
+    () => RatingRemoteDataSourceImpl(firestore: sl()),
   );
 }

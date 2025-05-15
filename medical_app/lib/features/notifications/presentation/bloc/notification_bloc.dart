@@ -50,6 +50,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     on<SaveFCMTokenEvent>(_onSaveFCMToken);
     on<GetNotificationsStreamEvent>(_onGetNotificationsStream);
     on<NotificationReceivedEvent>(_onNotificationReceived);
+    on<NotificationErrorEvent>(_onNotificationError);
   }
 
   Future<void> _onGetNotifications(
@@ -59,7 +60,9 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     emit(NotificationLoading());
     final result = await getNotificationsUseCase(userId: event.userId);
     result.fold(
-      (failure) => emit(const NotificationError(message: 'Failed to load notifications')),
+      (failure) => emit(
+        const NotificationError(message: 'Failed to load notifications'),
+      ),
       (notifications) {
         _notifications = notifications;
         emit(NotificationsLoaded(notifications: notifications));
@@ -84,7 +87,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       data: event.data,
     );
     result.fold(
-      (failure) => emit(const NotificationError(message: 'Failed to send notification')),
+      (failure) =>
+          emit(const NotificationError(message: 'Failed to send notification')),
       (_) => emit(NotificationSent()),
     );
   }
@@ -94,9 +98,13 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     Emitter<NotificationState> emit,
   ) async {
     emit(NotificationLoading());
-    final result = await markNotificationAsReadUseCase(notificationId: event.notificationId);
+    final result = await markNotificationAsReadUseCase(
+      notificationId: event.notificationId,
+    );
     result.fold(
-      (failure) => emit(const NotificationError(message: 'Failed to mark notification as read')),
+      (failure) => emit(
+        const NotificationError(message: 'Failed to mark notification as read'),
+      ),
       (_) => emit(NotificationMarkedAsRead()),
     );
   }
@@ -106,9 +114,15 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     Emitter<NotificationState> emit,
   ) async {
     emit(NotificationLoading());
-    final result = await markAllNotificationsAsReadUseCase(userId: event.userId);
+    final result = await markAllNotificationsAsReadUseCase(
+      userId: event.userId,
+    );
     result.fold(
-      (failure) => emit(const NotificationError(message: 'Failed to mark all notifications as read')),
+      (failure) => emit(
+        const NotificationError(
+          message: 'Failed to mark all notifications as read',
+        ),
+      ),
       (_) => emit(AllNotificationsMarkedAsRead()),
     );
   }
@@ -118,9 +132,13 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     Emitter<NotificationState> emit,
   ) async {
     emit(NotificationLoading());
-    final result = await deleteNotificationUseCase(notificationId: event.notificationId);
+    final result = await deleteNotificationUseCase(
+      notificationId: event.notificationId,
+    );
     result.fold(
-      (failure) => emit(const NotificationError(message: 'Failed to delete notification')),
+      (failure) => emit(
+        const NotificationError(message: 'Failed to delete notification'),
+      ),
       (_) => emit(NotificationDeleted()),
     );
   }
@@ -130,9 +148,12 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     Emitter<NotificationState> emit,
   ) async {
     emit(NotificationLoading());
-    final result = await getUnreadNotificationsCountUseCase(userId: event.userId);
+    final result = await getUnreadNotificationsCountUseCase(
+      userId: event.userId,
+    );
     result.fold(
-      (failure) => emit(const NotificationError(message: 'Failed to get unread count')),
+      (failure) =>
+          emit(const NotificationError(message: 'Failed to get unread count')),
       (count) {
         _unreadCount = count;
         emit(UnreadNotificationsCountLoaded(count: count));
@@ -147,7 +168,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     emit(NotificationLoading());
     final result = await setupFCMUseCase();
     result.fold(
-      (failure) => emit(const NotificationError(message: 'Failed to setup FCM')),
+      (failure) =>
+          emit(const NotificationError(message: 'Failed to setup FCM')),
       (token) => emit(FCMSetupSuccess(token: token)),
     );
   }
@@ -157,9 +179,13 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     Emitter<NotificationState> emit,
   ) async {
     emit(NotificationLoading());
-    final result = await saveFCMTokenUseCase(userId: event.userId, token: event.token);
+    final result = await saveFCMTokenUseCase(
+      userId: event.userId,
+      token: event.token,
+    );
     result.fold(
-      (failure) => emit(const NotificationError(message: 'Failed to save FCM token')),
+      (failure) =>
+          emit(const NotificationError(message: 'Failed to save FCM token')),
       (_) => emit(FCMTokenSaved()),
     );
   }
@@ -167,30 +193,32 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   void _onGetNotificationsStream(
     GetNotificationsStreamEvent event,
     Emitter<NotificationState> emit,
-  ) {
+  ) async {
     emit(NotificationLoading());
-    
+
     // Cancel existing subscription if there is one
     _notificationsSubscription?.cancel();
-    
+
     // Subscribe to notifications stream
-    _notificationsSubscription = getNotificationsStreamUseCase(userId: event.userId)
-        .listen(
+    _notificationsSubscription = getNotificationsStreamUseCase(
+      userId: event.userId,
+    ).listen(
       (notifications) {
         // Update notifications and unread count
         _notifications = notifications;
         _unreadCount = notifications.where((n) => !n.isRead).length;
-        
-        // Add a NotificationReceivedEvent to the bloc
+
+        // Use add() to dispatch events instead of emitting directly from the listener
         if (notifications.isNotEmpty) {
           add(NotificationReceivedEvent(notification: notifications.first));
         }
       },
       onError: (error) {
-        emit(NotificationError(message: 'Stream error: $error'));
+        // Use add() to dispatch error event instead of emitting directly
+        add(NotificationErrorEvent(message: 'Stream error: $error'));
       },
     );
-    
+
     emit(NotificationStreamActive());
   }
 
@@ -202,9 +230,16 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     emit(UnreadNotificationsCountLoaded(count: _unreadCount));
   }
 
+  void _onNotificationError(
+    NotificationErrorEvent event,
+    Emitter<NotificationState> emit,
+  ) {
+    emit(NotificationError(message: event.message));
+  }
+
   @override
   Future<void> close() {
     _notificationsSubscription?.cancel();
     return super.close();
   }
-} 
+}

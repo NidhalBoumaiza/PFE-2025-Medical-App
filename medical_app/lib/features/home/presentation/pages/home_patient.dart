@@ -26,6 +26,9 @@ import '../../../rendez_vous/presentation/pages/appointments_patients.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:medical_app/features/notifications/presentation/widgets/notification_badge.dart';
 import 'package:medical_app/features/localisation/services/language_service.dart';
+import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_bloc.dart';
+import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_state.dart';
+import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_event.dart';
 
 class HomePatient extends StatefulWidget {
   const HomePatient({super.key});
@@ -45,19 +48,34 @@ class _HomePatientState extends State<HomePatient> {
   void initState() {
     super.initState();
     _loadUserData();
+    _printFCMToken(); // Print FCM token for testing
   }
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString('CACHED_USER');
     if (userJson != null) {
-      print ('User JSON: $userJson');
+      print('User JSON: $userJson');
       final userMap = jsonDecode(userJson) as Map<String, dynamic>;
       setState(() {
         userId = userMap['id'] as String? ?? '';
-        patientName = '${userMap['name'] ?? ''} ${userMap['lastName'] ?? ''}'.trim();
+        patientName =
+            '${userMap['name'] ?? ''} ${userMap['lastName'] ?? ''}'.trim();
         email = userMap['email'] as String? ?? 'johndoe@example.com';
       });
+    }
+  }
+
+  // Print FCM token for testing
+  Future<void> _printFCMToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('FCM_TOKEN');
+      print('==========================');
+      print('PATIENT FCM TOKEN for testing: $token');
+      print('==========================');
+    } catch (e) {
+      print('Error getting FCM token: $e');
     }
   }
 
@@ -82,7 +100,7 @@ class _HomePatientState extends State<HomePatient> {
         );
       },
     );
-    
+
     if (picked != null && picked != _selectedAppointmentDate) {
       setState(() {
         _selectedAppointmentDate = picked;
@@ -90,7 +108,7 @@ class _HomePatientState extends State<HomePatient> {
       });
     }
   }
-  
+
   // Reset appointment date filter
   void _resetAppointmentDateFilter() {
     setState(() {
@@ -98,7 +116,7 @@ class _HomePatientState extends State<HomePatient> {
       _updatePages();
     });
   }
-  
+
   // Update pages list with current state
   void _updatePages() {
     setState(() {
@@ -122,9 +140,10 @@ class _HomePatientState extends State<HomePatient> {
       activeIcon: Icon(Icons.calendar_today, size: 24),
       label: 'appointments'.tr,
     ),
+    // Message with badge
     BottomNavigationBarItem(
-      icon: Icon(Icons.chat_bubble_outline, size: 24),
-      activeIcon: Icon(Icons.chat_bubble, size: 24),
+      icon: _buildMessageIcon(false),
+      activeIcon: _buildMessageIcon(true),
       label: 'messages'.tr,
     ),
     BottomNavigationBarItem(
@@ -133,6 +152,66 @@ class _HomePatientState extends State<HomePatient> {
       label: 'profile'.tr,
     ),
   ];
+
+  // Widget to display message icon with badge for unread messages
+  Widget _buildMessageIcon(bool isActive) {
+    return BlocBuilder<ConversationsBloc, ConversationsState>(
+      buildWhen: (previous, current) {
+        // Only rebuild when conversations loaded
+        return current is ConversationsLoaded;
+      },
+      builder: (context, state) {
+        int unreadCount = 0;
+
+        if (state is ConversationsLoaded) {
+          unreadCount =
+              state.conversations
+                  .where(
+                    (conv) =>
+                        !conv.lastMessageRead && conv.lastMessage.isNotEmpty,
+                  )
+                  .length;
+        }
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(
+              isActive ? Icons.chat_bubble : Icons.chat_bubble_outline,
+              size: isActive ? 24 : 24,
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: -5,
+                top: -5,
+                child: Container(
+                  padding: EdgeInsets.all(4.r),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      width: 1.5,
+                    ),
+                  ),
+                  constraints: BoxConstraints(minWidth: 14.r, minHeight: 14.r),
+                  child: Center(
+                    child: Text(
+                      unreadCount > 99 ? '99+' : unreadCount.toString(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 9.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
 
   late List<Widget> _pages = [
     const Dashboardpatient(),
@@ -147,23 +226,13 @@ class _HomePatientState extends State<HomePatient> {
     });
   }
 
-  void _onNotificationTapped() {
-    navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-      context,
-      const NotificationsPatient(),
-    );
-  }
-
   void _logout() {
     Get.dialog(
       AlertDialog(
         title: Text('logout'.tr),
-        content: Text('confirm logout'.tr),
+        content: Text('confirm_logout'.tr),
         actions: [
-          TextButton(
-            onPressed: Get.back,
-            child: Text('cancel'.tr),
-          ),
+          TextButton(onPressed: Get.back, child: Text('cancel'.tr)),
           TextButton(
             onPressed: () async {
               try {
@@ -179,16 +248,16 @@ class _HomePatientState extends State<HomePatient> {
 
                 // Optional: show success message
                 Get.snackbar(
-                  'Success',
-                  'Logged out successfully',
+                  'success'.tr,
+                  'logout_success'.tr,
                   backgroundColor: Colors.green,
                   colorText: Colors.white,
                 );
               } catch (e) {
                 // Show error message if logout fails
                 Get.snackbar(
-                  'Error',
-                  'Failed to logout: $e',
+                  'error'.tr,
+                  'logout_error'.tr,
                   backgroundColor: Colors.red,
                   colorText: Colors.white,
                 );
@@ -211,10 +280,12 @@ class _HomePatientState extends State<HomePatient> {
   }) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
-    final textColor = color ?? (isDarkMode ? theme.textTheme.bodyLarge?.color : Colors.white);
-    final iconColor = color ?? (isDarkMode ? theme.textTheme.bodyLarge?.color : Colors.white);
-  
+
+    final textColor =
+        color ?? (isDarkMode ? theme.textTheme.bodyLarge?.color : Colors.white);
+    final iconColor =
+        color ?? (isDarkMode ? theme.textTheme.bodyLarge?.color : Colors.white);
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Material(
@@ -227,11 +298,7 @@ class _HomePatientState extends State<HomePatient> {
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                Icon(
-                  icon,
-                  size: 22,
-                  color: iconColor,
-                ),
+                Icon(icon, size: 22, color: iconColor),
                 SizedBox(width: 16),
                 Expanded(
                   child: Text(
@@ -271,9 +338,9 @@ class _HomePatientState extends State<HomePatient> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
-    print ("1111111111111111111111111111111") ;
-    print ("userId : $userId") ;
+
+    print("1111111111111111111111111111111");
+    print("userId : $userId");
     return SafeArea(
       child: BlocListener<UpdateUserBloc, UpdateUserState>(
         listener: (context, state) {
@@ -295,7 +362,7 @@ class _HomePatientState extends State<HomePatient> {
           backgroundColor: theme.scaffoldBackgroundColor,
           appBar: AppBar(
             title: Text(
-              _selectedIndex == 1 ? 'Mes rendez-vous' : 'MediLink',
+              _selectedIndex == 1 ? 'appointments'.tr : 'MediLink',
               style: GoogleFonts.raleway(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -310,18 +377,18 @@ class _HomePatientState extends State<HomePatient> {
                 IconButton(
                   icon: Icon(Icons.calendar_today, color: AppColors.whiteColor),
                   onPressed: () => _selectAppointmentDate(context),
-                  tooltip: "Filtrer par date",
+                  tooltip: "filter_by_date".tr,
                 ),
                 if (_selectedAppointmentDate != null)
                   IconButton(
                     icon: Icon(Icons.clear, color: AppColors.whiteColor),
                     onPressed: _resetAppointmentDateFilter,
-                    tooltip: "Réinitialiser le filtre",
+                    tooltip: "reset_filter".tr,
                   ),
               ],
-              IconButton(
-                icon: Icon(Icons.notifications_none, size: 24, color: AppColors.whiteColor),
-                onPressed: _onNotificationTapped,
+              const NotificationBadge(
+                iconColor: AppColors.whiteColor,
+                iconSize: 24,
               ),
             ],
           ),
@@ -329,12 +396,14 @@ class _HomePatientState extends State<HomePatient> {
 
           bottomNavigationBar: Container(
             decoration: BoxDecoration(
-              color: isDarkMode ? theme.colorScheme.surface : AppColors.whiteColor,
+              color:
+                  isDarkMode ? theme.colorScheme.surface : AppColors.whiteColor,
               boxShadow: [
                 BoxShadow(
-                  color: isDarkMode 
-                      ? Colors.black.withOpacity(0.3) 
-                      : AppColors.textSecondary.withOpacity(0.2),
+                  color:
+                      isDarkMode
+                          ? Colors.black.withOpacity(0.3)
+                          : AppColors.textSecondary.withOpacity(0.2),
                   spreadRadius: 1,
                   blurRadius: 10,
                   offset: const Offset(0, -2),
@@ -347,16 +416,26 @@ class _HomePatientState extends State<HomePatient> {
                 items: _navItems,
                 currentIndex: _selectedIndex,
                 selectedItemColor: AppColors.primaryColor,
-                unselectedItemColor: isDarkMode 
-                    ? theme.textTheme.bodySmall?.color?.withOpacity(0.7) 
-                    : AppColors.textSecondary,
+                unselectedItemColor:
+                    isDarkMode
+                        ? theme.textTheme.bodySmall?.color?.withOpacity(0.7)
+                        : AppColors.textSecondary,
                 showSelectedLabels: true,
                 showUnselectedLabels: true,
                 type: BottomNavigationBarType.fixed,
-                backgroundColor: isDarkMode ? theme.colorScheme.surface : AppColors.whiteColor,
+                backgroundColor:
+                    isDarkMode
+                        ? theme.colorScheme.surface
+                        : AppColors.whiteColor,
                 elevation: 10,
-                selectedLabelStyle: GoogleFonts.raleway(fontSize: 12, fontWeight: FontWeight.bold),
-                unselectedLabelStyle: GoogleFonts.raleway(fontSize: 12, fontWeight: FontWeight.w500),
+                selectedLabelStyle: GoogleFonts.raleway(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                unselectedLabelStyle: GoogleFonts.raleway(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
                 onTap: _onItemTapped,
               ),
             ),
@@ -368,29 +447,39 @@ class _HomePatientState extends State<HomePatient> {
             child: Drawer(
               width: MediaQuery.of(context).size.width * 0.8,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
+                borderRadius: BorderRadius.horizontal(
+                  right: Radius.circular(24),
+                ),
               ),
               elevation: 10,
               shadowColor: Colors.black26,
               child: Container(
                 decoration: BoxDecoration(
                   color: isDarkMode ? theme.colorScheme.surface : null,
-                  gradient: isDarkMode 
-                    ? null
-                    : LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFF2fa7bb),
-                          const Color(0xFF2fa7bb).withOpacity(0.85),
-                        ],
-                      ),
-                  borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
+                  gradient:
+                      isDarkMode
+                          ? null
+                          : LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              const Color(0xFF2fa7bb),
+                              const Color(0xFF2fa7bb).withOpacity(0.85),
+                            ],
+                          ),
+                  borderRadius: BorderRadius.horizontal(
+                    right: Radius.circular(24),
+                  ),
                 ),
                 child: Column(
                   children: [
                     Container(
-                      padding: EdgeInsets.only(top: 50, left: 25, right: 25, bottom: 25),
+                      padding: EdgeInsets.only(
+                        top: 50,
+                        left: 25,
+                        right: 25,
+                        bottom: 25,
+                      ),
                       child: Column(
                         children: [
                           Container(
@@ -406,11 +495,19 @@ class _HomePatientState extends State<HomePatient> {
                             ),
                             child: CircleAvatar(
                               radius: 40,
-                              backgroundColor: isDarkMode ? theme.colorScheme.primary.withOpacity(0.2) : AppColors.whiteColor,
+                              backgroundColor:
+                                  isDarkMode
+                                      ? theme.colorScheme.primary.withOpacity(
+                                        0.2,
+                                      )
+                                      : AppColors.whiteColor,
                               child: Icon(
                                 Icons.person,
                                 size: 36,
-                                color: isDarkMode ? theme.colorScheme.primary : const Color(0xFF2fa7bb),
+                                color:
+                                    isDarkMode
+                                        ? theme.colorScheme.primary
+                                        : const Color(0xFF2fa7bb),
                               ),
                             ),
                           ),
@@ -419,7 +516,10 @@ class _HomePatientState extends State<HomePatient> {
                             patientName,
                             style: GoogleFonts.raleway(
                               fontSize: 18,
-                              color: isDarkMode ? theme.textTheme.bodyLarge?.color : AppColors.whiteColor,
+                              color:
+                                  isDarkMode
+                                      ? theme.textTheme.bodyLarge?.color
+                                      : AppColors.whiteColor,
                               fontWeight: FontWeight.bold,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -427,12 +527,13 @@ class _HomePatientState extends State<HomePatient> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            'Patient',
+                            'patient'.tr,
                             style: GoogleFonts.raleway(
                               fontSize: 14,
-                              color: isDarkMode 
-                                  ? theme.textTheme.bodyMedium?.color 
-                                  : AppColors.whiteColor.withOpacity(0.8),
+                              color:
+                                  isDarkMode
+                                      ? theme.textTheme.bodyMedium?.color
+                                      : AppColors.whiteColor.withOpacity(0.8),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -441,9 +542,10 @@ class _HomePatientState extends State<HomePatient> {
                             email,
                             style: GoogleFonts.raleway(
                               fontSize: 14,
-                              color: isDarkMode 
-                                  ? theme.textTheme.bodySmall?.color 
-                                  : AppColors.whiteColor.withOpacity(0.7),
+                              color:
+                                  isDarkMode
+                                      ? theme.textTheme.bodySmall?.color
+                                      : AppColors.whiteColor.withOpacity(0.7),
                             ),
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
@@ -521,26 +623,41 @@ class _HomePatientState extends State<HomePatient> {
                           ),
                           // Theme toggle
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                             child: BlocBuilder<ThemeCubit, ThemeState>(
                               builder: (context, state) {
-                                final isDarkModeState = state is ThemeLoaded ? state.themeMode == ThemeMode.dark : false;
+                                final isDarkModeState =
+                                    state is ThemeLoaded
+                                        ? state.themeMode == ThemeMode.dark
+                                        : false;
                                 return Row(
                                   children: [
                                     Icon(
                                       isDarkModeState
-                                          ? FontAwesomeIcons.moon 
+                                          ? FontAwesomeIcons.moon
                                           : FontAwesomeIcons.sun,
-                                      color: isDarkMode ? theme.textTheme.bodyLarge?.color : Colors.white,
+                                      color:
+                                          isDarkMode
+                                              ? theme.textTheme.bodyLarge?.color
+                                              : Colors.white,
                                       size: 18,
                                     ),
                                     const SizedBox(width: 16),
                                     Text(
                                       isDarkModeState
-                                          ? 'dark_mode'.tr 
+                                          ? 'dark_mode'.tr
                                           : 'light_mode'.tr,
                                       style: GoogleFonts.raleway(
-                                        color: isDarkMode ? theme.textTheme.bodyLarge?.color : Colors.white,
+                                        color:
+                                            isDarkMode
+                                                ? theme
+                                                    .textTheme
+                                                    .bodyLarge
+                                                    ?.color
+                                                : Colors.white,
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -548,11 +665,13 @@ class _HomePatientState extends State<HomePatient> {
                                     const Spacer(),
                                     Transform.scale(
                                       scale: 0.8,
-                                      child: const ThemeCubitSwitch(compact: true),
+                                      child: const ThemeCubitSwitch(
+                                        compact: true,
+                                      ),
                                     ),
                                   ],
                                 );
-                              }
+                              },
                             ),
                           ),
                         ],
@@ -564,10 +683,13 @@ class _HomePatientState extends State<HomePatient> {
                       height: 1,
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+                      padding: EdgeInsets.symmetric(
+                        vertical: 20,
+                        horizontal: 12,
+                      ),
                       child: _buildDrawerItem(
                         icon: FontAwesomeIcons.rightFromBracket,
-                        title: 'Logout'.tr,
+                        title: 'logout'.tr,
                         onTap: _logout,
                         color: Colors.red[50],
                       ),

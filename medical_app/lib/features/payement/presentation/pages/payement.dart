@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/utils/app_colors.dart';
+import 'package:get/get.dart';
 
 class PaymentsPage extends StatelessWidget {
   const PaymentsPage({super.key});
@@ -8,9 +9,9 @@ class PaymentsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Paiements',
-          style: TextStyle(
+        title: Text(
+          'payments'.tr,
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 24,
@@ -18,11 +19,7 @@ class PaymentsPage extends StatelessWidget {
         ),
         backgroundColor: AppColors.primaryColor,
         leading: IconButton(
-          icon: const Icon(
-            Icons.chevron_left,
-            size: 30,
-            color: Colors.white,
-          ),
+          icon: const Icon(Icons.chevron_left, size: 30, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -33,9 +30,9 @@ class PaymentsPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Méthodes de Paiement',
-              style: TextStyle(
+            Text(
+              'payment_methods'.tr,
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -47,12 +44,12 @@ class PaymentsPage extends StatelessWidget {
                 children: [
                   _buildPaymentMethodCard(
                     icon: Icons.credit_card,
-                    title: 'Carte de Crédit',
+                    title: 'credit_card'.tr,
                     subtitle: '**** **** **** 1234',
                   ),
                   _buildPaymentMethodCard(
                     icon: Icons.account_balance_wallet,
-                    title: 'Portefeuille Électronique',
+                    title: 'electronic_wallet'.tr,
                     subtitle: 'johndoe@wallet.com',
                   ),
                   _buildPaymentMethodCard(
@@ -76,29 +73,17 @@ class PaymentsPage extends StatelessWidget {
   }) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        leading: Icon(
-          icon,
-          color: AppColors.primaryColor,
-          size: 30,
-        ),
+        leading: Icon(icon, color: AppColors.primaryColor, size: 30),
         title: Text(
           title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         subtitle: Text(
           subtitle,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.grey,
-          ),
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
         ),
         trailing: const Icon(
           Icons.arrow_forward_ios,

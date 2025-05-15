@@ -16,6 +16,7 @@ import 'package:medical_app/features/messagerie/presentation/blocs/messageries%2
 import 'package:medical_app/features/messagerie/presentation/blocs/messageries%20BLoC/messagerie_event.dart';
 import 'package:medical_app/features/messagerie/presentation/blocs/messageries%20BLoC/messagerie_state.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:get/get.dart';
 
 // ChatScreen displays the messaging interface for a conversation
 class ChatScreen extends StatefulWidget {
@@ -35,17 +36,22 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _messageController = TextEditingController(); // Controller for message input
-  final ScrollController _scrollController = ScrollController(); // Controller for scrolling message list
+  final TextEditingController _messageController =
+      TextEditingController(); // Controller for message input
+  final ScrollController _scrollController =
+      ScrollController(); // Controller for scrolling message list
   final ImagePicker _picker = ImagePicker(); // For picking images
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance; // Firestore instance
+  final FirebaseFirestore _firestore =
+      FirebaseFirestore.instance; // Firestore instance
   final FirebaseAuth _auth = FirebaseAuth.instance; // Firebase Auth instance
   List<XFile> _selectedImages = []; // Store selected images for preview
 
   @override
   void initState() {
     super.initState();
-    print('ChatScreen initialized with chatId: ${widget.chatId}, userName: ${widget.userName}, recipientId: ${widget.recipientId}');
+    print(
+      'ChatScreen initialized with chatId: ${widget.chatId}, userName: ${widget.userName}, recipientId: ${widget.recipientId}',
+    );
     // Check if user is authenticated
     if (_auth.currentUser == null) {
       print('User not authenticated, redirecting to login');
@@ -54,11 +60,20 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
     // Fetch messages and subscribe to updates
-    print('Dispatching FetchMessagesEvent and SubscribeToMessagesEvent for chatId: ${widget.chatId}');
+    print(
+      'Dispatching FetchMessagesEvent and SubscribeToMessagesEvent for chatId: ${widget.chatId}',
+    );
     context.read<MessagerieBloc>().add(FetchMessagesEvent(widget.chatId));
     context.read<MessagerieBloc>().add(SubscribeToMessagesEvent(widget.chatId));
     _setupReadReceipts();
-    _markMessagesAsRead();
+
+    // Add a slight delay before marking messages as read
+    // This improves the user experience by giving time for the UI to render
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        _markMessagesAsRead();
+      }
+    });
   }
 
   @override
@@ -72,36 +87,98 @@ class _ChatScreenState extends State<ChatScreen> {
   // Sets up a listener to mark incoming messages as read
   void _setupReadReceipts() {
     print('Setting up read receipts for chatId: ${widget.chatId}');
+    final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId == null) {
+      print('No current user ID, cannot setup read receipts');
+      return;
+    }
+
     _firestore
         .collection('conversations')
         .doc(widget.chatId)
         .collection('messages')
-        .where('senderId', isNotEqualTo: _auth.currentUser!.uid)
+        .where('senderId', isNotEqualTo: currentUserId)
         .snapshots()
-        .listen((snapshot) {
-      for (var change in snapshot.docChanges) {
-        if (change.type == DocumentChangeType.modified || change.type == DocumentChangeType.added) {
-          final data = change.doc.data()!;
-          final readMessage = MessageModel(
-            id: change.doc.id,
-            conversationId: widget.chatId,
-            senderId: data['senderId'] as String,
-            content: data['content'] as String,
-            type: data['type'] as String,
-            url: data['url'] as String?,
-            fileName: data['fileName'] as String?,
-            timestamp: DateTime.parse(data['timestamp'] as String),
-            status: MessageStatus.read,
-            readBy: List<String>.from(data['readBy'] ?? []),
-          );
-          print('Updating read status for message ${readMessage.id} to read');
-          context.read<MessagerieBloc>().add(UpdateMessageStatusEvent(readMessage));
-        }
-      }
-    }, onError: (error) {
-      print('Read receipts error: $error');
-      showErrorSnackBar(context, 'Failed to update read receipts: $error');
-    });
+        .listen(
+          (snapshot) {
+            if (snapshot.docs.isEmpty) {
+              print('No messages to mark as read in snapshot');
+              return;
+            }
+
+            print(
+              'Received ${snapshot.docs.length} messages in read receipt listener',
+            );
+            final batch = _firestore.batch();
+            bool updatesNeeded = false;
+
+            for (var doc in snapshot.docs) {
+              final data = doc.data();
+              final readBy = List<String>.from(data['readBy'] ?? []);
+
+              if (!readBy.contains(currentUserId)) {
+                // Add current user to readBy array and update status
+                batch.update(doc.reference, {
+                  'readBy': FieldValue.arrayUnion([currentUserId]),
+                  'status': 'read',
+                });
+                updatesNeeded = true;
+                print('Marking message ${doc.id} as read in listener');
+
+                // Update UI through BLoC
+                final readMessage = MessageModel(
+                  id: doc.id,
+                  conversationId: widget.chatId,
+                  senderId: data['senderId'] as String,
+                  content: data['content'] as String,
+                  type: data['type'] as String,
+                  url: data['url'] as String?,
+                  fileName: data['fileName'] as String?,
+                  timestamp: DateTime.parse(data['timestamp'] as String),
+                  status: MessageStatus.read,
+                  readBy: [...readBy, currentUserId],
+                );
+
+                context.read<MessagerieBloc>().add(
+                  UpdateMessageStatusEvent(readMessage),
+                );
+              }
+            }
+
+            if (updatesNeeded) {
+              batch
+                  .commit()
+                  .then((_) {
+                    print('Successfully updated read receipts in batch');
+                    // Update conversation's last message read status
+                    _firestore
+                        .collection('conversations')
+                        .doc(widget.chatId)
+                        .update({'lastMessageRead': true})
+                        .then((_) {
+                          print(
+                            'Updated conversation lastMessageRead status to true',
+                          );
+                        })
+                        .catchError((error) {
+                          print(
+                            'Error updating conversation read status: $error',
+                          );
+                        });
+                  })
+                  .catchError((error) {
+                    print('Error committing read receipt batch: $error');
+                  });
+            }
+          },
+          onError: (error) {
+            print('Read receipts error: $error');
+            showErrorSnackBar(
+              context,
+              'Failed to update read receipts: $error',
+            );
+          },
+        );
   }
 
   // Marks all unread messages from the recipient as read
@@ -114,14 +191,24 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       print('Marking messages as read for recipientId: ${widget.recipientId}');
-      final messages = await _firestore
-          .collection('conversations')
-          .doc(widget.chatId)
-          .collection('messages')
-          .where('senderId', isEqualTo: widget.recipientId)
-          .get();
+      final messages =
+          await _firestore
+              .collection('conversations')
+              .doc(widget.chatId)
+              .collection('messages')
+              .where('senderId', isEqualTo: widget.recipientId)
+              .get();
+
+      if (messages.docs.isEmpty) {
+        print('No messages from recipient found to mark as read');
+        return;
+      }
+
+      print('Found ${messages.docs.length} messages to check for read status');
 
       final batch = _firestore.batch();
+      bool updatesNeeded = false;
+
       for (final doc in messages.docs) {
         final readBy = List<String>.from(doc.data()['readBy'] ?? []);
         if (!readBy.contains(currentUserId)) {
@@ -129,10 +216,23 @@ class _ChatScreenState extends State<ChatScreen> {
             'readBy': FieldValue.arrayUnion([currentUserId]),
             'status': 'read',
           });
+          updatesNeeded = true;
+          print('Marking message ${doc.id} as read');
         }
       }
-      await batch.commit();
-      print('Marked ${messages.docs.length} messages as read');
+
+      if (updatesNeeded) {
+        await batch.commit();
+        print('Successfully marked messages as read');
+
+        // Also update the conversation's last message read status
+        await _firestore.collection('conversations').doc(widget.chatId).update({
+          'lastMessageRead': true,
+        });
+        print('Updated conversation lastMessageRead status to true');
+      } else {
+        print('All messages were already marked as read');
+      }
     } catch (e) {
       print('Error marking messages as read: $e');
       showErrorSnackBar(context, 'Failed to mark messages as read: $e');
@@ -248,18 +348,22 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   SizedBox(height: 16.h),
                   ElevatedButton(
-                    onPressed: _selectedImages.isEmpty
-                        ? null
-                        : () {
-                      _sendImages();
-                      Navigator.pop(context);
-                    },
+                    onPressed:
+                        _selectedImages.isEmpty
+                            ? null
+                            : () {
+                              _sendImages();
+                              Navigator.pop(context);
+                            },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24.r),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 20.w,
+                        vertical: 12.h,
+                      ),
                     ),
                     child: Text(
                       'Send (${_selectedImages.length})',
@@ -299,7 +403,9 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       print('Sending image message ${message.id}');
-      context.read<MessagerieBloc>().add(SendMessageEvent(message: message, file: file));
+      context.read<MessagerieBloc>().add(
+        SendMessageEvent(message: message, file: file),
+      );
     }
     _scrollToBottom();
   }
@@ -323,7 +429,9 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       print('Sending file message ${message.id}: $fileName');
-      context.read<MessagerieBloc>().add(SendMessageEvent(message: message, file: file));
+      context.read<MessagerieBloc>().add(
+        SendMessageEvent(message: message, file: file),
+      );
       _scrollToBottom();
     }
   }
@@ -343,18 +451,17 @@ class _ChatScreenState extends State<ChatScreen> {
   void _viewMedia(String url) {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        child: CachedNetworkImage(
-          imageUrl: url,
-          placeholder: (context, url) => CircularProgressIndicator(),
-          errorWidget: (context, url, error) => Icon(
-            Icons.error,
-            size: 50.sp,
-            color: AppColors.grey,
+      builder:
+          (context) => Dialog(
+            child: CachedNetworkImage(
+              imageUrl: url,
+              placeholder: (context, url) => CircularProgressIndicator(),
+              errorWidget:
+                  (context, url, error) =>
+                      Icon(Icons.error, size: 50.sp, color: AppColors.grey),
+              fit: BoxFit.contain,
+            ),
           ),
-          fit: BoxFit.contain,
-        ),
-      ),
     );
   }
 
@@ -379,11 +486,7 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         backgroundColor: AppColors.primaryColor,
         leading: IconButton(
-          icon: Icon(
-            Icons.chevron_left,
-            size: 28,
-            color: Colors.white,
-          ),
+          icon: Icon(Icons.chevron_left, size: 28, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -406,9 +509,13 @@ class _ChatScreenState extends State<ChatScreen> {
             isLoading = true;
             messages = state.messages;
             print('MessagerieLoading with ${messages.length} messages');
-          } else if (state is MessagerieStreamActive || state is MessagerieSuccess || state is MessagerieMessageSent) {
+          } else if (state is MessagerieStreamActive ||
+              state is MessagerieSuccess ||
+              state is MessagerieMessageSent) {
             messages = state.messages;
-            print('Rendering ${messages.length} messages, state: ${state.runtimeType}, stateId: ${state.stateId}');
+            print(
+              'Rendering ${messages.length} messages, state: ${state.runtimeType}, stateId: ${state.stateId}',
+            );
           } else if (state is MessagerieError) {
             messages = state.messages;
             print('MessagerieError with ${messages.length} messages');
@@ -417,218 +524,327 @@ class _ChatScreenState extends State<ChatScreen> {
           return Column(
             children: [
               Expanded(
-                child: isLoading && messages.isEmpty
-                    ? Center(child: CircularProgressIndicator(color: AppColors.primaryColor))
-                    : messages.isEmpty
-                    ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.chat_bubble_outline,
-                        size: 48.sp,
-                        color: AppColors.grey.withOpacity(0.5),
-                      ),
-                      SizedBox(height: 16.h),
-                      Text(
-                        'No messages yet',
-                        style: GoogleFonts.raleway(
-                          fontSize: 16.sp,
-                          color: AppColors.grey,
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      Text(
-                        'Start the conversation!',
-                        style: GoogleFonts.raleway(
-                          fontSize: 14.sp,
-                          color: AppColors.grey.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-                    : ListView.builder(
-                  controller: _scrollController,
-                  reverse: true,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 8.w),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    final isMe = message.senderId == _auth.currentUser!.uid;
-                    
-                    // Add date header if needed
-                    final showDateHeader = index == messages.length - 1 || 
-                        !_isSameDay(messages[index].timestamp, messages[index + 1].timestamp);
-                    
-                    return Column(
-                      children: [
-                        if (showDateHeader)
-                          _buildDateHeader(message.timestamp),
-                        Align(
-                          key: ValueKey(message.id),
-                          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width * 0.75,
-                            ),
-                            child: Container(
-                              margin: EdgeInsets.only(
-                                top: 8.h,
-                                bottom: 8.h,
-                                left: isMe ? 64.w : 8.w,
-                                right: isMe ? 8.w : 64.w,
-                              ),
-                              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-                              decoration: BoxDecoration(
-                                color: isMe ? AppColors.primaryColor : Colors.white,
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(16.r),
-                                  topRight: Radius.circular(16.r),
-                                  bottomLeft: Radius.circular(isMe ? 16.r : 0),
-                                  bottomRight: Radius.circular(isMe ? 0 : 16.r),
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                                children: [
-                                  if (message.type == 'text')
-                                    Text(
-                                      message.content,
-                                      style: GoogleFonts.raleway(
-                                        fontSize: 15.sp,
-                                        color: isMe ? Colors.white : Colors.black87,
-                                      ),
-                                    ),
-                                  if (message.type == 'image' && message.url != null)
-                                    GestureDetector(
-                                      onTap: () => _viewMedia(message.url!),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8.r),
-                                        child: CachedNetworkImage(
-                                          imageUrl: message.url!,
-                                          width: 200.w,
-                                          height: 200.h,
-                                          fit: BoxFit.cover,
-                                          placeholder: (context, url) => Container(
-                                            width: 200.w,
-                                            height: 200.h,
-                                            color: Colors.grey.shade300,
-                                            child: Center(
-                                              child: CircularProgressIndicator(
-                                                color: isMe ? Colors.white70 : AppColors.primaryColor,
-                                                strokeWidth: 2,
-                                              ),
-                                            ),
-                                          ),
-                                          errorWidget: (context, url, error) => Container(
-                                            width: 200.w,
-                                            height: 200.h,
-                                            color: Colors.grey.shade300,
-                                            child: Center(
-                                              child: Icon(
-                                                Icons.error_outline,
-                                                size: 40.sp,
-                                                color: Colors.red,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  if (message.type == 'file' && message.fileName != null)
-                                    GestureDetector(
-                                      onTap: () => _downloadFile(message.url!, message.fileName!),
-                                      child: Container(
-                                        padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 12.w),
-                                        decoration: BoxDecoration(
-                                          color: isMe ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
-                                          borderRadius: BorderRadius.circular(8.r),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.description,
-                                              size: 20.sp,
-                                              color: isMe ? Colors.white : AppColors.primaryColor,
-                                            ),
-                                            SizedBox(width: 8.w),
-                                            Flexible(
-                                              child: Text(
-                                                message.fileName!,
-                                                style: GoogleFonts.raleway(
-                                                  fontSize: 14.sp,
-                                                  color: isMe ? Colors.white : Colors.black87,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                            SizedBox(width: 8.w),
-                                            Icon(
-                                              Icons.download,
-                                              size: 18.sp,
-                                              color: isMe ? Colors.white70 : AppColors.primaryColor,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  SizedBox(height: 4.h),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        DateFormat('HH:mm').format(message.timestamp),
-                                        style: GoogleFonts.raleway(
-                                          fontSize: 12.sp,
-                                          color: isMe ? Colors.white.withOpacity(0.7) : Colors.grey,
-                                        ),
-                                      ),
-                                      if (isMe) ...[
-                                        SizedBox(width: 4.w),
-                                        _buildMessageStatusIcon(message.status),
-                                      ],
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
+                child:
+                    isLoading && messages.isEmpty
+                        ? Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primaryColor,
                           ),
+                        )
+                        : messages.isEmpty
+                        ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline,
+                                size: 48.sp,
+                                color: AppColors.grey.withOpacity(0.5),
+                              ),
+                              SizedBox(height: 16.h),
+                              Text(
+                                'no_messages_yet'.tr,
+                                style: GoogleFonts.raleway(
+                                  fontSize: 16.sp,
+                                  color: AppColors.grey,
+                                ),
+                              ),
+                              SizedBox(height: 8.h),
+                              Text(
+                                'start_conversation'.tr,
+                                style: GoogleFonts.raleway(
+                                  fontSize: 14.sp,
+                                  color: AppColors.grey.withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                        : ListView.builder(
+                          controller: _scrollController,
+                          reverse: true,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: EdgeInsets.symmetric(
+                            vertical: 16.h,
+                            horizontal: 8.w,
+                          ),
+                          itemCount: messages.length,
+                          itemBuilder: (context, index) {
+                            final message = messages[index];
+                            final isMe =
+                                message.senderId == _auth.currentUser!.uid;
+
+                            // Add date header if needed
+                            final showDateHeader =
+                                index == messages.length - 1 ||
+                                !_isSameDay(
+                                  messages[index].timestamp,
+                                  messages[index + 1].timestamp,
+                                );
+
+                            return Column(
+                              children: [
+                                if (showDateHeader)
+                                  _buildDateHeader(message.timestamp),
+                                Align(
+                                  key: ValueKey(message.id),
+                                  alignment:
+                                      isMe
+                                          ? Alignment.centerRight
+                                          : Alignment.centerLeft,
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      maxWidth:
+                                          MediaQuery.of(context).size.width *
+                                          0.75,
+                                    ),
+                                    child: Container(
+                                      margin: EdgeInsets.only(
+                                        top: 8.h,
+                                        bottom: 8.h,
+                                        left: isMe ? 64.w : 8.w,
+                                        right: isMe ? 8.w : 64.w,
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 16.w,
+                                        vertical: 10.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            isMe
+                                                ? AppColors.primaryColor
+                                                : Colors.white,
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: Radius.circular(16.r),
+                                          topRight: Radius.circular(16.r),
+                                          bottomLeft: Radius.circular(
+                                            isMe ? 16.r : 0,
+                                          ),
+                                          bottomRight: Radius.circular(
+                                            isMe ? 0 : 16.r,
+                                          ),
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(
+                                              0.05,
+                                            ),
+                                            blurRadius: 4,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            isMe
+                                                ? CrossAxisAlignment.end
+                                                : CrossAxisAlignment.start,
+                                        children: [
+                                          if (message.type == 'text')
+                                            Text(
+                                              message.content,
+                                              style: GoogleFonts.raleway(
+                                                fontSize: 15.sp,
+                                                color:
+                                                    isMe
+                                                        ? Colors.white
+                                                        : Colors.black87,
+                                              ),
+                                            ),
+                                          if (message.type == 'image' &&
+                                              message.url != null)
+                                            GestureDetector(
+                                              onTap:
+                                                  () =>
+                                                      _viewMedia(message.url!),
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(8.r),
+                                                child: CachedNetworkImage(
+                                                  imageUrl: message.url!,
+                                                  width: 200.w,
+                                                  height: 200.h,
+                                                  fit: BoxFit.cover,
+                                                  placeholder:
+                                                      (
+                                                        context,
+                                                        url,
+                                                      ) => Container(
+                                                        width: 200.w,
+                                                        height: 200.h,
+                                                        color:
+                                                            Colors
+                                                                .grey
+                                                                .shade300,
+                                                        child: Center(
+                                                          child: CircularProgressIndicator(
+                                                            color:
+                                                                isMe
+                                                                    ? Colors
+                                                                        .white70
+                                                                    : AppColors
+                                                                        .primaryColor,
+                                                            strokeWidth: 2,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                  errorWidget:
+                                                      (
+                                                        context,
+                                                        url,
+                                                        error,
+                                                      ) => Container(
+                                                        width: 200.w,
+                                                        height: 200.h,
+                                                        color:
+                                                            Colors
+                                                                .grey
+                                                                .shade300,
+                                                        child: Center(
+                                                          child: Icon(
+                                                            Icons.error_outline,
+                                                            size: 40.sp,
+                                                            color: Colors.red,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                ),
+                                              ),
+                                            ),
+                                          if (message.type == 'file' &&
+                                              message.fileName != null)
+                                            GestureDetector(
+                                              onTap:
+                                                  () => _downloadFile(
+                                                    message.url!,
+                                                    message.fileName!,
+                                                  ),
+                                              child: Container(
+                                                padding: EdgeInsets.symmetric(
+                                                  vertical: 8.h,
+                                                  horizontal: 12.w,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      isMe
+                                                          ? Colors.white
+                                                              .withOpacity(0.1)
+                                                          : Colors
+                                                              .grey
+                                                              .shade100,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        8.r,
+                                                      ),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.description,
+                                                      size: 20.sp,
+                                                      color:
+                                                          isMe
+                                                              ? Colors.white
+                                                              : AppColors
+                                                                  .primaryColor,
+                                                    ),
+                                                    SizedBox(width: 8.w),
+                                                    Flexible(
+                                                      child: Text(
+                                                        message.fileName!,
+                                                        style: GoogleFonts.raleway(
+                                                          fontSize: 14.sp,
+                                                          color:
+                                                              isMe
+                                                                  ? Colors.white
+                                                                  : Colors
+                                                                      .black87,
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow:
+                                                            TextOverflow
+                                                                .ellipsis,
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 8.w),
+                                                    Icon(
+                                                      Icons.download,
+                                                      size: 18.sp,
+                                                      color:
+                                                          isMe
+                                                              ? Colors.white70
+                                                              : AppColors
+                                                                  .primaryColor,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          SizedBox(height: 4.h),
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                DateFormat(
+                                                  'HH:mm',
+                                                ).format(message.timestamp),
+                                                style: GoogleFonts.raleway(
+                                                  fontSize: 12.sp,
+                                                  color:
+                                                      isMe
+                                                          ? Colors.white
+                                                              .withOpacity(0.7)
+                                                          : Colors.grey,
+                                                ),
+                                              ),
+                                              if (isMe) ...[
+                                                SizedBox(width: 4.w),
+                                                _buildMessageStatusIcon(
+                                                  message.status,
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
-                      ],
-                    );
-                  },
-                ),
               ),
               if (state is MessagerieError)
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 8.h),
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      print('Retrying fetch and subscribe for chatId: ${widget.chatId}');
-                      context.read<MessagerieBloc>().add(FetchMessagesEvent(widget.chatId));
-                      context.read<MessagerieBloc>().add(SubscribeToMessagesEvent(widget.chatId));
+                      print(
+                        'Retrying fetch and subscribe for chatId: ${widget.chatId}',
+                      );
+                      context.read<MessagerieBloc>().add(
+                        FetchMessagesEvent(widget.chatId),
+                      );
+                      context.read<MessagerieBloc>().add(
+                        SubscribeToMessagesEvent(widget.chatId),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24.r),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 20.w,
+                        vertical: 12.h,
+                      ),
                     ),
                     icon: Icon(Icons.refresh, color: Colors.white, size: 18.sp),
                     label: Text(
-                      'Retry',
+                      'retry'.tr,
                       style: GoogleFonts.raleway(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w600,
@@ -672,7 +888,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         child: TextField(
                           controller: _messageController,
                           decoration: InputDecoration(
-                            hintText: 'Type a message...',
+                            hintText: 'type_a_message'.tr,
                             hintStyle: GoogleFonts.raleway(
                               fontSize: 14.sp,
                               color: Colors.grey.shade600,
@@ -683,7 +899,10 @@ class _ChatScreenState extends State<ChatScreen> {
                             ),
                             filled: true,
                             fillColor: Colors.grey.shade100,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 20.w,
+                              vertical: 10.h,
+                            ),
                           ),
                           style: GoogleFonts.raleway(
                             fontSize: 14.sp,
@@ -719,7 +938,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-  
+
   // Helper method to build message status icon
   Widget _buildMessageStatusIcon(MessageStatus status) {
     switch (status) {
@@ -745,11 +964,7 @@ class _ChatScreenState extends State<ChatScreen> {
           color: Colors.white.withOpacity(0.7),
         );
       case MessageStatus.read:
-        return Icon(
-          Icons.done_all,
-          size: 14.sp,
-          color: Colors.blue.shade300,
-        );
+        return Icon(Icons.done_all, size: 14.sp, color: Colors.blue.shade300);
       case MessageStatus.failed:
         return Icon(
           Icons.error_outline,
@@ -758,23 +973,27 @@ class _ChatScreenState extends State<ChatScreen> {
         );
     }
   }
-  
+
   // Helper to build date headers
   Widget _buildDateHeader(DateTime messageTime) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = DateTime(now.year, now.month, now.day - 1);
-    final messageDate = DateTime(messageTime.year, messageTime.month, messageTime.day);
-    
+    final messageDate = DateTime(
+      messageTime.year,
+      messageTime.month,
+      messageTime.day,
+    );
+
     String dateText;
     if (messageDate == today) {
-      dateText = "Today";
+      dateText = "today".tr;
     } else if (messageDate == yesterday) {
-      dateText = "Yesterday";
+      dateText = "yesterday".tr;
     } else {
       dateText = DateFormat('EEEE, d MMMM').format(messageTime);
     }
-    
+
     return Container(
       margin: EdgeInsets.symmetric(vertical: 16.h),
       child: Center(
@@ -795,9 +1014,11 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-  
+
   // Helper to check if two dates are the same day
   bool _isSameDay(DateTime date1, DateTime date2) {
-    return date1.year == date2.year && date1.month == date2.month && date1.day == date2.day;
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 }

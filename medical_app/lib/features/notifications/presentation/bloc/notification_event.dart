@@ -108,4 +108,13 @@ class NotificationReceivedEvent extends NotificationEvent {
 
   @override
   List<Object> get props => [notification];
-} 
+}
+
+class NotificationErrorEvent extends NotificationEvent {
+  final String message;
+
+  const NotificationErrorEvent({required this.message});
+
+  @override
+  List<Object> get props => [message];
+}

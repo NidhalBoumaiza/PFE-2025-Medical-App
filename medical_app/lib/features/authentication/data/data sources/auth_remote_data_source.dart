@@ -44,7 +44,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final FirebaseFirestore firestore;
   final GoogleSignIn googleSignIn;
   final AuthLocalDataSource localDataSource;
-  final String emailServiceUrl = 'http://192.168.1.11:3000/api/v1/users'; //adresse ip de notre pc
+  final String emailServiceUrl = 'http://192.168.1.18:3000/api/v1/users'; //adresse ip de notre pc
 
   AuthRemoteDataSourceImpl({
     required this.firebaseAuth,

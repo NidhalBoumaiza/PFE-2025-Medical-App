@@ -36,11 +36,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         backgroundColor: AppColors.primaryColor,
         leading: IconButton(
-          icon: const Icon(
-            Icons.chevron_left,
-            size: 24,
-            color: Colors.white,
-          ),
+          icon: const Icon(Icons.chevron_left, size: 24, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -55,22 +51,22 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSectionTitle("appearance".tr),
             const SizedBox(height: 8),
             const ThemeCubitSwitch(),
-            
+
             const SizedBox(height: 24),
             _buildSectionTitle("language".tr),
             const SizedBox(height: 8),
             _buildLanguageSelection(),
-            
+
             const SizedBox(height: 24),
             _buildSectionTitle("notifications".tr),
             const SizedBox(height: 8),
             _buildNotificationSettings(),
-            
+
             const SizedBox(height: 24),
             _buildSectionTitle("account".tr),
             const SizedBox(height: 8),
             _buildAccountSettings(),
-            
+
             const SizedBox(height: 24),
             _buildSectionTitle("about".tr),
             const SizedBox(height: 8),
@@ -80,7 +76,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
-  
+
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
@@ -91,13 +87,11 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
-  
+
   Widget _buildLanguageSelection() {
     return Card(
       elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -112,10 +106,10 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
-  
+
   Widget _buildLanguageOption(String language, String langCode) {
     final isSelected = Get.locale?.languageCode == langCode;
-    
+
     return InkWell(
       onTap: () async {
         Get.updateLocale(Locale(langCode));
@@ -145,31 +139,29 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
-  
+
   Widget _buildNotificationSettings() {
     return Card(
       elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
             _buildSwitchSetting(
-              title: "appointments".tr, 
+              title: "appointments".tr,
               icon: Icons.calendar_today,
               value: true,
             ),
             const Divider(height: 1),
             _buildSwitchSetting(
-              title: "messages".tr, 
+              title: "messages".tr,
               icon: Icons.message,
               value: true,
             ),
             const Divider(height: 1),
             _buildSwitchSetting(
-              title: "prescriptions".tr, 
+              title: "prescriptions".tr,
               icon: Icons.description,
               value: true,
             ),
@@ -178,13 +170,11 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
-  
+
   Widget _buildAccountSettings() {
     return Card(
       elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Column(
         children: [
           ListTile(
@@ -194,12 +184,15 @@ class _SettingsPageState extends State<SettingsPage> {
               style: GoogleFonts.raleway(fontSize: 14),
             ),
             trailing: const Icon(Icons.chevron_right, size: 20),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             onTap: () async {
               try {
                 final authLocalDataSource = di.sl<AuthLocalDataSource>();
                 final userModel = await authLocalDataSource.getUser();
-                
+
                 // Convert UserModel to UserEntity
                 UserEntity userEntity = UserEntity(
                   id: userModel.id,
@@ -211,30 +204,34 @@ class _SettingsPageState extends State<SettingsPage> {
                   phoneNumber: userModel.phoneNumber,
                   dateOfBirth: userModel.dateOfBirth,
                 );
-                
+
                 final updatedUser = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => EditProfileScreen(user: userEntity),
                   ),
                 );
-                
+
                 if (updatedUser != null && updatedUser is UserEntity) {
                   // Dispatch update event to the BLoC
-                  context.read<UpdateUserBloc>().add(UpdateUserEvent(updatedUser));
-                  
+                  context.read<UpdateUserBloc>().add(
+                    UpdateUserEvent(updatedUser),
+                  );
+
                   // Cache updated user
-                  await authLocalDataSource.cacheUser(userModel.copyWith(
-                    name: updatedUser.name,
-                    lastName: updatedUser.lastName,
-                    phoneNumber: updatedUser.phoneNumber,
-                    gender: updatedUser.gender,
-                    dateOfBirth: updatedUser.dateOfBirth,
-                  ));
+                  await authLocalDataSource.cacheUser(
+                    userModel.copyWith(
+                      name: updatedUser.name,
+                      lastName: updatedUser.lastName,
+                      phoneNumber: updatedUser.phoneNumber,
+                      gender: updatedUser.gender,
+                      dateOfBirth: updatedUser.dateOfBirth,
+                    ),
+                  );
                 }
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Failed to load profile: $e")),
+                  SnackBar(content: Text('failed_to_load_profile'.tr)),
                 );
               }
             },
@@ -247,7 +244,10 @@ class _SettingsPageState extends State<SettingsPage> {
               style: GoogleFonts.raleway(fontSize: 14),
             ),
             trailing: const Icon(Icons.chevron_right, size: 20),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             onTap: () {
               // Navigate to password change
             },
@@ -257,26 +257,29 @@ class _SettingsPageState extends State<SettingsPage> {
             leading: const Icon(Icons.logout, color: Colors.red),
             title: Text(
               "logout".tr,
-              style: GoogleFonts.raleway(
-                fontSize: 14,
-                color: Colors.red,
-              ),
+              style: GoogleFonts.raleway(fontSize: 14, color: Colors.red),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             onTap: () {
               // Logique de déconnexion
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("logout_success".tr)),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text("logout_success".tr)));
               // Rediriger vers la page de connexion
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LoginScreen()),
+              );
             },
           ),
         ],
       ),
     );
   }
-  
+
   Widget _buildSwitchSetting({
     required String title,
     required IconData icon,
@@ -291,10 +294,7 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               Icon(icon, size: 20, color: AppColors.primaryColor),
               const SizedBox(width: 12),
-              Text(
-                title,
-                style: GoogleFonts.raleway(fontSize: 14),
-              ),
+              Text(title, style: GoogleFonts.raleway(fontSize: 14)),
             ],
           ),
           Switch(
@@ -309,13 +309,11 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
-  
+
   Widget _buildAboutCard() {
     return Card(
       elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -331,10 +329,7 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 8),
             Text(
               "copyright".tr,
-              style: GoogleFonts.raleway(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: GoogleFonts.raleway(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),

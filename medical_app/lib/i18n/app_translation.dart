@@ -5,20 +5,20 @@ import 'package:flutter/material.dart';
 // Language service to manage language preferences
 class LanguageService {
   static const String LANGUAGE_KEY = 'app_language';
-  
+
   // Save language preference
   static Future<void> saveLanguage(String languageCode) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(LANGUAGE_KEY, languageCode);
   }
-  
+
   // Get saved language preference
   static Future<Locale?> getSavedLanguage() async {
     final prefs = await SharedPreferences.getInstance();
     final languageCode = prefs.getString(LANGUAGE_KEY);
-    
+
     if (languageCode == null) return null;
-    
+
     switch (languageCode) {
       case 'fr':
         return const Locale('fr', 'FR');
@@ -30,7 +30,7 @@ class LanguageService {
         return null;
     }
   }
-  
+
   // Get language name from language code
   static String getLanguageName(String localeCode) {
     switch (localeCode) {
@@ -44,7 +44,7 @@ class LanguageService {
         return 'Français';
     }
   }
-  
+
   // Get language code from language name
   static String? getLanguageCode(String languageName) {
     switch (languageName) {
@@ -70,10 +70,8 @@ class AppTranslations extends Translations {
       "Vous n'êtes pas connecté à internet";
   static const String UnauthorizedFailureMessage =
       "Email ou mot de passe incorrect";
-  static const String SignUpSuccessMessage =
-      "Inscription réussie 😊";
-  static const String InvalidEmailMessage =
-      "L'adresse email est invalide";
+  static const String SignUpSuccessMessage = "Inscription réussie 😊";
+  static const String InvalidEmailMessage = "L'adresse email est invalide";
   static const String PasswordMismatchMessage =
       "Les mots de passe ne correspondent pas";
 
@@ -126,7 +124,8 @@ class AppTranslations extends Translations {
       'phone_number_required': 'Le numéro de téléphone est obligatoire',
       'specialty_required': 'La spécialité est obligatoire',
       'license_number_required': 'Le numéro de licence est obligatoire',
-      'confirm_password_required': 'La confirmation du mot de passe est obligatoire',
+      'confirm_password_required':
+          'La confirmation du mot de passe est obligatoire',
       // Consultation page strings
       'request_consultation': 'Demander une consultation',
       'select_specialty': 'Sélectionner une spécialité',
@@ -175,18 +174,150 @@ class AppTranslations extends Translations {
       'prescriptions': 'Ordonnances',
       'copyright': '© 2023 Medical App. Tous droits réservés.',
       'appointment_duration': 'Durée de consultation (min)',
-      'appointment_duration_required': 'La durée de consultation est obligatoire',
+      'appointment_duration_required':
+          'La durée de consultation est obligatoire',
       // Notification translations
       'no_notifications': 'Pas de notifications',
-      'all_notifications_marked_as_read': 'Toutes les notifications ont été marquées comme lues',
+      'all_notifications_marked_as_read':
+          'Toutes les notifications ont été marquées comme lues',
       'accept': 'Accepter',
       'reject': 'Refuser',
       'view_details': 'Voir les détails',
       'appointment_accepted': 'Rendez-vous accepté',
       'appointment_rejected': 'Rendez-vous refusé',
+      'appointment_accepted_message':
+          'Votre rendez-vous a été accepté par le médecin',
+      'appointment_rejected_message':
+          'Votre rendez-vous a été refusé par le médecin',
       'new_appointment': 'Nouveau rendez-vous',
       'new_prescription': 'Nouvelle ordonnance',
       'new_rating': 'Nouvelle évaluation',
+      // Additional notification translations
+      'mark_all_read': 'Marquer tout comme lu',
+      'refresh': 'Actualiser',
+      'loading_notifications': 'Chargement des notifications...',
+      'you_have_no_notifications_yet':
+          'Vous n\'avez pas encore de notifications',
+      'no_notifications_found': 'Aucune notification trouvée',
+      'try_refreshing_the_page': 'Essayez d\'actualiser la page',
+      'delete_notification': 'Supprimer la notification',
+      'confirm_delete_notification':
+          'Êtes-vous sûr de vouloir supprimer cette notification ?',
+      'cancel': 'Annuler',
+      'delete': 'Supprimer',
+      'notification_deleted': 'Notification supprimée',
+      'new': 'Nouveau',
+      'appointment': 'Rendez-vous',
+      'prescription': 'Ordonnance',
+      'rating': 'Évaluation',
+      'rejected': 'Refusé',
+      // Home screen translations
+      'filter_by_date': 'Filtrer par date',
+      'reset_filter': 'Réinitialiser le filtre',
+      'confirm_logout': 'Êtes-vous sûr de vouloir vous déconnecter ?',
+      'success': 'Succès',
+      'error': 'Erreur',
+      'logout_error': 'Erreur lors de la déconnexion',
+      'hospitals': 'Hôpitaux',
+      'first_aid': 'Premiers secours',
+      'payments': 'Paiements',
+      'failed_to_load_profile': 'Impossible de charger le profil',
+      // Payment page translations
+      'payment_methods': 'Méthodes de Paiement',
+      'credit_card': 'Carte de Crédit',
+      'electronic_wallet': 'Portefeuille Électronique',
+      // First aid screen translations
+      'first_aid_title': 'Premiers Secours',
+      'search_condition': 'Rechercher une condition...',
+      'all': 'All',
+      'emergency': 'Emergency',
+      'common': 'Common',
+      'children': 'Children',
+      'elderly': 'Elderly',
+      'description': 'Description',
+      'recommended_first_aid': 'Premiers soins recommandés',
+      'assess_situation': 'Évaluez la situation',
+      'assess_situation_desc':
+          'Assurez-vous que la zone est sécurisée et évaluez l\'état de la personne avant de procéder.',
+      'call_for_help': 'Appelez à l\'aide si nécessaire',
+      'call_for_help_desc':
+          'En cas d\'urgence, appelez immédiatement le 15 (SAMU), 18 (Pompiers) ou 112 (numéro d\'urgence européen).',
+      'administer_first_aid': 'Administrez les premiers soins',
+      'administer_first_aid_desc':
+          'Suivez les procédures spécifiques pour cette condition médicale.',
+      'monitor_condition': 'Surveillez l\'état',
+      'monitor_condition_desc':
+          'Restez avec la personne et surveillez son état jusqu\'à l\'arrivée des secours.',
+      'emergency_call': 'Appel d\'urgence',
+      // Quiz screen translations
+      'quiz': 'Quiz',
+      'question': 'Question',
+      'next': 'Suivant',
+      'finish': 'Terminer',
+      // Secours screen translations
+      'no_results_found': 'Aucun résultat trouvé',
+      'try_another_search': 'Essayez une autre recherche',
+      // Messagerie translations
+      'your_conversations':
+          'Vos conversations avec les patients et les médecins apparaîtront ici',
+      'yesterday': 'Hier',
+      'today': 'Aujourd\'hui',
+      'retry': 'Réessayer',
+      'type_a_message': 'Tapez un message...',
+      'no_messages_yet': 'Pas encore de messages',
+      'start_conversation': 'Commencez la conversation !',
+      'loading_conversations': 'Chargement des conversations...',
+      'no_message': 'Aucun message',
+      // First aid items
+      'cpr_title': 'RCP (Support vital de base)',
+      'cpr_desc':
+          'Apprenez les techniques essentielles de réanimation cardio-pulmonaire dans les situations d\'urgence.',
+      'bleeding_title': 'Saignements & Blessures',
+      'bleeding_desc':
+          'Comment traiter et gérer correctement différents types de blessures et de saignements.',
+      'burns_title': 'Traitement des brûlures',
+      'burns_desc':
+          'Premiers soins pour différents degrés de brûlures, y compris thermiques, chimiques et électriques.',
+      'choking_title': 'Étouffement',
+      'choking_desc':
+          'Apprenez la manœuvre de Heimlich et quoi faire quand quelqu\'un s\'étouffe.',
+      'fractures_title': 'Fractures & Entorses',
+      'fractures_desc':
+          'Comment identifier et fournir les premiers soins pour les os cassés et les entorses.',
+      // Quiz questions and answers
+      'cpr_frequency_question':
+          'Quelle est la fréquence recommandée des compressions thoraciques lors d\'une RCP pour un adulte ?',
+      'cpr_frequency_answer1': '60-80 par minute',
+      'cpr_frequency_answer2': '100-120 par minute',
+      'bleeding_question':
+          'Quelle est la première étape pour gérer une hémorragie externe ?',
+      'bleeding_answer1': 'Appeler les secours',
+      'bleeding_answer2': 'Appliquer une pression directe',
+      'choking_question':
+          'Que faut-il faire si une personne s\'étouffe et ne peut pas parler ?',
+      'choking_answer1': 'Effectuer la manœuvre de Heimlich',
+      'choking_answer2': 'Donner de l\'eau à boire',
+      // Dashboard translations
+      'what_are_you_looking_for': 'Que cherchez-vous ?',
+      'doctors': 'Médecins',
+      'pharmacies': 'Pharmacies',
+      'hospitals': 'Hopitaux',
+      'specialties': 'Spécialités',
+      'see_all': 'Voir tout',
+      'educational_first_aid_videos': 'Vidéos éducatives de premiers secours',
+      'resuscitation': 'Réanimation',
+      'choking': 'Étouffement',
+      'bleeding': 'Saignement',
+      'burns': 'Brûlures',
+      'consultation_duration': 'Durée de consultation',
+      'set_consultation_duration':
+          'Veuillez définir la durée de vos consultations. Cette durée sera appliquée à tous vos rendez-vous.',
+      'duration': 'Durée',
+      'minutes': 'minutes',
+      'consultation_duration_set':
+          'Durée de consultation définie à {0} minutes',
+      'error_loading_user_data':
+          'Erreur lors du chargement des données utilisateur',
     },
     'en_US': {
       'title': 'Medical App',
@@ -293,15 +424,143 @@ class AppTranslations extends Translations {
       'view_details': 'View Details',
       'appointment_accepted': 'Appointment accepted',
       'appointment_rejected': 'Appointment rejected',
+      'appointment_accepted_message':
+          'Your appointment has been accepted by the doctor',
+      'appointment_rejected_message':
+          'Your appointment has been rejected by the doctor',
       'new_appointment': 'New appointment',
       'new_prescription': 'New prescription',
       'new_rating': 'New rating',
+      // Additional notification translations
+      'mark_all_read': 'Mark all as read',
+      'refresh': 'Refresh',
+      'loading_notifications': 'Loading notifications...',
+      'you_have_no_notifications_yet': 'You have no notifications yet',
+      'no_notifications_found': 'No notifications found',
+      'try_refreshing_the_page': 'Try refreshing the page',
+      'delete_notification': 'Delete notification',
+      'confirm_delete_notification':
+          'Are you sure you want to delete this notification?',
+      'cancel': 'Cancel',
+      'delete': 'Delete',
+      'notification_deleted': 'Notification deleted',
+      'new': 'New',
+      'appointment': 'Appointment',
+      'prescription': 'Prescription',
+      'rating': 'Rating',
+      'rejected': 'Rejected',
+      // Home screen translations
+      'filter_by_date': 'Filter by date',
+      'reset_filter': 'Reset filter',
+      'confirm_logout': 'Are you sure you want to log out?',
+      'success': 'Success',
+      'error': 'Error',
+      'logout_error': 'Logout error',
+      'hospitals': 'Hospitals',
+      'first_aid': 'First aid',
+      'payments': 'Payments',
+      'failed_to_load_profile': 'Failed to load profile',
+      // Payment page translations
+      'payment_methods': 'Payment Methods',
+      'credit_card': 'Credit Card',
+      'electronic_wallet': 'Electronic Wallet',
+      // First aid screen translations
+      'first_aid_title': 'First Aid',
+      'search_condition': 'Search for a condition...',
+      'all': 'All',
+      'emergency': 'Emergency',
+      'common': 'Common',
+      'children': 'Children',
+      'elderly': 'Elderly',
+      'description': 'Description',
+      'recommended_first_aid': 'Recommended First Aid',
+      'assess_situation': 'Assess the situation',
+      'assess_situation_desc':
+          'Make sure the area is safe and assess the person\'s condition before proceeding.',
+      'call_for_help': 'Call for help if needed',
+      'call_for_help_desc':
+          'In case of emergency, immediately call emergency services (911 in the US, 112 in Europe).',
+      'administer_first_aid': 'Administer first aid',
+      'administer_first_aid_desc':
+          'Follow specific procedures for this medical condition.',
+      'monitor_condition': 'Monitor the condition',
+      'monitor_condition_desc':
+          'Stay with the person and monitor their condition until help arrives.',
+      'emergency_call': 'Emergency Call',
+      // Quiz screen translations
+      'quiz': 'Quiz',
+      'question': 'Question',
+      'next': 'Next',
+      'finish': 'Finish',
+      // Secours screen translations
+      'no_results_found': 'No results found',
+      'try_another_search': 'Try another search',
+      // Messagerie translations
+      'your_conversations':
+          'Your conversations with patients and doctors will appear here',
+      'yesterday': 'Yesterday',
+      'today': 'Today',
+      'retry': 'Retry',
+      'type_a_message': 'Type a message...',
+      'no_messages_yet': 'No messages yet',
+      'start_conversation': 'Start the conversation!',
+      'loading_conversations': 'Loading conversations...',
+      'no_message': 'No message',
+      // First aid items
+      'cpr_title': 'CPR (Basic Life Support)',
+      'cpr_desc':
+          'Learn essential techniques for cardiopulmonary resuscitation in emergency situations.',
+      'bleeding_title': 'Bleeding & Wounds',
+      'bleeding_desc':
+          'How to properly treat and manage different types of wounds and bleeding.',
+      'burns_title': 'Burns Treatment',
+      'burns_desc':
+          'First aid for different degrees of burns including thermal, chemical, and electrical burns.',
+      'choking_title': 'Choking',
+      'choking_desc':
+          'Learn the Heimlich maneuver and what to do when someone is choking.',
+      'fractures_title': 'Fractures & Sprains',
+      'fractures_desc':
+          'How to identify and provide initial care for broken bones and sprains.',
+      // Quiz questions and answers
+      'cpr_frequency_question':
+          'What is the recommended frequency of chest compressions during CPR for an adult?',
+      'cpr_frequency_answer1': '60-80 per minute',
+      'cpr_frequency_answer2': '100-120 per minute',
+      'bleeding_question':
+          'What is the first step to manage external bleeding?',
+      'bleeding_answer1': 'Call for help',
+      'bleeding_answer2': 'Apply direct pressure',
+      'choking_question':
+          'What should you do if someone is choking and cannot speak?',
+      'choking_answer1': 'Perform the Heimlich maneuver',
+      'choking_answer2': 'Give them water to drink',
+      // Dashboard translations
+      'what_are_you_looking_for': 'What are you looking for?',
+      'doctors': 'Doctors',
+      'pharmacies': 'Pharmacies',
+      'hospitals': 'Hospitals',
+      'specialties': 'Specialties',
+      'see_all': 'See all',
+      'educational_first_aid_videos': 'Educational First Aid Videos',
+      'resuscitation': 'Resuscitation',
+      'choking': 'Choking',
+      'bleeding': 'Bleeding',
+      'burns': 'Burns',
+      'consultation_duration': 'Consultation Duration',
+      'set_consultation_duration':
+          'Please set the duration of your consultations. This duration will be applied to all your appointments.',
+      'duration': 'Duration',
+      'minutes': 'minutes',
+      'consultation_duration_set': 'Consultation duration set to {0} minutes',
+      'error_loading_user_data': 'Error loading user data',
     },
     'ar_AR': {
       'title': 'تطبيق طبي',
       'server_failure_message': 'حدث خطأ، يرجى المحاولة مرة أخرى لاحقًا',
       'offline_failure_message': 'أنت غير متصل بالإنترنت',
-      'unauthorized_failure_message': 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+      'unauthorized_failure_message':
+          'البريد الإلكتروني أو كلمة المرور غير صحيحة',
       'sign_up_success_message': 'التسجيل ناجح 😊',
       'invalid_email_message': 'عنوان البريد الإلكتروني غير صالح',
       'password_mismatch_message': 'كلمتا المرور غير متطابقتين',
@@ -396,15 +655,134 @@ class AppTranslations extends Translations {
       'appointment_duration_required': 'مدة الموعد مطلوبة',
       // Notification translations
       'no_notifications': 'لا توجد إشعارات',
-      'all_notifications_marked_as_read': 'تم وضع علامة على جميع الإشعارات كمقروءة',
+      'all_notifications_marked_as_read':
+          'تم وضع علامة على جميع الإشعارات كمقروءة',
       'accept': 'قبول',
       'reject': 'رفض',
       'view_details': 'عرض التفاصيل',
       'appointment_accepted': 'تم قبول الموعد',
       'appointment_rejected': 'تم رفض الموعد',
+      'appointment_accepted_message': 'تم قبول الموعد بواسطة الطبيب',
+      'appointment_rejected_message': 'تم رفض الموعد بواسطة الطبيب',
       'new_appointment': 'موعد جديد',
       'new_prescription': 'وصفة طبية جديدة',
       'new_rating': 'تقييم جديد',
+      // Additional notification translations
+      'mark_all_read': 'وضع علامة على الكل كمقروء',
+      'refresh': 'تحديث',
+      'loading_notifications': 'جاري تحميل الإشعارات...',
+      'you_have_no_notifications_yet': 'ليس لديك إشعارات حتى الآن',
+      'no_notifications_found': 'لم يتم العثور على إشعارات',
+      'try_refreshing_the_page': 'حاول تحديث الصفحة',
+      'delete_notification': 'حذف الإشعار',
+      'confirm_delete_notification': 'هل أنت متأكد أنك تريد حذف هذا الإشعار؟',
+      'cancel': 'إلغاء',
+      'delete': 'حذف',
+      'notification_deleted': 'تم حذف الإشعار',
+      'new': 'جديد',
+      'appointment': 'موعد',
+      'prescription': 'وصفة طبية',
+      'rating': 'تقييم',
+      'rejected': 'مرفوض',
+      // Home screen translations
+      'filter_by_date': 'تصفية بالتاريخ',
+      'reset_filter': 'إعادة تعيين التصفية',
+      'confirm_logout': 'هل أنت متأكد أنك تريد تسجيل الخروج؟',
+      'success': 'نجاح',
+      'error': 'خطأ',
+      'logout_error': 'خطأ عند تسجيل الخروج',
+      'hospitals': 'مستشفيات',
+      'first_aid': 'المساعدة الأولية',
+      'payments': 'الدفعات',
+      'failed_to_load_profile': 'فشل في تحميل الملف الشخصي',
+      // Payment page translations
+      'payment_methods': 'طرق الدفع',
+      'credit_card': 'بطاقة ائتمان',
+      'electronic_wallet': 'محفظة إلكترونية',
+      // First aid screen translations
+      'first_aid_title': 'الإسعافات الأولية',
+      'search_condition': 'البحث عن حالة...',
+      'all': 'الكل',
+      'emergency': 'طوارئ',
+      'common': 'شائع',
+      'children': 'أطفال',
+      'elderly': 'كبار السن',
+      'description': 'الوصف',
+      'recommended_first_aid': 'الإسعافات الأولية الموصى بها',
+      'assess_situation': 'تقييم الوضع',
+      'assess_situation_desc':
+          'تأكد من أن المنطقة آمنة وقيّم حالة الشخص قبل المتابعة.',
+      'call_for_help': 'اطلب المساعدة إذا لزم الأمر',
+      'call_for_help_desc': 'في حالة الطوارئ، اتصل فوراً بخدمات الطوارئ.',
+      'administer_first_aid': 'تقديم الإسعافات الأولية',
+      'administer_first_aid_desc': 'اتبع الإجراءات المحددة لهذه الحالة الطبية.',
+      'monitor_condition': 'مراقبة الحالة',
+      'monitor_condition_desc': 'ابق مع الشخص وراقب حالته حتى وصول المساعدة.',
+      'emergency_call': 'مكالمة طوارئ',
+      // Quiz screen translations
+      'quiz': 'اختبار',
+      'question': 'سؤال',
+      'next': 'التالي',
+      'finish': 'إنهاء',
+      // Secours screen translations
+      'no_results_found': 'لم يتم العثور على نتائج',
+      'try_another_search': 'حاول البحث مرة أخرى',
+      // Messagerie translations
+      'your_conversations': 'ستظهر محادثاتك مع المرضى والأطباء هنا',
+      'yesterday': 'أمس',
+      'today': 'اليوم',
+      'retry': 'إعادة المحاولة',
+      'type_a_message': 'اكتب رسالة...',
+      'no_messages_yet': 'لا توجد رسائل حتى الآن',
+      'start_conversation': 'ابدأ المحادثة!',
+      'loading_conversations': 'جاري تحميل المحادثات...',
+      'no_message': 'لا توجد رسالة',
+      // First aid items
+      'cpr_title': 'الإنعاش القلبي الرئوي (دعم الحياة الأساسي)',
+      'cpr_desc':
+          'تعلم التقنيات الأساسية للإنعاش القلبي الرئوي في حالات الطوارئ.',
+      'bleeding_title': 'النزيف والجروح',
+      'bleeding_desc':
+          'كيفية علاج وإدارة أنواع مختلفة من الجروح والنزيف بشكل صحيح.',
+      'burns_title': 'علاج الحروق',
+      'burns_desc':
+          'الإسعافات الأولية لدرجات مختلفة من الحروق بما في ذلك الحرارية والكيميائية والكهربائية.',
+      'choking_title': 'الاختناق',
+      'choking_desc': 'تعلم مناورة هايمليش وما يجب فعله عندما يختنق شخص ما.',
+      'fractures_title': 'الكسور والالتواءات',
+      'fractures_desc':
+          'كيفية تحديد وتقديم الرعاية الأولية للعظام المكسورة والالتواءات.',
+      // Quiz questions and answers
+      'cpr_frequency_question':
+          'ما هي الوتيرة الموصى بها لضغطات الصدر أثناء الإنعاش القلبي الرئوي للبالغين؟',
+      'cpr_frequency_answer1': '60-80 في الدقيقة',
+      'cpr_frequency_answer2': '100-120 في الدقيقة',
+      'bleeding_question': 'ما هي الخطوة الأولى للتعامل مع النزيف الخارجي؟',
+      'bleeding_answer1': 'طلب المساعدة',
+      'bleeding_answer2': 'تطبيق الضغط المباشر',
+      'choking_question':
+          'ماذا يجب أن تفعل إذا كان شخص ما يختنق ولا يستطيع التحدث؟',
+      'choking_answer1': 'تنفيذ مناورة هايمليش',
+      'choking_answer2': 'إعطاؤهم الماء للشرب',
+      // Dashboard translations
+      'what_are_you_looking_for': 'عن ماذا تبحث؟',
+      'doctors': 'أطباء',
+      'pharmacies': 'صيدليات',
+      'hospitals': 'مستشفيات',
+      'specialties': 'تخصصات',
+      'see_all': 'عرض الكل',
+      'educational_first_aid_videos': 'فيديوهات تعليمية للإسعافات الأولية',
+      'resuscitation': 'الإنعاش',
+      'choking': 'الاختناق',
+      'bleeding': 'النزيف',
+      'burns': 'الحروق',
+      'consultation_duration': 'مدة الاستشارة',
+      'set_consultation_duration':
+          'يرجى تحديد مدة استشاراتك. سيتم تطبيق هذه المدة على جميع مواعيدك.',
+      'duration': 'المدة',
+      'minutes': 'دقائق',
+      'consultation_duration_set': 'تم تحديد مدة الاستشارة إلى {0} دقيقة',
+      'error_loading_user_data': 'خطأ في تحميل بيانات المستخدم',
     },
   };
 }

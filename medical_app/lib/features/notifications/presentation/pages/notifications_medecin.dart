@@ -30,11 +30,22 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
   String _selectedFilter = 'all';
   late UserEntity _currentUser;
   bool _isLoading = true;
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh notifications when page is navigated back to
+    if (!_isLoading && _currentUser.id != null) {
+      _refreshNotifications(showLoading: false);
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -44,22 +55,11 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
 
       setState(() {
         _currentUser = user;
-        _isLoading = false;
+        // Don't set _isLoading = false here; let the bloc state drive it
       });
 
-      // Set up notifications stream first to ensure we're listening for updates
-      if (user.id != null) {
-        print('Setting up notifications stream for doctor: ${user.id}');
-        context.read<NotificationBloc>().add(
-          GetNotificationsStreamEvent(userId: user.id!),
-        );
-
-        // Load notifications for the current user
-        print('Loading notifications for doctor: ${user.id}');
-        context.read<NotificationBloc>().add(
-          GetNotificationsEvent(userId: user.id!),
-        );
-      }
+      // Load notifications for the current user
+      _refreshNotifications();
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -70,11 +70,56 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
     }
   }
 
+  Future<void> _refreshNotifications({bool showLoading = true}) async {
+    if (_currentUser.id == null) return;
+
+    if (showLoading) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Set a timeout to ensure we don't get stuck loading
+      Future.delayed(Duration(seconds: 5), () {
+        if (mounted && _isLoading) {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Loading timed out. Pull to refresh again.'),
+            ),
+          );
+        }
+      });
+    }
+
+    try {
+      // Execute just one event at a time and let the bloc handle the rest
+      // This prevents multiple loading states from being triggered
+      print('Loading notifications for doctor: ${_currentUser.id}');
+      context.read<NotificationBloc>().add(
+        GetNotificationsEvent(userId: _currentUser.id!),
+      );
+    } catch (e) {
+      // Handle any unexpected errors
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error refreshing: $e')));
+      }
+    }
+
+    return Future.delayed(const Duration(milliseconds: 500));
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
@@ -97,123 +142,196 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
                   MarkAllNotificationsAsReadEvent(userId: _currentUser.id!),
                 );
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('all_notifications_marked_as_read'.tr)),
+                  SnackBar(
+                    content: Text('all_notifications_marked_as_read'.tr),
+                  ),
                 );
               }
             },
           ),
         ],
         leading: IconButton(
-          icon: const Icon(
-            Icons.chevron_left,
-            size: 30,
-            color: Colors.white,
-          ),
+          icon: const Icon(Icons.chevron_left, size: 30, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryColor))
-          : BlocConsumer<NotificationBloc, NotificationState>(
-              listener: (context, state) {
-                if (state is NotificationError) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text(state.message)));
-                }
-              },
-              builder: (context, state) {
-                if (state is NotificationLoading && _isLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryColor,
-                    ),
-                  );
-                } else if (state is NotificationsLoaded) {
-                  final notifications = state.notifications;
-                  print(
-                    'Loaded ${notifications.length} notifications for doctor',
-                  );
+      body: BlocConsumer<NotificationBloc, NotificationState>(
+        listenWhen: (previous, current) {
+          // Listen for these specific state changes
+          return current is NotificationsLoaded ||
+              current is NotificationError ||
+              current is NotificationInitial;
+        },
+        listener: (context, state) {
+          print('NotificationBloc state: ${state.runtimeType}');
 
-                  if (notifications.isEmpty) {
-                    return Center(
+          if (state is NotificationError) {
+            print('Notification Error: ${state.message}');
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
+
+            if (_isLoading) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+          } else if (state is NotificationsLoaded) {
+            print('Loaded notifications: ${state.notifications.length}');
+            if (_isLoading) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+
+            // When notifications are loaded, also setup other notification features
+            if (_currentUser.id != null) {
+              // Set up notifications stream
+              print(
+                'Setting up notifications stream for doctor: ${_currentUser.id}',
+              );
+              context.read<NotificationBloc>().add(
+                GetNotificationsStreamEvent(userId: _currentUser.id!),
+              );
+
+              // Update unread count
+              context.read<NotificationBloc>().add(
+                GetUnreadNotificationsCountEvent(userId: _currentUser.id!),
+              );
+            }
+          }
+        },
+        buildWhen: (previous, current) {
+          // Only rebuild for states that actually affect the UI
+          return current is NotificationsLoaded || current is NotificationError;
+        },
+        builder: (context, state) {
+          print('Building UI with state: ${state.runtimeType}');
+
+          // Show content based on loaded state
+          if (state is NotificationsLoaded) {
+            final notifications = state.notifications;
+            print('Loaded ${notifications.length} notifications for doctor');
+
+            return RefreshIndicator(
+              key: _refreshIndicatorKey,
+              onRefresh: _refreshNotifications,
+              color: AppColors.primaryColor,
+              child:
+                  notifications.isEmpty
+                      ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.7,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.notifications_off,
+                                    size: 80.sp,
+                                    color:
+                                        isDarkMode
+                                            ? theme.iconTheme.color
+                                                ?.withOpacity(0.4)
+                                            : Colors.grey[400],
+                                  ),
+                                  SizedBox(height: 16.h),
+                                  Text(
+                                    'no_notifications'.tr,
+                                    style: GoogleFonts.raleway(
+                                      fontSize: 16.sp,
+                                      color: theme.textTheme.bodyMedium?.color,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                      : Column(
+                        children: [
+                          _buildFilterChips(),
+                          Expanded(
+                            child: _buildNotificationList(notifications),
+                          ),
+                        ],
+                      ),
+            );
+          } else if (state is NotificationError) {
+            return RefreshIndicator(
+              key: _refreshIndicatorKey,
+              onRefresh: _refreshNotifications,
+              color: AppColors.primaryColor,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.7,
+                    child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.notifications_off,
-                            size: 80.sp,
-                            color: isDarkMode 
-                              ? theme.iconTheme.color?.withOpacity(0.4)
-                              : Colors.grey[400],
+                            Icons.error_outline,
+                            size: 60.sp,
+                            color: Colors.red.withOpacity(0.7),
                           ),
                           SizedBox(height: 16.h),
                           Text(
-                            'no_notifications'.tr,
+                            state.message,
+                            textAlign: TextAlign.center,
                             style: GoogleFonts.raleway(
                               fontSize: 16.sp,
-                              color: theme.textTheme.bodyMedium?.color,
+                              color: Colors.red,
+                            ),
+                          ),
+                          SizedBox(height: 24.h),
+                          ElevatedButton.icon(
+                            onPressed: _refreshNotifications,
+                            icon: Icon(Icons.refresh),
+                            label: Text('retry'.tr),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24.w,
+                                vertical: 12.h,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    );
-                  }
-                  return Column(
-                    children: [
-                      _buildFilterChips(),
-                      Expanded(child: _buildNotificationList(notifications)),
-                    ],
-                  );
-                }
-
-                // Default view when no notifications are loaded yet
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.notifications_none,
-                        size: 80.sp,
-                        color: isDarkMode 
-                          ? theme.iconTheme.color?.withOpacity(0.4)
-                          : Colors.grey[400],
-                      ),
-                      SizedBox(height: 16.h),
-                      Text(
-                        'no_notifications_found'.tr,
-                        style: GoogleFonts.raleway(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w500,
-                          color: theme.textTheme.bodyMedium?.color,
-                        ),
-                      ),
-                      SizedBox(height: 24.h),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          if (_currentUser.id != null) {
-                            context.read<NotificationBloc>().add(
-                              GetNotificationsEvent(userId: _currentUser.id!),
-                            );
-                          }
-                        },
-                        icon: Icon(Icons.refresh),
-                        label: Text('refresh'.tr),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryColor,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 24.w,
-                            vertical: 12.h,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                );
-              },
+                ],
+              ),
+            );
+          }
+
+          // Default loading indicator
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(color: AppColors.primaryColor),
+                SizedBox(height: 16.h),
+                Text(
+                  'loading_notifications'.tr,
+                  style: GoogleFonts.raleway(
+                    fontSize: 16.sp,
+                    color: theme.textTheme.bodyMedium?.color,
+                  ),
+                ),
+              ],
             ),
+          );
+        },
+      ),
     );
   }
 
@@ -238,7 +356,7 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
   Widget _buildFilterChip(String value, String label) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     final isSelected = _selectedFilter == value;
     return FilterChip(
       label: Text(
@@ -258,14 +376,11 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
         }
       },
       selectedColor: AppColors.primaryColor,
-      backgroundColor: isDarkMode 
-        ? theme.cardColor.withOpacity(0.3) 
-        : Colors.grey.shade100,
+      backgroundColor:
+          isDarkMode ? theme.cardColor.withOpacity(0.3) : Colors.grey.shade100,
       checkmarkColor: Colors.white,
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20.r),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
       elevation: 0,
       shadowColor: Colors.transparent,
     );
@@ -274,25 +389,26 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
   Widget _buildNotificationList(List<NotificationEntity> notifications) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
-    final filteredNotifications = _selectedFilter == 'all'
-      ? notifications
-      : notifications.where((n) {
-          // Filter by notification type based on the selected filter
-          switch (_selectedFilter) {
-            case 'appointment':
-              return n.type == NotificationType.newAppointment ||
-                    n.type == NotificationType.appointmentAccepted ||
-                    n.type == NotificationType.appointmentRejected;
-            case 'prescription':
-              return n.type == NotificationType.newPrescription;
-            case 'message':
-              // Puisque newMessage n'est pas défini, nous pouvons temporairement le supprimer ou utiliser un autre type
-              return false; // À réactiver lorsque ce type sera disponible
-            default:
-              return true;
-          }
-        }).toList();
+
+    final filteredNotifications =
+        _selectedFilter == 'all'
+            ? notifications
+            : notifications.where((n) {
+              // Filter by notification type based on the selected filter
+              switch (_selectedFilter) {
+                case 'appointment':
+                  return n.type == NotificationType.newAppointment ||
+                      n.type == NotificationType.appointmentAccepted ||
+                      n.type == NotificationType.appointmentRejected;
+                case 'prescription':
+                  return n.type == NotificationType.newPrescription;
+                case 'message':
+                  // Puisque newMessage n'est pas défini, nous pouvons temporairement le supprimer ou utiliser un autre type
+                  return false; // À réactiver lorsque ce type sera disponible
+                default:
+                  return true;
+              }
+            }).toList();
 
     if (filteredNotifications.isEmpty) {
       return Center(
@@ -300,11 +416,12 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.notifications_off, 
-              size: 48.sp, 
-              color: isDarkMode 
-                ? theme.iconTheme.color?.withOpacity(0.4)
-                : Colors.grey[400]
+              Icons.notifications_off,
+              size: 48.sp,
+              color:
+                  isDarkMode
+                      ? theme.iconTheme.color?.withOpacity(0.4)
+                      : Colors.grey[400],
             ),
             SizedBox(height: 16.h),
             Text(
@@ -390,7 +507,7 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
   Widget _buildNotificationCard(NotificationEntity notification) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     // Extract sender name from data if available
     String senderName = '';
     String patientName = '';
@@ -404,9 +521,13 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15.r),
-        side: notification.isRead
-            ? BorderSide.none
-            : BorderSide(color: AppColors.primaryColor.withOpacity(0.5), width: 1),
+        side:
+            notification.isRead
+                ? BorderSide.none
+                : BorderSide(
+                  color: AppColors.primaryColor.withOpacity(0.5),
+                  width: 1,
+                ),
       ),
       child: InkWell(
         onTap: () {
@@ -437,7 +558,10 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
                           notification.title,
                           style: GoogleFonts.raleway(
                             fontSize: 16.sp,
-                            fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
+                            fontWeight:
+                                notification.isRead
+                                    ? FontWeight.normal
+                                    : FontWeight.bold,
                             color: theme.textTheme.titleMedium?.color,
                           ),
                         ),
