@@ -8,6 +8,7 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get/get.dart';
 
 import '../../../../core/utils/app_colors.dart';
 import '../../../../features/authentication/data/models/user_model.dart';
@@ -261,15 +262,15 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   String _getStatusText(String status) {
     switch (status) {
       case "accepted":
-        return "Confirmé";
+        return "appointment_status_confirmed".tr;
       case "pending":
-        return "En attente";
+        return "appointment_status_pending".tr;
       case "cancelled":
-        return "Annulé";
+        return "appointment_status_cancelled".tr;
       case "completed":
-        return "Terminé";
+        return "appointment_status_completed".tr;
       default:
-        return "Inconnu";
+        return "appointment_status_unknown".tr;
     }
   }
 
@@ -299,16 +300,19 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
         final hours = minutes ~/ 60;
         final remainingMinutes = minutes % 60;
         if (remainingMinutes == 0) {
-          return "$hours heure${hours > 1 ? 's' : ''}";
+          return "$hours " + (hours > 1 ? 'hours'.tr : 'hour'.tr);
         } else {
-          return "$hours heure${hours > 1 ? 's' : ''} $remainingMinutes minute${remainingMinutes > 1 ? 's' : ''}";
+          return "$hours " +
+              (hours > 1 ? 'hours'.tr : 'hour'.tr) +
+              " $remainingMinutes " +
+              (remainingMinutes > 1 ? 'minutes'.tr : 'minute'.tr);
         }
       } else {
-        return "$minutes minute${minutes > 1 ? 's' : ''}";
+        return "$minutes " + (minutes > 1 ? 'minutes'.tr : 'minute'.tr);
       }
     } else {
       // Default duration if endTime not available
-      return "30 minutes";
+      return "30 " + 'minutes'.tr;
     }
   }
 

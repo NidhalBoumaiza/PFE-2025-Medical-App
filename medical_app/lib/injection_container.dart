@@ -97,6 +97,15 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:medical_app/features/authentication/presentation/blocs/update_password_bloc/update_password_bloc.dart';
 import 'package:medical_app/features/authentication/domain/usecases/update_password_direct_use_case.dart';
 
+// Dossier Medical Feature
+import 'package:http/http.dart' as http;
+import 'package:medical_app/features/dossier_medical/data/datasources/dossier_medical_remote_datasource.dart';
+import 'package:medical_app/features/dossier_medical/data/repositories/dossier_medical_repository_impl.dart';
+import 'package:medical_app/features/dossier_medical/domain/repositories/dossier_medical_repository.dart';
+import 'package:medical_app/features/dossier_medical/domain/usecases/get_dossier_medical.dart';
+import 'package:medical_app/features/dossier_medical/domain/usecases/has_dossier_medical.dart';
+import 'package:medical_app/features/dossier_medical/presentation/bloc/dossier_medical_bloc.dart';
+
 final sl = GetIt.instance;
 
 Future<void> init() async {
@@ -324,4 +333,26 @@ Future<void> init() async {
   sl.registerLazySingleton<RatingRemoteDataSource>(
     () => RatingRemoteDataSourceImpl(firestore: sl()),
   );
+
+  // Dossier Medical
+  // BLoC
+  sl.registerFactory(() => DossierMedicalBloc(repository: sl()));
+
+  // Use Cases
+  sl.registerLazySingleton(() => GetDossierMedical(sl()));
+  sl.registerLazySingleton(() => HasDossierMedical(sl()));
+
+  // Repository
+  sl.registerLazySingleton<DossierMedicalRepository>(
+    () =>
+        DossierMedicalRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
+  );
+
+  // Data Sources
+  sl.registerLazySingleton<DossierMedicalRemoteDataSource>(
+    () => DossierMedicalRemoteDataSourceImpl(client: http.Client()),
+  );
+
+  // Standalone registration
+  sl.registerLazySingleton(() => http.Client());
 }

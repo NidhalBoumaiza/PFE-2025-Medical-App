@@ -15,4 +15,9 @@ class AppConstants {
   // Firebase Configuration
   static const String firebaseProjectId =
       'medicalapp-f1951'; // Replace with your project ID
+
+
+  static const String emailServiceUrl = '$baseUrl/email';
+  static const String dossierMedicalEndpoint =
+      '$baseUrl/dossier-medical';
 }

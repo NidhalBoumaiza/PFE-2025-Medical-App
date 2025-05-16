@@ -1,7 +1,7 @@
 name: medical_app
 description: "A new Flutter project."
 
-publish_to: 'none'
+publish_to: "none"
 
 version: 1.0.0+1
 
@@ -48,12 +48,12 @@ dependencies:
   flutter_rating_bar: ^4.0.1
   uuid: ^4.5.1
   table_calendar: ^3.0.9
+  url_launcher: ^6.2.5
   firebase_messaging_platform_interface: ^4.6.5
   firebase_messaging_web: ^3.10.5
   flutter_local_notifications: ^19.2.0
 #  permission_handler: ^11.3.1
 #  device_info_plus: ^10.1.2
-
 
 dev_dependencies:
   flutter_test:

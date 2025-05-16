@@ -64,7 +64,7 @@ class _NotificationsPatientState extends State<NotificationsPatient>
       });
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Error loading user data: $e")));
+      ).showSnackBar(SnackBar(content: Text('error_loading_user_data'.tr)));
     }
   }
 
@@ -82,11 +82,9 @@ class _NotificationsPatientState extends State<NotificationsPatient>
           setState(() {
             _isLoading = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Loading timed out. Pull to refresh again.'),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('loading_timeout'.tr)));
         }
       });
     }
@@ -97,6 +95,11 @@ class _NotificationsPatientState extends State<NotificationsPatient>
       context.read<NotificationBloc>().add(
         GetNotificationsEvent(userId: _currentUser.id!),
       );
+
+      // Automatically mark all notifications as read when the page is opened
+      context.read<NotificationBloc>().add(
+        MarkAllNotificationsAsReadEvent(userId: _currentUser.id!),
+      );
     } catch (e) {
       // Handle any unexpected errors
       if (mounted) {
@@ -105,7 +108,7 @@ class _NotificationsPatientState extends State<NotificationsPatient>
         });
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error refreshing: $e')));
+        ).showSnackBar(SnackBar(content: Text('error_refreshing'.tr)));
       }
     }
 
@@ -457,11 +460,11 @@ class _NotificationsPatientState extends State<NotificationsPatient>
             return AlertDialog(
               backgroundColor: theme.cardColor,
               title: Text(
-                'confirmation'.tr,
+                'delete_notification'.tr,
                 style: TextStyle(color: theme.textTheme.titleLarge?.color),
               ),
               content: Text(
-                'delete_notification_confirm'.tr,
+                'confirm_delete_notification'.tr,
                 style: TextStyle(color: theme.textTheme.bodyMedium?.color),
               ),
               actions: <Widget>[

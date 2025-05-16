@@ -123,6 +123,11 @@ class _NotificationBadgeState extends State<NotificationBadge>
   void _navigateToNotificationsPage() {
     if (!mounted || userId == null) return;
 
+    // Mark all notifications as read when the user taps the notification badge
+    context.read<NotificationBloc>().add(
+      MarkAllNotificationsAsReadEvent(userId: userId!),
+    );
+
     if (userRole == 'medecin') {
       navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
         context,

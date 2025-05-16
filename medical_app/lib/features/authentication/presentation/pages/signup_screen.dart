@@ -144,15 +144,15 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                         Expanded(
                           child: Center(
-                    child: Text(
-                      "Inscription",
-                      style: GoogleFonts.raleway(
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryColor,
-                      ),
-                    ),
-                  ),
+                            child: Text(
+                              "Inscription",
+                              style: GoogleFonts.raleway(
+                                fontSize: 24.sp,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryColor,
+                              ),
+                            ),
+                          ),
                         ),
                         SizedBox(width: 40.w), // Balance the header
                       ],
@@ -163,7 +163,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
                   // Improved user type toggle
                   BlocBuilder<ToggleCubit, ToggleState>(
-                      builder: (context, state) {
+                    builder: (context, state) {
                       final isPatient = state is PatientState;
                       return Container(
                         height: 56.h,
@@ -207,13 +207,13 @@ class _SignupScreenState extends State<SignupScreen> {
                                         SizedBox(width: 8.w),
                                         Text(
                                           "Patient",
-                                style: GoogleFonts.raleway(
+                                          style: GoogleFonts.raleway(
                                             color:
                                                 isPatient
                                                     ? Colors.white
                                                     : Colors.grey.shade600,
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w600,
+                                            fontSize: 16.sp,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ],
@@ -227,7 +227,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               child: GestureDetector(
                                 onTap: () {
                                   if (isPatient) {
-                            context.read<ToggleCubit>().toggle();
+                                    context.read<ToggleCubit>().toggle();
                                   }
                                 },
                                 child: AnimatedContainer(
@@ -275,9 +275,9 @@ class _SignupScreenState extends State<SignupScreen> {
                       );
                     },
                   ),
-                  
+
                   SizedBox(height: 30.h),
-                  
+
                   // Form fields
                   Form(
                     key: _formKey,
@@ -286,213 +286,213 @@ class _SignupScreenState extends State<SignupScreen> {
                       children: [
                         // Nom field
                         _buildInputField(
-                            controller: nomController,
+                          controller: nomController,
                           label: "Nom",
                           hint: "Entrez votre nom",
                           icon: Icons.person_outline,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return "Le nom est obligatoire";
-                              }
-                              return null;
-                            },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return "Le nom est obligatoire";
+                            }
+                            return null;
+                          },
                         ),
 
                         SizedBox(height: 20.h),
-                        
+
                         // Prénom field
                         _buildInputField(
-                            controller: prenomController,
+                          controller: prenomController,
                           label: "Prénom",
                           hint: "Entrez votre prénom",
                           icon: Icons.person_outline,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return "Le prénom est obligatoire";
-                              }
-                              return null;
-                            },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return "Le prénom est obligatoire";
+                            }
+                            return null;
+                          },
                         ),
 
                         SizedBox(height: 20.h),
-                        
+
                         // Email field
                         _buildInputField(
-                            controller: emailController,
+                          controller: emailController,
                           label: "Email",
                           hint: "Entrez votre email",
                           icon: Icons.email_outlined,
-                            keyboardType: TextInputType.emailAddress,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return "L'email est obligatoire";
-                              }
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return "L'email est obligatoire";
+                            }
                             if (!RegExp(
                               r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                             ).hasMatch(value)) {
-                                return "Veuillez entrer un email valide";
-                              }
-                              return null;
-                            },
+                              return "Veuillez entrer un email valide";
+                            }
+                            return null;
+                          },
                         ),
 
                         SizedBox(height: 20.h),
-                        
+
                         // Téléphone field
                         _buildInputField(
-                            controller: numTel,
+                          controller: numTel,
                           label: "Téléphone",
                           hint: "Entrez votre numéro de téléphone",
                           icon: Icons.phone_outlined,
-                            keyboardType: TextInputType.phone,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return "Le numéro de téléphone est obligatoire";
-                              }
-                              return null;
-                            },
+                          keyboardType: TextInputType.phone,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return "Le numéro de téléphone est obligatoire";
+                            }
+                            return null;
+                          },
                         ),
-                        
+
                         SizedBox(height: 20.h),
-                        
+
                         // Date de naissance field with calendar picker
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                        Text(
-                          "Date de naissance",
-                          style: GoogleFonts.raleway(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        
-                        SizedBox(height: 10.h),
-                        
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16.r),
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                spreadRadius: 1,
-                                blurRadius: 4,
-                                offset: const Offset(0, 1),
+                            Text(
+                              "Date de naissance",
+                              style: GoogleFonts.raleway(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
                               ),
-                            ],
-                          ),
-                          child: TextFormField(
-                            controller: birthdayController,
+                            ),
+
+                            SizedBox(height: 10.h),
+
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16.r),
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.1),
+                                    spreadRadius: 1,
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              child: TextFormField(
+                                controller: birthdayController,
                                 readOnly: true,
                                 onTap: () => _selectDate(context),
-                            style: GoogleFonts.raleway(
-                              fontSize: 15.sp,
-                              color: Colors.black87,
-                            ),
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 20.w,
-                                vertical: 16.h,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16.r),
-                                borderSide: BorderSide.none,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16.r),
-                                borderSide: BorderSide.none,
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16.r),
-                                borderSide: BorderSide(
-                                  color: AppColors.primaryColor,
-                                  width: 1,
+                                style: GoogleFonts.raleway(
+                                  fontSize: 15.sp,
+                                  color: Colors.black87,
                                 ),
-                              ),
-                              errorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16.r),
-                                borderSide: const BorderSide(
-                                  color: Colors.red,
-                                  width: 1,
-                                ),
-                              ),
-                              focusedErrorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16.r),
-                                borderSide: const BorderSide(
-                                  color: Colors.red,
-                                  width: 1,
-                                ),
-                              ),
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 20.w,
+                                    vertical: 16.h,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16.r),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16.r),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16.r),
+                                    borderSide: BorderSide(
+                                      color: AppColors.primaryColor,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  errorBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16.r),
+                                    borderSide: const BorderSide(
+                                      color: Colors.red,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  focusedErrorBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16.r),
+                                    borderSide: const BorderSide(
+                                      color: Colors.red,
+                                      width: 1,
+                                    ),
+                                  ),
                                   hintText:
                                       "Sélectionner votre date de naissance",
-                              hintStyle: GoogleFonts.raleway(
-                                color: Colors.grey[400],
-                                fontSize: 15.sp,
-                              ),
-                              prefixIcon: Icon(
-                                Icons.calendar_today_outlined,
-                                color: AppColors.primaryColor,
-                                size: 22.sp,
-                              ),
+                                  hintStyle: GoogleFonts.raleway(
+                                    color: Colors.grey[400],
+                                    fontSize: 15.sp,
+                                  ),
+                                  prefixIcon: Icon(
+                                    Icons.calendar_today_outlined,
+                                    color: AppColors.primaryColor,
+                                    size: 22.sp,
+                                  ),
                                   suffixIcon: Icon(
                                     Icons.arrow_drop_down,
-                                color: AppColors.primaryColor,
-                                size: 22.sp,
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return "La date de naissance est obligatoire";
-                              }
+                                    color: AppColors.primaryColor,
+                                    size: 22.sp,
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return "La date de naissance est obligatoire";
+                                  }
                                   // Extra validation as a safety check
                                   if (!isUserAtLeast16()) {
                                     return "Vous devez avoir au moins 16 ans";
-                              }
-                              return null;
-                            },
-                          ),
+                                  }
+                                  return null;
+                                },
+                              ),
                             ),
                           ],
                         ),
-                        
+
                         SizedBox(height: 20.h),
-                        
+
                         // Genre selection with improved UI
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                        Text(
-                          "Genre",
-                          style: GoogleFonts.raleway(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        
-                        SizedBox(height: 10.h),
-                        
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16.r),
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                spreadRadius: 1,
-                                blurRadius: 4,
-                                offset: const Offset(0, 1),
+                            Text(
+                              "Genre",
+                              style: GoogleFonts.raleway(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
                               ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
+                            ),
+
+                            SizedBox(height: 10.h),
+
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16.r),
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.1),
+                                    spreadRadius: 1,
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
                                   // Male option
-                              Expanded(
+                                  Expanded(
                                     child: GestureDetector(
                                       onTap: () {
                                         setState(() {
@@ -527,9 +527,9 @@ class _SignupScreenState extends State<SignupScreen> {
                                             ),
                                             SizedBox(width: 8.w),
                                             Text(
-                                    "Homme",
-                                    style: GoogleFonts.raleway(
-                                      fontSize: 15.sp,
+                                              "Homme",
+                                              style: GoogleFonts.raleway(
+                                                fontSize: 15.sp,
                                                 fontWeight:
                                                     gender == "Homme"
                                                         ? FontWeight.w600
@@ -550,10 +550,10 @@ class _SignupScreenState extends State<SignupScreen> {
                                   Expanded(
                                     child: GestureDetector(
                                       onTap: () {
-                                    setState(() {
+                                        setState(() {
                                           gender = "Femme";
-                                    });
-                                  },
+                                        });
+                                      },
                                       child: Container(
                                         padding: EdgeInsets.symmetric(
                                           vertical: 16.h,
@@ -582,9 +582,9 @@ class _SignupScreenState extends State<SignupScreen> {
                                             ),
                                             SizedBox(width: 8.w),
                                             Text(
-                                    "Femme",
-                                    style: GoogleFonts.raleway(
-                                      fontSize: 15.sp,
+                                              "Femme",
+                                              style: GoogleFonts.raleway(
+                                                fontSize: 15.sp,
                                                 fontWeight:
                                                     gender == "Femme"
                                                         ? FontWeight.w600
@@ -608,9 +608,9 @@ class _SignupScreenState extends State<SignupScreen> {
                       ],
                     ),
                   ),
-                  
+
                   SizedBox(height: 30.h),
-                  
+
                   // Submit button with improved UI
                   Container(
                     width: double.infinity,
@@ -675,9 +675,9 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: 20.h),
-                  
+
                   // Back to login
                   Center(
                     child: TextButton(

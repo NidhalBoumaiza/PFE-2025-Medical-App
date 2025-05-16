@@ -7,12 +7,19 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:medical_app/core/utils/app_colors.dart';
 import 'package:medical_app/core/utils/custom_snack_bar.dart';
 import 'package:medical_app/core/utils/navigation_with_transition.dart';
+import 'package:medical_app/core/util/snackbar_message.dart';
 import 'package:medical_app/cubit/theme_cubit/theme_cubit.dart';
 import 'package:medical_app/features/authentication/domain/entities/patient_entity.dart';
 import 'package:medical_app/features/profile/presentation/pages/edit_profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../authentication/presentation/pages/login_screen.dart';
 import 'blocs/BLoC update profile/update_user_bloc.dart';
+import 'package:medical_app/features/dossier_medical/presentation/bloc/dossier_medical_bloc.dart';
+import 'package:medical_app/features/dossier_medical/presentation/bloc/dossier_medical_event.dart';
+import 'package:medical_app/features/dossier_medical/presentation/bloc/dossier_medical_state.dart';
+import 'package:medical_app/features/dossier_medical/presentation/pages/dossier_medical_screen.dart';
+import 'package:medical_app/injection_container.dart' as di;
+import 'package:medical_app/features/settings/presentation/pages/SettingsPage.dart';
 
 class ProfilePatient extends StatefulWidget {
   const ProfilePatient({Key? key}) : super(key: key);
@@ -23,21 +30,10 @@ class ProfilePatient extends StatefulWidget {
 
 class _ProfilePatientState extends State<ProfilePatient> {
   PatientEntity? _patient;
-  bool _notificationsEnabled = true;
-  String _selectedLanguage = 'Français';
-  final List<String> _languages = ['Français', 'English', 'العربية'];
-  final Map<String, String> _languageCodes = {
-    'Français': 'fr',
-    'English': 'en',
-    'العربية': 'ar',
-  };
 
   @override
   void initState() {
     super.initState();
-    _selectedLanguage = _getLanguageFromLocale(
-      Get.locale?.languageCode ?? 'fr',
-    );
     _loadUserData();
   }
 
@@ -62,27 +58,6 @@ class _ProfilePatientState extends State<ProfilePatient> {
           antecedent: userMap['antecedent'] as String,
         );
       });
-    }
-  }
-
-  String _getLanguageFromLocale(String localeCode) {
-    switch (localeCode) {
-      case 'fr':
-        return 'Français';
-      case 'en':
-        return 'English';
-      case 'ar':
-        return 'العربية';
-      default:
-        return 'Français';
-    }
-  }
-
-  void _changeLanguage(String? newValue) {
-    if (newValue != null) {
-      setState(() => _selectedLanguage = newValue);
-      final localeCode = _languageCodes[newValue];
-      if (localeCode != null) Get.updateLocale(Locale(localeCode));
     }
   }
 
@@ -317,63 +292,128 @@ class _ProfilePatientState extends State<ProfilePatient> {
                         ),
                       ),
                       SizedBox(height: 12.h),
-                      _buildSettingsTile(
-                        Icons.notifications,
-                        'notifications'.tr,
-                        Switch(
-                          value: _notificationsEnabled,
-                          onChanged: (value) {
-                            setState(() {
-                              _notificationsEnabled = value;
-                            });
-                          },
-                          activeColor: AppColors.primaryColor,
+                      InkWell(
+                        onTap: () {
+                          navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                            context,
+                            const SettingsPage(),
+                          );
+                        },
+                        child: Container(
+                          margin: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 6.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDarkMode ? Colors.grey[800] : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ListTile(
+                            leading: Icon(
+                              Icons.settings,
+                              color: AppColors.primaryColor,
+                            ),
+                            title: Text(
+                              'app_settings'.tr,
+                              style: GoogleFonts.raleway(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w500,
+                                color: theme.textTheme.bodyLarge?.color,
+                              ),
+                            ),
+                            trailing: Icon(
+                              Icons.arrow_forward_ios,
+                              color: AppColors.primaryColor,
+                              size: 16.sp,
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16.w,
+                              vertical: 8.h,
+                            ),
+                          ),
                         ),
                       ),
-                      _buildSettingsTile(
-                        Icons.language,
-                        'language'.tr,
-                        DropdownButton<String>(
-                          value: _selectedLanguage,
-                          underline: const SizedBox(),
-                          dropdownColor:
-                              isDarkMode ? Colors.grey[800] : Colors.white,
-                          items:
-                              _languages.map((String language) {
-                                return DropdownMenuItem<String>(
-                                  value: language,
-                                  child: Text(
-                                    language,
-                                    style: TextStyle(
-                                      color: theme.textTheme.bodyMedium?.color,
-                                      fontSize: 14.sp,
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                          onChanged: (String? newValue) {
-                            if (newValue != null) {
-                              _changeLanguage(newValue);
-                            }
-                          },
+                      SizedBox(height: 20.h),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.w),
+                        child: Text(
+                          'Dossier Médical',
+                          style: GoogleFonts.raleway(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                            color: theme.textTheme.titleLarge?.color,
+                          ),
                         ),
                       ),
-                      _buildSettingsTile(
-                        Icons.brightness_4,
-                        'dark_mode'.tr,
-                        BlocBuilder<ThemeCubit, ThemeState>(
-                          builder: (context, state) {
-                            final isThemeDark =
-                                state is ThemeLoaded &&
-                                state.themeMode == ThemeMode.dark;
-                            return Switch(
-                              value: isThemeDark,
-                              onChanged:
-                                  (_) =>
-                                      context.read<ThemeCubit>().toggleTheme(),
-                              activeColor: AppColors.primaryColor,
+                      SizedBox(height: 12.h),
+                      InkWell(
+                        onTap: () {
+                          if (_patient?.id != null) {
+                            navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                              context,
+                              BlocProvider<DossierMedicalBloc>(
+                                create:
+                                    (context) => di.sl<DossierMedicalBloc>(),
+                                child: DossierMedicalScreen(
+                                  patientId: _patient!.id!,
+                                ),
+                              ),
                             );
-                          },
+                          } else {
+                            SnackBarMessage().showErrorSnackBar(
+                              message:
+                                  "Impossible d'accéder au dossier médical: ID patient manquant",
+                              context: context,
+                            );
+                          }
+                        },
+                        child: Container(
+                          margin: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 6.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDarkMode ? Colors.grey[800] : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ListTile(
+                            leading: Icon(
+                              Icons.folder_shared_outlined,
+                              color: AppColors.primaryColor,
+                              size: 20.sp,
+                            ),
+                            title: Text(
+                              'Gérer mon dossier médical',
+                              style: GoogleFonts.raleway(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w500,
+                                color: theme.textTheme.bodyLarge?.color,
+                              ),
+                            ),
+                            trailing: Icon(
+                              Icons.arrow_forward_ios,
+                              color: AppColors.primaryColor,
+                              size: 16.sp,
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16.w,
+                              vertical: 8.h,
+                            ),
+                          ),
                         ),
                       ),
                       SizedBox(height: 24.h),
@@ -447,39 +487,6 @@ class _ProfilePatientState extends State<ProfilePatient> {
           ),
         ),
         contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      ),
-    );
-  }
-
-  Widget _buildSettingsTile(IconData icon, String label, Widget trailing) {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[800] : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        leading: Icon(icon, color: AppColors.primaryColor, size: 20.sp),
-        title: Text(
-          label,
-          style: GoogleFonts.raleway(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w500,
-            color: theme.textTheme.bodyLarge?.color,
-          ),
-        ),
-        trailing: trailing,
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       ),
     );
   }

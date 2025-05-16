@@ -17,7 +17,7 @@ import 'chat_screen.dart';
 
 class ConversationsScreen extends StatefulWidget {
   final bool showAppBar;
-  
+
   const ConversationsScreen({super.key, this.showAppBar = true});
 
   @override
@@ -143,41 +143,41 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
         appBar:
             widget.showAppBar
                 ? AppBar(
-          title: Text(
+                  title: Text(
                     'messages'.tr,
-            style: GoogleFonts.raleway(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          backgroundColor: AppColors.primaryColor,
-          elevation: 2,
+                    style: GoogleFonts.raleway(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  backgroundColor: AppColors.primaryColor,
+                  elevation: 2,
                 )
                 : null,
         body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
               Icon(
                 Icons.error_outline,
                 size: 72.sp,
                 color: Colors.red.withOpacity(0.7),
               ),
-                SizedBox(height: 16.h),
-                Text(
+              SizedBox(height: 16.h),
+              Text(
                 'error_prefix'.tr + _errorMessage,
-                  textAlign: TextAlign.center,
+                textAlign: TextAlign.center,
                 style: GoogleFonts.raleway(
                   fontSize: 16.sp,
                   color: Colors.red.shade700,
                 ),
               ),
               SizedBox(height: 24.h),
-                ElevatedButton(
+              ElevatedButton(
                 onPressed: _loadUserData,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryColor,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryColor,
                   padding: EdgeInsets.symmetric(
                     horizontal: 24.w,
                     vertical: 12.h,
@@ -185,17 +185,17 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24.r),
                   ),
-                  ),
-                  child: Text(
+                ),
+                child: Text(
                   'retry'.tr,
                   style: GoogleFonts.raleway(
                     fontSize: 16.sp,
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
-                  ),
                 ),
-              ],
+              ),
+            ],
           ),
         ),
       );
@@ -205,16 +205,16 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
       appBar:
           widget.showAppBar
               ? AppBar(
-        title: Text(
+                title: Text(
                   'messages'.tr,
-          style: GoogleFonts.raleway(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: AppColors.primaryColor,
-        elevation: 2,
+                  style: GoogleFonts.raleway(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                backgroundColor: AppColors.primaryColor,
+                elevation: 2,
               )
               : null,
       body: SafeArea(
@@ -275,37 +275,37 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                     );
                   } else if (state is ConversationsError) {
                     return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
                           Icon(
                             Icons.error_outline,
                             size: 64.sp,
                             color: Colors.red.withOpacity(0.7),
                           ),
-                            SizedBox(height: 16.h),
-                            Text(
+                          SizedBox(height: 16.h),
+                          Text(
                             state.message,
-                              textAlign: TextAlign.center,
+                            textAlign: TextAlign.center,
                             style: GoogleFonts.raleway(
                               fontSize: 16.sp,
                               color: Colors.red.shade700,
                             ),
                           ),
                           SizedBox(height: 24.h),
-                            ElevatedButton(
-                              onPressed: () {
+                          ElevatedButton(
+                            onPressed: () {
                               if (_userId.isNotEmpty) {
                                 context.read<ConversationsBloc>().add(
                                   FetchConversationsEvent(
-                                  userId: _userId,
-                                  isDoctor: _isDoctor,
+                                    userId: _userId,
+                                    isDoctor: _isDoctor,
                                   ),
                                 );
                               }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primaryColor,
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryColor,
                               padding: EdgeInsets.symmetric(
                                 horizontal: 24.w,
                                 vertical: 12.h,
@@ -313,18 +313,18 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24.r),
                               ),
-                              ),
-                              child: Text(
+                            ),
+                            child: Text(
                               'retry'.tr,
                               style: GoogleFonts.raleway(
                                 fontSize: 16.sp,
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
                               ),
-                              ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
+                      ),
                     );
                   } else {
                     return Center(
@@ -354,7 +354,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
       ),
     );
   }
-  
+
   Widget _buildConversationCard(
     BuildContext context,
     ConversationEntity conversation,
@@ -498,8 +498,9 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
       context,
       ChatScreen(
         chatId: conversation.id!,
-        userName: conversation.doctorName,
-        recipientId: conversation.doctorId,
+        userName:
+            _isDoctor ? conversation.patientName : conversation.doctorName,
+        recipientId: _isDoctor ? conversation.patientId : conversation.doctorId,
       ),
     ).then((_) {
       // Refresh conversations when returning from chat

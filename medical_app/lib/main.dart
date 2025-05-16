@@ -43,6 +43,7 @@ import 'features/dashboard/presentation/blocs/dashboard BLoC/dashboard_bloc.dart
 import 'features/ordonnance/presentation/bloc/prescription_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:medical_app/features/dossier_medical/presentation/bloc/dossier_medical_bloc.dart';
 
 // API endpoints for the Express backend
 // This class is now moved to constants.dart

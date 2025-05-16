@@ -201,3 +201,47 @@ exports.resetPasswordDirect = catchAsync(async (req, res, next) => {
     );
   }
 });
+
+// Authentication middleware
+exports.protect = catchAsync(async (req, res, next) => {
+  let token;
+
+  // 1) Get token from Authorization header
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
+  // 2) Check if token exists
+  if (!token) {
+    // For development/testing purposes, proceed without authentication
+    console.log(
+      "No authentication token provided, proceeding without authentication"
+    );
+    return next();
+
+    // In production, you would return an error:
+    // return next(new AppError('Vous n\'êtes pas connecté. Veuillez vous connecter pour accéder.', 401));
+  }
+
+  try {
+    // 3) Verify token (this is a simplified version)
+    // In a real implementation, you would verify the JWT token with Firebase
+    // const decodedToken = await admin.auth().verifyIdToken(token);
+    // req.user = { id: decodedToken.uid, email: decodedToken.email };
+
+    console.log(
+      "Token received but not verified in development mode"
+    );
+    return next();
+  } catch (error) {
+    console.error("Error verifying authentication token:", error);
+    // For development/testing purposes, proceed without authentication
+    return next();
+
+    // In production, you would return an error:
+    // return next(new AppError('Token invalide ou expiré. Veuillez vous reconnecter.', 401));
+  }
+});

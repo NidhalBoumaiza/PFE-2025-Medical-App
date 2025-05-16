@@ -1,5 +1,6 @@
 import '../../domain/entities/medecin_entity.dart';
 import './user_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MedecinModel extends UserModel {
   final String speciality;
@@ -186,6 +187,26 @@ class MedecinModel extends UserModel {
           );
         } catch (_) {
           // Keep default value if parsing fails
+        }
+      }
+
+      // Handle dateOfBirth properly
+      if (docData['dateOfBirth'] is String &&
+          (docData['dateOfBirth'] as String).isNotEmpty) {
+        try {
+          DateTime dateOfBirth = DateTime.parse(
+            docData['dateOfBirth'] as String,
+          );
+          safeData['dateOfBirth'] = dateOfBirth.toIso8601String();
+        } catch (_) {
+          // Invalid date format, don't add to safeData
+        }
+      } else if (docData['dateOfBirth'] is Timestamp) {
+        try {
+          DateTime dateOfBirth = (docData['dateOfBirth'] as Timestamp).toDate();
+          safeData['dateOfBirth'] = dateOfBirth.toIso8601String();
+        } catch (_) {
+          // Invalid timestamp, don't add to safeData
         }
       }
     }

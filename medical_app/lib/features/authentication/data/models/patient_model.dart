@@ -1,5 +1,6 @@
 import '../../domain/entities/patient_entity.dart';
 import './user_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PatientModel extends UserModel {
   final String antecedent;
@@ -117,7 +118,11 @@ class PatientModel extends UserModel {
 
   /// Creates a valid PatientModel from potentially corrupted document data
   /// This can help recover accounts when data is malformed
-  static PatientModel recoverFromCorruptDoc(Map<String, dynamic>? docData, String userId, String userEmail) {
+  static PatientModel recoverFromCorruptDoc(
+    Map<String, dynamic>? docData,
+    String userId,
+    String userEmail,
+  ) {
     // Default values for required fields if missing or corrupted
     final Map<String, dynamic> safeData = {
       'id': userId,
@@ -134,11 +139,35 @@ class PatientModel extends UserModel {
     // Use existing data when available and valid
     if (docData != null) {
       if (docData['name'] is String) safeData['name'] = docData['name'];
-      if (docData['lastName'] is String) safeData['lastName'] = docData['lastName'];
+      if (docData['lastName'] is String)
+        safeData['lastName'] = docData['lastName'];
       if (docData['gender'] is String) safeData['gender'] = docData['gender'];
-      if (docData['phoneNumber'] is String) safeData['phoneNumber'] = docData['phoneNumber'];
-      if (docData['fcmToken'] is String) safeData['fcmToken'] = docData['fcmToken'];
-      if (docData['antecedent'] is String) safeData['antecedent'] = docData['antecedent'];
+      if (docData['phoneNumber'] is String)
+        safeData['phoneNumber'] = docData['phoneNumber'];
+      if (docData['fcmToken'] is String)
+        safeData['fcmToken'] = docData['fcmToken'];
+      if (docData['antecedent'] is String)
+        safeData['antecedent'] = docData['antecedent'];
+
+      // Handle dateOfBirth properly
+      if (docData['dateOfBirth'] is String &&
+          (docData['dateOfBirth'] as String).isNotEmpty) {
+        try {
+          DateTime dateOfBirth = DateTime.parse(
+            docData['dateOfBirth'] as String,
+          );
+          safeData['dateOfBirth'] = dateOfBirth.toIso8601String();
+        } catch (_) {
+          // Invalid date format, don't add to safeData
+        }
+      } else if (docData['dateOfBirth'] is Timestamp) {
+        try {
+          DateTime dateOfBirth = (docData['dateOfBirth'] as Timestamp).toDate();
+          safeData['dateOfBirth'] = dateOfBirth.toIso8601String();
+        } catch (_) {
+          // Invalid timestamp, don't add to safeData
+        }
+      }
     }
 
     return PatientModel.fromJson(safeData);

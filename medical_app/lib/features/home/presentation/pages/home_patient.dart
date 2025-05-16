@@ -557,7 +557,6 @@ class _HomePatientState extends State<HomePatient> {
                       child: ListView(
                         padding: EdgeInsets.symmetric(vertical: 10),
                         children: [
-
                           _buildDrawerItem(
                             icon: FontAwesomeIcons.hospital,
                             title: 'hospitals'.tr,

@@ -37,26 +37,26 @@ class _NotificationsPageState extends State<NotificationsPage> {
     try {
       final authLocalDataSource = di.sl<AuthLocalDataSource>();
       final user = await authLocalDataSource.getUser();
-      
+
       setState(() {
         _currentUser = user;
         _isLoading = false;
       });
-      
+
       // Set up notifications stream first to ensure we're listening for updates
       if (user.id != null) {
         print('Setting up notifications stream for user: ${user.id}');
         context.read<NotificationBloc>().add(
           GetNotificationsStreamEvent(userId: user.id!),
         );
-      
-      // Load notifications for the current user
+
+        // Load notifications for the current user
         print('Loading notifications for user: ${user.id}');
         context.read<NotificationBloc>().add(
           GetNotificationsEvent(userId: user.id!),
         );
-      
-      // Mark all as read when the page is opened
+
+        // Mark all as read when the page is opened
         context.read<NotificationBloc>().add(
           MarkAllNotificationsAsReadEvent(userId: user.id!),
         );
@@ -67,7 +67,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       });
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Error loading user data: $e")));
+      ).showSnackBar(SnackBar(content: Text('error_loading_user_data'.tr)));
     }
   }
 
@@ -140,25 +140,25 @@ class _NotificationsPageState extends State<NotificationsPage> {
               );
             }
           },
-              builder: (context, state) {
+          builder: (context, state) {
             if (state is NotificationLoading && _isLoading) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                     CircularProgressIndicator(color: AppColors.primaryColor),
-                          SizedBox(height: 16.h),
-                          Text(
+                    SizedBox(height: 16.h),
+                    Text(
                       'loading_notifications'.tr,
-                            style: GoogleFonts.raleway(
-                              fontSize: 16.sp,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
+                      style: GoogleFonts.raleway(
+                        fontSize: 16.sp,
+                        color: Colors.grey[600],
                       ),
-                    );
-                  }
+                    ),
+                  ],
+                ),
+              );
+            }
 
             if (state is NotificationsLoaded) {
               final notifications = state.notifications;
@@ -178,7 +178,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         ),
                         child: Icon(
                           Icons.notifications_off_outlined,
-                        size: 80.sp,
+                          size: 80.sp,
                           color:
                               isDarkMode ? Colors.grey[400] : Colors.grey[500],
                         ),
@@ -234,9 +234,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
                           bottom: 12.h,
                         ),
                         child: _buildNotificationCard(notifications[index]),
-                  ),
-                );
-              },
+                      ),
+                    );
+                  },
                 ),
               );
             }
@@ -305,7 +305,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
             );
           },
         ),
-            ),
+      ),
     );
   }
 
@@ -328,7 +328,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       background: Container(
         decoration: BoxDecoration(
           color: Colors.red,
-        borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(12.r),
         ),
         alignment: Alignment.centerRight,
         padding: EdgeInsets.only(right: 20.w),
@@ -378,12 +378,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
           borderRadius: BorderRadius.circular(16.r),
           side:
               notification.isRead
-            ? BorderSide.none
+                  ? BorderSide.none
                   : BorderSide(
                     color: AppColors.primaryColor.withOpacity(0.5),
                     width: 1.5,
                   ),
-      ),
+        ),
         child: InkWell(
           onTap: () {
             // Mark as read when tapped
@@ -395,26 +395,26 @@ class _NotificationsPageState extends State<NotificationsPage> {
             _navigateToDetails(notification);
           },
           borderRadius: BorderRadius.circular(16.r),
-      child: Padding(
+          child: Padding(
             padding: EdgeInsets.all(16.r),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _getNotificationIcon(notification.type),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _getNotificationIcon(notification.type),
                     SizedBox(width: 16.w),
-                Expanded(
+                    Expanded(
                       child: Padding(
                         padding: EdgeInsets.only(top: 4.h),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        notification.title,
-                        style: GoogleFonts.raleway(
-                          fontSize: 16.sp,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              notification.title,
+                              style: GoogleFonts.raleway(
+                                fontSize: 16.sp,
                                 fontWeight:
                                     notification.isRead
                                         ? FontWeight.w600
@@ -463,7 +463,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                           Icons.person,
                                           size: 12.sp,
                                           color: Colors.blue,
-                      ),
+                                        ),
                                         SizedBox(width: 4.w),
                                         Text(
                                           senderName,
@@ -500,21 +500,21 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                                 : Colors.grey[700],
                                       ),
                                       SizedBox(width: 4.w),
-                      Text(
+                                      Text(
                                         _getFormattedTime(
                                           notification.createdAt,
                                         ),
-                        style: GoogleFonts.raleway(
-                          fontSize: 12.sp,
+                                        style: GoogleFonts.raleway(
+                                          fontSize: 12.sp,
                                           color:
                                               isDarkMode
                                                   ? Colors.grey[400]
                                                   : Colors.grey[700],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                                 if (!notification.isRead)
                                   Container(
                                     padding: EdgeInsets.symmetric(
@@ -529,12 +529,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                     ),
                                     child: Text(
                                       'new'.tr,
-              style: GoogleFonts.raleway(
+                                      style: GoogleFonts.raleway(
                                         fontSize: 12.sp,
                                         color: AppColors.primaryColor,
                                         fontWeight: FontWeight.bold,
-              ),
-            ),
+                                      ),
+                                    ),
                                   ),
                               ],
                             ),
@@ -549,8 +549,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 if (notification.type == NotificationType.newAppointment &&
                     _currentUser.role == 'medecin' &&
                     !notification.isRead)
-            _buildActionButtons(notification),
-          ],
+                  _buildActionButtons(notification),
+              ],
             ),
           ),
         ),
@@ -615,18 +615,18 @@ class _NotificationsPageState extends State<NotificationsPage> {
       children: [
         Container(
           padding: EdgeInsets.all(10.r),
-      decoration: BoxDecoration(
+          decoration: BoxDecoration(
             color: isDarkMode ? color.withOpacity(0.2) : color.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12.r),
             boxShadow: [
               BoxShadow(
-        color: color.withOpacity(0.1),
+                color: color.withOpacity(0.1),
                 blurRadius: 8,
                 offset: Offset(0, 2),
               ),
             ],
             border: Border.all(color: color.withOpacity(0.3), width: 1.5),
-      ),
+          ),
           child: Icon(icon, color: color, size: 26.sp),
         ),
         if (label.isNotEmpty)
@@ -733,18 +733,18 @@ class _NotificationsPageState extends State<NotificationsPage> {
               fontSize: 14.sp,
             ),
           ),
-                onPressed: () {
-                  _navigateToDetails(notification);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryColor,
+          onPressed: () {
+            _navigateToDetails(notification);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primaryColor,
             padding: EdgeInsets.symmetric(vertical: 12.h),
             minimumSize: Size(double.infinity, 45.h),
-                  shape: RoundedRectangleBorder(
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12.r),
-                  ),
-            elevation: 2,
             ),
+            elevation: 2,
+          ),
         ),
       );
     }
@@ -761,7 +761,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         doctorName: _currentUser.name + ' ' + _currentUser.lastName,
       ),
     );
-    
+
     // Send notification to patient
     final notification = context.read<NotificationBloc>();
     notification.add(
@@ -774,7 +774,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         appointmentId: appointmentId,
       ),
     );
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('appointment_accepted'.tr),
@@ -795,7 +795,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         doctorName: _currentUser.name + ' ' + _currentUser.lastName,
       ),
     );
-    
+
     // Send notification to patient
     final notification = context.read<NotificationBloc>();
     notification.add(
@@ -808,7 +808,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         appointmentId: appointmentId,
       ),
     );
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('appointment_rejected'.tr),
@@ -837,4 +837,4 @@ class _NotificationsPageState extends State<NotificationsPage> {
       // TODO: Implement rating details navigation
     }
   }
-} 
+}

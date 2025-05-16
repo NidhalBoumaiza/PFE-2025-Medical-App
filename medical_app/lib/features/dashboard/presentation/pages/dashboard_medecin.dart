@@ -87,7 +87,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "Error loading user data: $e",
+            'error_loading_user_data'.tr,
             style: GoogleFonts.raleway(),
           ),
           backgroundColor: Colors.red,
@@ -266,7 +266,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                     CircularProgressIndicator(color: AppColors.primaryColor),
                     SizedBox(height: 16.h),
                     Text(
-                      "Chargement de votre tableau de bord...",
+                      "loading_dashboard".tr,
                       style: GoogleFonts.raleway(
                         fontSize: 16.sp,
                         color: theme.textTheme.bodyMedium?.color,
@@ -326,7 +326,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   ),
                   SizedBox(height: 20.h),
                   Text(
-                    "Erreur de chargement",
+                    "error_loading".tr,
                     style: GoogleFonts.poppins(
                       fontSize: 20.sp,
                       fontWeight: FontWeight.bold,
@@ -368,7 +368,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                     ),
                     icon: Icon(Icons.refresh, size: 20.sp),
                     label: Text(
-                      "Réessayer",
+                      "retry".tr,
                       style: GoogleFonts.raleway(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
@@ -401,7 +401,10 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
               children: [
                 // Welcome section
                 Text(
-                  "Bonjour, Dr. ${currentUser?.lastName ?? ''}",
+                  "hello_doctor".tr.replaceAll(
+                    "{0}",
+                    currentUser?.lastName ?? '',
+                  ),
                   style: GoogleFonts.poppins(
                     fontSize: 24.sp,
                     fontWeight: FontWeight.bold,
@@ -410,7 +413,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  "Voici l'aperçu de votre journée",
+                  "day_overview".tr,
                   style: GoogleFonts.raleway(
                     fontSize: 14.sp,
                     color: theme.textTheme.bodySmall?.color,
@@ -420,7 +423,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
 
                 // Stats section
                 Text(
-                  'Statistiques',
+                  'statistics'.tr,
                   style: GoogleFonts.poppins(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
@@ -438,7 +441,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   mainAxisSpacing: 12.h,
                   children: [
                     DashboardStatCard(
-                      title: 'Patients',
+                      title: 'patients'.tr,
                       value: totalPatients.toString(),
                       icon: Icons.people,
                       iconColor: Colors.blue,
@@ -452,7 +455,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                       },
                     ),
                     DashboardStatCard(
-                      title: 'Total RDV',
+                      title: 'total_appointments'.tr,
                       value: totalAppointments.toString(),
                       icon: Icons.calendar_month,
                       iconColor: Colors.purple,
@@ -466,7 +469,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                       },
                     ),
                     DashboardStatCard(
-                      title: 'RDV En Attente',
+                      title: 'pending_appointments'.tr,
                       value: pendingAppointments.toString(),
                       icon: Icons.schedule,
                       iconColor: Colors.orange,
@@ -483,7 +486,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                       },
                     ),
                     DashboardStatCard(
-                      title: 'RDV Terminés',
+                      title: 'completed_appointments'.tr,
                       value: completedAppointments.toString(),
                       icon: Icons.check_circle,
                       iconColor: Colors.green,
@@ -506,7 +509,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
 
                 // Quick actions
                 Text(
-                  'Actions rapides',
+                  'quick_actions'.tr,
                   style: GoogleFonts.poppins(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
@@ -520,7 +523,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                     Expanded(
                       child: _buildQuickActionButton(
                         context,
-                        "Voir tous les RDV",
+                        "view_all_appointments".tr,
                         Icons.list_alt,
                         AppColors.primaryColor,
                         () => Navigator.push(
@@ -535,7 +538,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                     Expanded(
                       child: _buildQuickActionButton(
                         context,
-                        "Urgences",
+                        "emergencies".tr,
                         Icons.warning,
                         Colors.red,
                         () {
@@ -543,7 +546,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                'La fonctionnalité d\'urgence est en cours de développement',
+                                'emergency_feature_development'.tr,
                                 style: GoogleFonts.raleway(),
                               ),
                               backgroundColor: Colors.red,
@@ -566,7 +569,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Prochains rendez-vous',
+                      'upcoming_appointments'.tr,
                       style: GoogleFonts.poppins(
                         fontSize: 18.sp,
                         fontWeight: FontWeight.bold,
@@ -583,7 +586,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                         );
                       },
                       child: Text(
-                        'Voir tous',
+                        'see_all'.tr,
                         style: GoogleFonts.raleway(
                           fontSize: 14.sp,
                           color: AppColors.primaryColor,
@@ -624,7 +627,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                             ),
                             SizedBox(height: 16.h),
                             Text(
-                              'Aucun rendez-vous à venir',
+                              'no_upcoming_appointments'.tr,
                               style: GoogleFonts.raleway(
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.w600,
@@ -633,7 +636,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                             ),
                             SizedBox(height: 8.h),
                             Text(
-                              'Les rendez-vous en attente apparaîtront ici',
+                              'pending_appointments_will_appear_here'.tr,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.raleway(
                                 fontSize: 14.sp,
@@ -664,10 +667,10 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                               ),
                               icon: Icon(Icons.refresh, size: 20.sp),
                               label: Text(
-                                "Actualiser",
+                                "retry".tr,
                                 style: GoogleFonts.raleway(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),

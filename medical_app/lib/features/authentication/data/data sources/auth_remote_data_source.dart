@@ -217,7 +217,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             gender: user.gender,
             phoneNumber: user.phoneNumber,
             dateOfBirth: user.dateOfBirth,
-            antecedent: '',
+            antecedent: user.antecedent,
             accountStatus: false,
             verificationCode: randomNumber,
             validationCodeExpiresAt: DateTime.now().add(

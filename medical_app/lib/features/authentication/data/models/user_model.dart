@@ -1,4 +1,5 @@
 import '../../domain/entities/user_entity.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserModel extends UserEntity {
   final String? fcmToken;
@@ -139,6 +140,26 @@ class UserModel extends UserEntity {
       if (docData['role'] is String) safeData['role'] = docData['role'];
       if (docData['fcmToken'] is String)
         safeData['fcmToken'] = docData['fcmToken'];
+
+      // Handle dateOfBirth properly
+      if (docData['dateOfBirth'] is String &&
+          (docData['dateOfBirth'] as String).isNotEmpty) {
+        try {
+          DateTime dateOfBirth = DateTime.parse(
+            docData['dateOfBirth'] as String,
+          );
+          safeData['dateOfBirth'] = dateOfBirth.toIso8601String();
+        } catch (_) {
+          // Invalid date format, don't add to safeData
+        }
+      } else if (docData['dateOfBirth'] is Timestamp) {
+        try {
+          DateTime dateOfBirth = (docData['dateOfBirth'] as Timestamp).toDate();
+          safeData['dateOfBirth'] = dateOfBirth.toIso8601String();
+        } catch (_) {
+          // Invalid timestamp, don't add to safeData
+        }
+      }
     }
 
     return UserModel.fromJson(safeData);

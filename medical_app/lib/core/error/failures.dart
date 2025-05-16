@@ -2,10 +2,12 @@ import 'package:equatable/equatable.dart';
 import 'package:get/get.dart';
 
 abstract class Failure extends Equatable {
-  String get message;
+  final String message;
+
+  const Failure({this.message = ''});
 
   @override
-  List<Object?> get props => [message];
+  List<Object> get props => [message];
 }
 
 class OfflineFailure extends Failure {
@@ -14,8 +16,8 @@ class OfflineFailure extends Failure {
 }
 
 class ServerFailure extends Failure {
-  @override
-  String get message => 'server_failure_message'.tr;
+  const ServerFailure({String message = 'Server error occurred'})
+    : super(message: message);
 }
 
 class EmptyCacheFailure extends Failure {
@@ -67,4 +69,19 @@ class YouHaveToCreateAccountAgainFailure extends Failure {
 
   @override
   String get message => customMessage ?? 'create_account_again'.tr;
+}
+
+class CacheFailure extends Failure {
+  const CacheFailure({String message = 'Cache failure occurred'})
+    : super(message: message);
+}
+
+class NetworkFailure extends Failure {
+  const NetworkFailure({String message = 'Network failure occurred'})
+    : super(message: message);
+}
+
+class FileFailure extends Failure {
+  const FileFailure({String message = 'File operation failure occurred'})
+    : super(message: message);
 }
