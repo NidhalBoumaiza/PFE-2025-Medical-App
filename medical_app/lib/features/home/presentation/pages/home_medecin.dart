@@ -5,18 +5,15 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:medical_app/core/utils/app_colors.dart';
 import 'package:medical_app/core/utils/navigation_with_transition.dart';
 import 'package:medical_app/cubit/theme_cubit/theme_cubit.dart';
 import 'package:medical_app/features/authentication/presentation/pages/login_screen.dart';
 import 'package:medical_app/features/dashboard/presentation/pages/dashboard_medecin.dart';
 import 'package:medical_app/features/notifications/presentation/pages/notifications_medecin.dart';
-import 'package:medical_app/features/ordonnance/presentation/pages/OrdonnancesPage.dart';
 import 'package:medical_app/features/profile/presentation/pages/ProfilMedecin.dart';
 import 'package:medical_app/features/rendez_vous/presentation/pages/appointments_medecins.dart';
 import 'package:medical_app/features/settings/presentation/pages/SettingsPage.dart';
-import 'package:medical_app/widgets/reusable_text_widget.dart';
 import 'package:medical_app/widgets/theme_cubit_switch.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -26,7 +23,7 @@ import '../../../profile/presentation/pages/blocs/BLoC%20update%20profile/update
 import '../../../notifications/presentation/widgets/notification_badge.dart';
 import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_bloc.dart';
 import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_state.dart';
-import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_event.dart';
+import '../../../secours/presentation/pages/secours_screen.dart';
 
 class HomeMedecin extends StatefulWidget {
   const HomeMedecin({super.key});
@@ -185,9 +182,10 @@ class _HomeMedecinState extends State<HomeMedecin> {
                 await prefs.remove('CACHED_USER');
                 await prefs.remove('TOKEN');
 
-                navigateToAnotherScreenWithSlideTransitionFromRightToLeftPushReplacement(
-                  context,
-                  LoginScreen(),
+                // Replace the entire navigation stack to prevent going back
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                  (Route<dynamic> route) => false, // Remove all previous routes
                 );
 
                 // Optional: show success message
@@ -218,56 +216,17 @@ class _HomeMedecinState extends State<HomeMedecin> {
   Widget _buildDrawerItem({
     required IconData icon,
     required String title,
-    required VoidCallback onTap,
-    int? notificationCount,
+    required Function() onTap,
+    Color? color,
   }) {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-
-    final textColor =
-        isDarkMode ? theme.textTheme.bodyLarge?.color : Colors.white;
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12.r),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-          child: Row(
-            children: [
-              Icon(icon, size: 20.sp, color: textColor),
-              SizedBox(width: 16.w),
-              Expanded(
-                child: Text(
-                  title,
-                  style: GoogleFonts.raleway(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w500,
-                    color: textColor,
-                  ),
-                ),
-              ),
-              if (notificationCount != null && notificationCount > 0)
-                Container(
-                  padding: EdgeInsets.all(6.r),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    notificationCount.toString(),
-                    style: GoogleFonts.raleway(
-                      color: Colors.white,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
+    return ListTile(
+      leading: Icon(icon, color: color ?? Colors.white, size: 20),
+      title: Text(
+        title,
+        style: GoogleFonts.raleway(fontSize: 16, color: color ?? Colors.white),
       ),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
     );
   }
 
@@ -469,181 +428,161 @@ class _HomeMedecinState extends State<HomeMedecin> {
   }
 
   Widget _buildDrawer(bool isDarkMode, ThemeData theme) {
-    return Drawer(
-      width: 0.8.sw,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.horizontal(right: Radius.circular(16)),
-      ),
-      backgroundColor:
-          isDarkMode ? theme.colorScheme.surface : const Color(0xFF2fa7bb),
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.only(
-              top: 24.h,
-              left: 16.w,
-              right: 16.w,
-              bottom: 16.h,
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 32.r,
-                  backgroundColor:
-                      isDarkMode
-                          ? theme.colorScheme.primary.withOpacity(0.2)
-                          : AppColors.whiteColor,
-                  child: Icon(
-                    Icons.person,
-                    size: 28.sp,
-                    color:
-                        isDarkMode
-                            ? theme.colorScheme.primary
-                            : const Color(0xFF2fa7bb),
-                  ),
-                ),
-                SizedBox(width: 16.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        doctorName,
-                        style: GoogleFonts.raleway(
-                          fontSize: 18.sp,
-                          color:
-                              isDarkMode
-                                  ? theme.textTheme.bodyLarge?.color
-                                  : AppColors.whiteColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        email,
-                        style: GoogleFonts.raleway(
-                          fontSize: 14.sp,
-                          color:
-                              isDarkMode
-                                  ? theme.textTheme.bodySmall?.color
-                                  : AppColors.whiteColor.withOpacity(0.7),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      child: Drawer(
+        width: MediaQuery.of(context).size.width * 0.8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
+        ),
+        elevation: 10,
+        shadowColor: Colors.black26,
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDarkMode ? theme.colorScheme.surface : null,
+            gradient:
+                isDarkMode
+                    ? null
+                    : LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        const Color(0xFF2fa7bb),
+                        const Color(0xFF2fa7bb).withOpacity(0.85),
+                      ],
+                    ),
+            borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
           ),
-          Divider(
-            color: Colors.white.withOpacity(0.3),
-            thickness: 1,
-            height: 1,
-          ),
-          SizedBox(height: 8.h),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(vertical: 4.h),
-              children: [
-                _buildDrawerItem(
-                  icon: FontAwesomeIcons.filePrescription,
-                  title: 'prescriptions'.tr,
-                  notificationCount: 2,
-                  onTap: () {
-                    Navigator.pop(context);
-                    navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-                      context,
-                      const OrdonnancesPage(),
-                    );
-                  },
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.only(top: 50.h, bottom: 16.h),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 40.r,
+                      backgroundColor: Colors.white.withOpacity(0.9),
+                      child: Icon(
+                        Icons.person,
+                        size: 40.sp,
+                        color: const Color(0xFF2fa7bb),
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    Text(
+                      doctorName,
+                      style: GoogleFonts.poppins(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      email,
+                      style: GoogleFonts.raleway(
+                        fontSize: 14.sp,
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
                 ),
-                _buildDrawerItem(
-                  icon: FontAwesomeIcons.hospital,
-                  title: 'hospitals'.tr,
-                  onTap: () {
-                    Navigator.pop(context);
-                    navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-                      context,
-                      const PharmaciePage(),
-                    );
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: FontAwesomeIcons.gear,
-                  title: 'settings'.tr,
-                  onTap: () {
-                    Navigator.pop(context);
-                    navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-                      context,
-                      const SettingsPage(),
-                    );
-                  },
-                ),
-                // Theme toggle
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 4.h,
-                  ),
-                  child: BlocBuilder<ThemeCubit, ThemeState>(
-                    builder: (context, state) {
-                      final isDarkModeState =
-                          state is ThemeLoaded
-                              ? state.themeMode == ThemeMode.dark
-                              : false;
-                      return Row(
+              ),
+              Divider(
+                color: Colors.white.withOpacity(0.2),
+                thickness: 1,
+                height: 1,
+              ),
+              SizedBox(height: 15),
+
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  children: [
+                    _buildDrawerItem(
+                      icon: FontAwesomeIcons.hospital,
+                      title: 'hospitals'.tr,
+                      onTap: () {
+                        Navigator.pop(context);
+                        navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                          context,
+                          const PharmaciePage(),
+                        );
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: FontAwesomeIcons.kitMedical,
+                      title: 'first_aid'.tr,
+                      onTap: () {
+                        Navigator.pop(context);
+                        navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                          context,
+                          const SecoursScreen(),
+                        );
+                      },
+                    ),
+                    _buildDrawerItem(
+                      icon: FontAwesomeIcons.gear,
+                      title: 'settings'.tr,
+                      onTap: () {
+                        Navigator.pop(context);
+                        navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                          context,
+                          const SettingsPage(),
+                        );
+                      },
+                    ),
+                    // Theme toggle
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(
-                            isDarkModeState
-                                ? FontAwesomeIcons.moon
-                                : FontAwesomeIcons.sun,
-                            color:
-                                isDarkMode
-                                    ? theme.textTheme.bodyLarge?.color
-                                    : Colors.white,
-                            size: 18.sp,
+                          Row(
+                            children: [
+                              Icon(
+                                FontAwesomeIcons.solidMoon,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'dark_mode'.tr,
+                                style: GoogleFonts.raleway(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 16.w),
-                          Text(
-                            isDarkModeState ? 'dark_mode'.tr : 'light_mode'.tr,
-                            style: GoogleFonts.raleway(
-                              color:
-                                  isDarkMode
-                                      ? theme.textTheme.bodyLarge?.color
-                                      : Colors.white,
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const Spacer(),
-                          Transform.scale(
-                            scale: 0.8,
-                            child: const ThemeCubitSwitch(compact: true),
-                          ),
+                          ThemeCubitSwitch(color: Colors.white),
                         ],
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Divider(
+                color: Colors.white.withOpacity(0.2),
+                thickness: 1,
+                height: 1,
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+                child: _buildDrawerItem(
+                  icon: FontAwesomeIcons.rightFromBracket,
+                  title: 'logout'.tr,
+                  onTap: _logout,
+                  color: Colors.red[50],
+                ),
+              ),
+            ],
           ),
-          Divider(
-            color: Colors.white.withOpacity(0.3),
-            thickness: 1,
-            height: 1,
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 16.w),
-            child: _buildDrawerItem(
-              icon: FontAwesomeIcons.rightFromBracket,
-              title: 'logout'.tr,
-              onTap: _logout,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -10,11 +10,7 @@ import 'package:medical_app/core/utils/navigation_with_transition.dart';
 import 'package:medical_app/cubit/theme_cubit/theme_cubit.dart';
 import 'package:medical_app/features/dashboard/presentation/pages/dashboard_patient.dart';
 import 'package:medical_app/features/localisation/presentation/pages/pharmacie_page.dart';
-import 'package:medical_app/features/notifications/presentation/pages/notifications_patient.dart';
-import 'package:medical_app/features/ordonnance/presentation/pages/OrdonnancesPage.dart';
-import 'package:medical_app/features/payement/presentation/pages/payement.dart';
 import 'package:medical_app/features/profile/presentation/pages/ProfilPatient.dart';
-import 'package:medical_app/features/rendez_vous/presentation/pages/RendezVousPatient.dart';
 import 'package:medical_app/features/secours/presentation/pages/secours_screen.dart';
 import 'package:medical_app/features/settings/presentation/pages/settings_patient.dart';
 import 'package:medical_app/widgets/theme_cubit_switch.dart';
@@ -23,12 +19,9 @@ import '../../../authentication/presentation/pages/login_screen.dart';
 import '../../../messagerie/presentation/pages/conversations_list_screen.dart';
 import '../../../profile/presentation/pages/blocs/BLoC update profile/update_user_bloc.dart';
 import '../../../rendez_vous/presentation/pages/appointments_patients.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:medical_app/features/notifications/presentation/widgets/notification_badge.dart';
-import 'package:medical_app/features/localisation/services/language_service.dart';
 import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_bloc.dart';
 import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_state.dart';
-import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_event.dart';
 
 class HomePatient extends StatefulWidget {
   const HomePatient({super.key});
@@ -240,10 +233,10 @@ class _HomePatientState extends State<HomePatient> {
                 await prefs.remove('CACHED_USER');
                 await prefs.remove('TOKEN');
 
-                // Use custom navigation with transition
-                navigateToAnotherScreenWithSlideTransitionFromRightToLeftPushReplacement(
-                  context,
-                  LoginScreen(),
+                // Replace the entire navigation stack to prevent going back
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                  (Route<dynamic> route) => false, // Remove all previous routes
                 );
 
                 // Optional: show success message
@@ -564,18 +557,7 @@ class _HomePatientState extends State<HomePatient> {
                       child: ListView(
                         padding: EdgeInsets.symmetric(vertical: 10),
                         children: [
-                          _buildDrawerItem(
-                            icon: FontAwesomeIcons.filePrescription,
-                            title: 'prescriptions'.tr,
-                            badgeCount: 2,
-                            onTap: () {
-                              Navigator.pop(context);
-                              navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-                                context,
-                                const OrdonnancesPage(),
-                              );
-                            },
-                          ),
+
                           _buildDrawerItem(
                             icon: FontAwesomeIcons.hospital,
                             title: 'hospitals'.tr,
@@ -598,18 +580,7 @@ class _HomePatientState extends State<HomePatient> {
                               );
                             },
                           ),
-                          _buildDrawerItem(
-                            icon: FontAwesomeIcons.creditCard,
-                            title: 'payments'.tr,
-                            badgeCount: 1,
-                            onTap: () {
-                              Navigator.pop(context);
-                              navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-                                context,
-                                const PaymentsPage(),
-                              );
-                            },
-                          ),
+
                           _buildDrawerItem(
                             icon: FontAwesomeIcons.gear,
                             title: 'settings'.tr,

@@ -17,7 +17,7 @@ import 'chat_screen.dart';
 
 class ConversationsScreen extends StatefulWidget {
   final bool showAppBar;
-
+  
   const ConversationsScreen({super.key, this.showAppBar = true});
 
   @override
@@ -112,50 +112,20 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
         );
       } else {
         setState(() {
-          _errorMessage = _t('error_user_id_missing');
+          _errorMessage = 'error_user_id_missing'.tr;
         });
       }
     } catch (e) {
       print('Error loading user data: $e');
       setState(() {
         _isLoading = false;
-        _errorMessage = _t('error_no_user_data');
+        _errorMessage = 'error_no_user_data'.tr;
       });
     }
   }
 
   String _t(String key) {
-    const translations = {
-      'en': {
-        'messages': 'Messages',
-        'error_user_id_missing': 'User ID is missing',
-        'error_no_user_data': 'No user data found. Please log in.',
-        'no_conversations': 'No conversations found',
-        'error': 'Error: ',
-        'retry': 'Retry',
-        'go_to_login': 'Go to Login',
-        'yesterday': 'Yesterday',
-        'loading_conversations': 'Loading conversations...',
-        'no_message': 'No message',
-      },
-      'fr': {
-        'messages': 'Messages',
-        'error_user_id_missing': 'L\'ID utilisateur est manquant',
-        'error_no_user_data':
-            'Aucune donnée utilisateur trouvée. Veuillez vous connecter.',
-        'no_conversations': 'Aucune conversation trouvée',
-        'error': 'Erreur : ',
-        'retry': 'Réessayer',
-        'go_to_login': 'Aller à la connexion',
-        'yesterday': 'Hier',
-        'loading_conversations': 'Chargement des conversations...',
-        'no_message': 'Aucun message',
-      },
-    };
-
-    final locale = Localizations.localeOf(context).languageCode;
-    final lang = translations.containsKey(locale) ? locale : 'en';
-    return translations[lang]![key] ?? key;
+    return key.tr;
   }
 
   @override
@@ -173,41 +143,41 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
         appBar:
             widget.showAppBar
                 ? AppBar(
-                  title: Text(
-                    _t('messages'),
-                    style: GoogleFonts.raleway(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  backgroundColor: AppColors.primaryColor,
-                  elevation: 2,
+          title: Text(
+                    'messages'.tr,
+            style: GoogleFonts.raleway(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          backgroundColor: AppColors.primaryColor,
+          elevation: 2,
                 )
                 : null,
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
               Icon(
                 Icons.error_outline,
                 size: 72.sp,
                 color: Colors.red.withOpacity(0.7),
               ),
-              SizedBox(height: 16.h),
-              Text(
-                _t('error') + _errorMessage,
-                textAlign: TextAlign.center,
+                SizedBox(height: 16.h),
+                Text(
+                'error_prefix'.tr + _errorMessage,
+                  textAlign: TextAlign.center,
                 style: GoogleFonts.raleway(
                   fontSize: 16.sp,
                   color: Colors.red.shade700,
                 ),
               ),
               SizedBox(height: 24.h),
-              ElevatedButton(
+                ElevatedButton(
                 onPressed: _loadUserData,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryColor,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryColor,
                   padding: EdgeInsets.symmetric(
                     horizontal: 24.w,
                     vertical: 12.h,
@@ -215,17 +185,17 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24.r),
                   ),
-                ),
-                child: Text(
-                  _t('retry'),
+                  ),
+                  child: Text(
+                  'retry'.tr,
                   style: GoogleFonts.raleway(
                     fontSize: 16.sp,
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
+                  ),
                 ),
-              ),
-            ],
+              ],
           ),
         ),
       );
@@ -235,16 +205,16 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
       appBar:
           widget.showAppBar
               ? AppBar(
-                title: Text(
-                  _t('messages'),
-                  style: GoogleFonts.raleway(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-                backgroundColor: AppColors.primaryColor,
-                elevation: 2,
+        title: Text(
+                  'messages'.tr,
+          style: GoogleFonts.raleway(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: AppColors.primaryColor,
+        elevation: 2,
               )
               : null,
       body: SafeArea(
@@ -272,7 +242,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                             ),
                             SizedBox(height: 20.h),
                             Text(
-                              _t('no_conversations'),
+                              'no_conversations'.tr,
                               style: GoogleFonts.raleway(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.w600,
@@ -305,37 +275,37 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                     );
                   } else if (state is ConversationsError) {
                     return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
                           Icon(
                             Icons.error_outline,
                             size: 64.sp,
                             color: Colors.red.withOpacity(0.7),
                           ),
-                          SizedBox(height: 16.h),
-                          Text(
+                            SizedBox(height: 16.h),
+                            Text(
                             state.message,
-                            textAlign: TextAlign.center,
+                              textAlign: TextAlign.center,
                             style: GoogleFonts.raleway(
                               fontSize: 16.sp,
                               color: Colors.red.shade700,
                             ),
                           ),
                           SizedBox(height: 24.h),
-                          ElevatedButton(
-                            onPressed: () {
+                            ElevatedButton(
+                              onPressed: () {
                               if (_userId.isNotEmpty) {
                                 context.read<ConversationsBloc>().add(
                                   FetchConversationsEvent(
-                                    userId: _userId,
-                                    isDoctor: _isDoctor,
+                                  userId: _userId,
+                                  isDoctor: _isDoctor,
                                   ),
                                 );
                               }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryColor,
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryColor,
                               padding: EdgeInsets.symmetric(
                                 horizontal: 24.w,
                                 vertical: 12.h,
@@ -343,18 +313,18 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24.r),
                               ),
-                            ),
-                            child: Text(
-                              _t('retry'),
+                              ),
+                              child: Text(
+                              'retry'.tr,
                               style: GoogleFonts.raleway(
                                 fontSize: 16.sp,
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
                               ),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
                     );
                   } else {
                     return Center(
@@ -384,7 +354,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
       ),
     );
   }
-
+  
   Widget _buildConversationCard(
     BuildContext context,
     ConversationEntity conversation,
@@ -477,7 +447,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                           : conversation.lastMessageType == 'file'
                           ? '📎 File'
                           : conversation.lastMessage.isEmpty
-                          ? _t('no_message')
+                          ? 'no_message'.tr
                           : conversation.lastMessage,
                       style: GoogleFonts.raleway(
                         fontSize: 13.sp,

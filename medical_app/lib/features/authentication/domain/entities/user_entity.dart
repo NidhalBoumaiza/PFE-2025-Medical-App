@@ -11,7 +11,9 @@ class UserEntity extends Equatable {
   final DateTime? dateOfBirth;
   final bool? accountStatus; // accountStatus is optional
   final int? verificationCode; // verificationCode is optional
-  final DateTime? validationCodeExpiresAt; // validationCodeExpiresAt is optional
+  final DateTime?
+  validationCodeExpiresAt; // validationCodeExpiresAt is optional
+  final String? fcmToken; // fcmToken is optional
 
   UserEntity({
     this.id, // id is not required
@@ -25,6 +27,7 @@ class UserEntity extends Equatable {
     this.accountStatus, // accountStatus is not required
     this.verificationCode, // verificationCode is not required
     this.validationCodeExpiresAt, // validationCodeExpiresAt is not required
+    this.fcmToken, // fcmToken is not required
   });
 
   factory UserEntity.create({
@@ -39,6 +42,7 @@ class UserEntity extends Equatable {
     bool? accountStatus, // accountStatus is optional
     int? verificationCode,
     DateTime? validationCodeExpiresAt, // validationCodeExpiresAt is optional
+    String? fcmToken, // fcmToken is optional
   }) {
     return UserEntity(
       id: id,
@@ -52,6 +56,7 @@ class UserEntity extends Equatable {
       accountStatus: accountStatus,
       verificationCode: verificationCode,
       validationCodeExpiresAt: validationCodeExpiresAt,
+      fcmToken: fcmToken,
     );
   }
 
@@ -68,5 +73,6 @@ class UserEntity extends Equatable {
     accountStatus,
     verificationCode,
     validationCodeExpiresAt,
+    fcmToken,
   ];
 }

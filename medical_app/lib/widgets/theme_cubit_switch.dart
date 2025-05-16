@@ -6,11 +6,10 @@ import 'package:medical_app/cubit/theme_cubit/theme_cubit.dart';
 
 class ThemeCubitSwitch extends StatelessWidget {
   final bool compact;
-  
-  const ThemeCubitSwitch({
-    Key? key,
-    this.compact = false,
-  }) : super(key: key);
+  final Color? color;
+
+  const ThemeCubitSwitch({Key? key, this.compact = false, this.color})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -18,17 +17,17 @@ class ThemeCubitSwitch extends StatelessWidget {
       builder: (context, state) {
         if (state is ThemeLoaded) {
           final isDarkMode = state.themeMode == ThemeMode.dark;
-          
+
           if (compact) {
             return Switch(
               value: isDarkMode,
               onChanged: (_) {
                 context.read<ThemeCubit>().toggleTheme();
               },
-              activeColor: AppThemes.primaryColor,
+              activeColor: color ?? AppThemes.primaryColor,
             );
           }
-          
+
           return Card(
             elevation: 1,
             shape: RoundedRectangleBorder(
@@ -43,7 +42,7 @@ class ThemeCubitSwitch extends StatelessWidget {
                     children: [
                       Icon(
                         isDarkMode ? Icons.dark_mode : Icons.light_mode,
-                        color: AppThemes.primaryColor,
+                        color: color ?? AppThemes.primaryColor,
                         size: 22,
                       ),
                       const SizedBox(width: 12),
@@ -61,17 +60,17 @@ class ThemeCubitSwitch extends StatelessWidget {
                     onChanged: (_) {
                       context.read<ThemeCubit>().toggleTheme();
                     },
-                    activeColor: AppThemes.primaryColor,
+                    activeColor: color ?? AppThemes.primaryColor,
                   ),
                 ],
               ),
             ),
           );
         }
-        
+
         // Show placeholder while theme is initializing
         return const SizedBox.shrink();
       },
     );
   }
-} 
+}

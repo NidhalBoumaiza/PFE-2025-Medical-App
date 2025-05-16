@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
@@ -20,7 +21,8 @@ class PrescriptionDetailsPage extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _PrescriptionDetailsPageState createState() => _PrescriptionDetailsPageState();
+  _PrescriptionDetailsPageState createState() =>
+      _PrescriptionDetailsPageState();
 }
 
 class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
@@ -28,7 +30,7 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
   bool _isEditing = false;
   final _noteController = TextEditingController();
   final List<MedicationEntity> _medications = [];
-  
+
   // Controllers for adding new medications
   final _medicationNameController = TextEditingController();
   final _dosageController = TextEditingController();
@@ -96,14 +98,14 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
   @override
   Widget build(BuildContext context) {
     final bool canEdit = widget.isDoctor;
-    
+
     return BlocListener<PrescriptionBloc, PrescriptionState>(
       listener: (context, state) {
         if (state is PrescriptionEdited) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Ordonnance modifiée avec succès',
+                'prescription_edited_success'.tr,
                 style: GoogleFonts.raleway(),
               ),
               backgroundColor: Colors.green,
@@ -116,7 +118,7 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Erreur : ${state.message}',
+                'prescription_error'.tr.replaceAll('{0}', state.message),
                 style: GoogleFonts.raleway(),
               ),
               backgroundColor: Colors.red,
@@ -127,7 +129,7 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            'Ordonnance',
+            'prescription_title'.tr,
             style: GoogleFonts.raleway(
               fontWeight: FontWeight.bold,
               fontSize: 18.sp,
@@ -150,11 +152,9 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
         body: BlocBuilder<PrescriptionBloc, PrescriptionState>(
           builder: (context, state) {
             if (state is PrescriptionLoading) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
-            
+
             return SingleChildScrollView(
               padding: EdgeInsets.all(16.w),
               child: Column(
@@ -184,15 +184,16 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Ordonnance du',
+                                      'prescription_date'.tr,
                                       style: GoogleFonts.raleway(
                                         fontSize: 14.sp,
                                         color: Colors.grey[600],
                                       ),
                                     ),
                                     Text(
-                                      DateFormat('dd MMMM yyyy, HH:mm')
-                                          .format(widget.prescription.date),
+                                      DateFormat(
+                                        'dd MMMM yyyy, HH:mm',
+                                      ).format(widget.prescription.date),
                                       style: GoogleFonts.raleway(
                                         fontSize: 16.sp,
                                         fontWeight: FontWeight.bold,
@@ -255,40 +256,40 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: 20.h),
-                  
+
                   // Medications section
                   Text(
-                    'Médicaments',
+                    'medications'.tr,
                     style: GoogleFonts.raleway(
                       fontSize: 18.sp,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   SizedBox(height: 12.h),
-                  
+
                   // List of medications
-                  ..._medications.map((medication) => _buildMedicationCard(
-                    medication,
-                    canRemove: _isEditing,
-                  )),
-                  
+                  ..._medications.map(
+                    (medication) =>
+                        _buildMedicationCard(medication, canRemove: _isEditing),
+                  ),
+
                   // Add medication form (only in edit mode)
                   if (_isEditing) _buildAddMedicationForm(),
-                  
+
                   SizedBox(height: 20.h),
-                  
+
                   // Notes section
                   Text(
-                    'Notes',
+                    'notes'.tr,
                     style: GoogleFonts.raleway(
                       fontSize: 18.sp,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   SizedBox(height: 12.h),
-                  
+
                   if (_isEditing)
                     Card(
                       elevation: 2,
@@ -301,7 +302,8 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
                           controller: _noteController,
                           maxLines: 4,
                           decoration: InputDecoration(
-                            hintText: "Notes ou instructions supplémentaires...",
+                            hintText:
+                                "Notes ou instructions supplémentaires...",
                             border: InputBorder.none,
                             hintStyle: GoogleFonts.raleway(
                               fontSize: 14.sp,
@@ -329,17 +331,19 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
                               : 'Aucune note',
                           style: GoogleFonts.raleway(
                             fontSize: 14.sp,
-                            color: widget.prescription.note?.isNotEmpty == true
-                                ? Colors.black87
-                                : Colors.grey,
-                            fontStyle: widget.prescription.note?.isNotEmpty == true
-                                ? FontStyle.normal
-                                : FontStyle.italic,
+                            color:
+                                widget.prescription.note?.isNotEmpty == true
+                                    ? Colors.black87
+                                    : Colors.grey,
+                            fontStyle:
+                                widget.prescription.note?.isNotEmpty == true
+                                    ? FontStyle.normal
+                                    : FontStyle.italic,
                           ),
                         ),
                       ),
                     ),
-                    
+
                   // Edit mode save button
                   if (_isEditing)
                     Padding(
@@ -353,8 +357,11 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
                                 _isEditing = false;
                                 // Reset to original data
                                 _medications.clear();
-                                _medications.addAll(widget.prescription.medications);
-                                _noteController.text = widget.prescription.note ?? '';
+                                _medications.addAll(
+                                  widget.prescription.medications,
+                                );
+                                _noteController.text =
+                                    widget.prescription.note ?? '';
                               });
                             },
                             icon: Icon(Icons.cancel, color: Colors.white),
@@ -409,13 +416,14 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
     );
   }
 
-  Widget _buildMedicationCard(MedicationEntity medication, {bool canRemove = false}) {
+  Widget _buildMedicationCard(
+    MedicationEntity medication, {
+    bool canRemove = false,
+  }) {
     return Card(
       elevation: 2,
       margin: EdgeInsets.only(bottom: 12.h),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
       child: Padding(
         padding: EdgeInsets.all(16.w),
         child: Column(
@@ -435,11 +443,7 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
                 ),
                 if (canRemove)
                   IconButton(
-                    icon: Icon(
-                      Icons.delete,
-                      color: Colors.red,
-                      size: 20.sp,
-                    ),
+                    icon: Icon(Icons.delete, color: Colors.red, size: 20.sp),
                     onPressed: () => _removeMedication(medication.id),
                   ),
               ],
@@ -447,11 +451,7 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
             Divider(height: 20.h),
             Row(
               children: [
-                Icon(
-                  Icons.medication,
-                  size: 18.sp,
-                  color: Colors.grey[600],
-                ),
+                Icon(Icons.medication, size: 18.sp, color: Colors.grey[600]),
                 SizedBox(width: 8.w),
                 Text(
                   'Dosage: ',
@@ -463,9 +463,7 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
                 ),
                 Text(
                   medication.dosage,
-                  style: GoogleFonts.raleway(
-                    fontSize: 14.sp,
-                  ),
+                  style: GoogleFonts.raleway(fontSize: 14.sp),
                 ),
               ],
             ),
@@ -473,11 +471,7 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.description,
-                  size: 18.sp,
-                  color: Colors.grey[600],
-                ),
+                Icon(Icons.description, size: 18.sp, color: Colors.grey[600]),
                 SizedBox(width: 8.w),
                 Expanded(
                   child: Column(
@@ -493,9 +487,7 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
                       ),
                       Text(
                         medication.instructions,
-                        style: GoogleFonts.raleway(
-                          fontSize: 14.sp,
-                        ),
+                        style: GoogleFonts.raleway(fontSize: 14.sp),
                       ),
                     ],
                   ),
@@ -512,9 +504,7 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
     return Card(
       elevation: 2,
       margin: EdgeInsets.only(top: 12.h, bottom: 12.h),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
       child: Padding(
         padding: EdgeInsets.all(16.w),
         child: Column(
@@ -573,7 +563,7 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryColor,
                   padding: EdgeInsets.symmetric(
-                    horizontal: 24.w, 
+                    horizontal: 24.w,
                     vertical: 12.h,
                   ),
                   shape: RoundedRectangleBorder(
@@ -587,4 +577,4 @@ class _PrescriptionDetailsPageState extends State<PrescriptionDetailsPage> {
       ),
     );
   }
-} 
+}

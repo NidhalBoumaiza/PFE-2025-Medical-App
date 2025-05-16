@@ -1,6 +1,7 @@
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const sendEmail = require("../utils/email");
+const admin = require("firebase-admin");
 //-----------------------------------------
 
 //-----------------------------------------
@@ -56,9 +57,147 @@ exports.sendMailService = catchAsync(async (req, res, next) => {
     console.log(err);
     return next(
       new AppError(
-        "Une erreur s'est produite lors de l'envoi de l'e-mail ! Merci d'essayer plus tard .",
+        "Une erreur s'est produite lors de l'envoi de l'e-mail ! Merci d'essayer plus tard .",
         500
       )
+    );
+  }
+});
+
+// Direct password reset using Firebase Admin
+exports.resetPasswordDirect = catchAsync(async (req, res, next) => {
+  const { email, newPassword, verificationCode } = req.body;
+
+  if (!email || !newPassword || !verificationCode) {
+    return next(
+      new AppError(
+        "L'email, le nouveau mot de passe et le code de vérification sont requis",
+        400
+      )
+    );
+  }
+
+  try {
+    console.log(`Password reset request for email: ${email}`);
+
+    // 1. Verify the verification code in Firestore
+    const normalizedEmail = email.toLowerCase().trim();
+    const collections = ["patients", "medecins", "users"];
+
+    let userData = null;
+    let collectionName = null;
+    let userId = null;
+
+    // Search for the user in all collections
+    for (const collection of collections) {
+      console.log(
+        `Searching in ${collection} collection for email: ${normalizedEmail}`
+      );
+
+      const snapshot = await admin
+        .firestore()
+        .collection(collection)
+        .where("email", "==", normalizedEmail)
+        .get();
+
+      if (!snapshot.empty) {
+        collectionName = collection;
+        userId = snapshot.docs[0].id;
+        userData = snapshot.docs[0].data();
+        console.log(`User found in ${collection} with ID: ${userId}`);
+        break;
+      }
+    }
+
+    if (!userData) {
+      console.log(`User not found for email: ${normalizedEmail}`);
+      return next(new AppError("Utilisateur non trouvé", 404));
+    }
+
+    // 2. Verify the code
+    if (userData.verificationCode !== verificationCode) {
+      console.log(
+        `Invalid verification code. Expected: ${userData.verificationCode}, Received: ${verificationCode}`
+      );
+      return next(new AppError("Code de vérification invalide", 400));
+    }
+
+    // 3. Check if code is expired
+    const validationExpiry =
+      userData.validationCodeExpiresAt?.toDate();
+    if (!validationExpiry || validationExpiry < new Date()) {
+      console.log(
+        `Verification code expired. Expiry: ${validationExpiry}, Current: ${new Date()}`
+      );
+      return next(
+        new AppError("Le code de vérification a expiré", 400)
+      );
+    }
+
+    // 4. Check code type
+    const codeType = userData.codeType;
+    if (
+      codeType !== "motDePasseOublie" &&
+      codeType !== "changerMotDePasse"
+    ) {
+      console.log(`Invalid code type: ${codeType}`);
+      return next(
+        new AppError(
+          "Type de code invalide pour la réinitialisation du mot de passe",
+          400
+        )
+      );
+    }
+
+    // 5. Update the password using Firebase Auth Admin
+    try {
+      console.log(
+        `Resetting password for user with email: ${normalizedEmail}`
+      );
+
+      // Get user by email and update password
+      const userRecord = await admin
+        .auth()
+        .getUserByEmail(normalizedEmail);
+      await admin.auth().updateUser(userRecord.uid, {
+        password: newPassword,
+      });
+
+      console.log(
+        `Password successfully reset for user: ${userRecord.uid}`
+      );
+
+      // 6. Clear verification code in Firestore
+      await admin
+        .firestore()
+        .collection(collectionName)
+        .doc(userId)
+        .update({
+          verificationCode: null,
+          validationCodeExpiresAt: null,
+          codeType: null,
+        });
+
+      console.log(`Verification code cleared for user: ${userId}`);
+
+      // 7. Return success response
+      res.status(200).json({
+        status: "success",
+        message: "Mot de passe réinitialisé avec succès",
+      });
+    } catch (error) {
+      console.error(`Error updating password: ${error.message}`);
+      return next(
+        new AppError(
+          `Erreur lors de la réinitialisation du mot de passe: ${error.message}`,
+          500
+        )
+      );
+    }
+  } catch (error) {
+    console.error(`Unexpected error: ${error.message}`);
+    return next(
+      new AppError("Une erreur inattendue s'est produite", 500)
     );
   }
 });

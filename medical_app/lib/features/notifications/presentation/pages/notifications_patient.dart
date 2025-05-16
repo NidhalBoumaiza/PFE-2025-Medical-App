@@ -11,7 +11,6 @@ import 'package:medical_app/features/notifications/domain/entities/notification_
 import 'package:medical_app/features/notifications/presentation/bloc/notification_bloc.dart';
 import 'package:medical_app/features/notifications/presentation/bloc/notification_event.dart';
 import 'package:medical_app/features/notifications/presentation/bloc/notification_state.dart';
-import 'package:medical_app/features/ordonnance/presentation/pages/OrdonnancesPage.dart';
 import 'package:medical_app/features/rendez_vous/presentation/pages/appointment_details.dart';
 import 'package:medical_app/injection_container.dart' as di;
 
@@ -663,12 +662,12 @@ class _NotificationsPatientState extends State<NotificationsPatient>
       ); // Refresh on return
     } else if (notification.prescriptionId != null) {
       // Navigate to prescription details
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => OrdonnancesPage()),
-      ).then(
-        (_) => _refreshNotifications(showLoading: false),
-      ); // Refresh on return
+      // Navigator.push(
+      //   context,
+      //   MaterialPageRoute(builder: (context) => OrdonnancesPage()),
+      // ).then(
+      //   (_) => _refreshNotifications(showLoading: false),
+      // ); // Refresh on return
     }
   }
 

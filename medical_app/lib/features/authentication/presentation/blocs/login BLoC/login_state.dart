@@ -9,7 +9,14 @@ abstract class LoginState extends Equatable {
 
 class LoginInitial extends LoginState {}
 
-class LoginLoading extends LoginState {}
+class LoginLoading extends LoginState {
+  final bool isEmailPasswordLogin;
+
+  const LoginLoading({this.isEmailPasswordLogin = true});
+
+  @override
+  List<Object> get props => [isEmailPasswordLogin];
+}
 
 class LoginSuccess extends LoginState {
   final UserEntity user;

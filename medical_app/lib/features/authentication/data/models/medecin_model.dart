@@ -21,19 +21,21 @@ class MedecinModel extends UserModel {
     required this.numLicence,
     this.appointmentDuration = 30, // Default 30 minutes
     DateTime? validationCodeExpiresAt,
+    String? fcmToken,
   }) : super(
-    id: id,
-    name: name,
-    lastName: lastName,
-    email: email,
-    role: role,
-    gender: gender,
-    phoneNumber: phoneNumber,
-    dateOfBirth: dateOfBirth,
-    accountStatus: accountStatus,
-    verificationCode: verificationCode,
-    validationCodeExpiresAt: validationCodeExpiresAt,
-  );
+         id: id,
+         name: name,
+         lastName: lastName,
+         email: email,
+         role: role,
+         gender: gender,
+         phoneNumber: phoneNumber,
+         dateOfBirth: dateOfBirth,
+         accountStatus: accountStatus,
+         verificationCode: verificationCode,
+         validationCodeExpiresAt: validationCodeExpiresAt,
+         fcmToken: fcmToken,
+       );
 
   factory MedecinModel.fromJson(Map<String, dynamic> json) {
     return MedecinModel(
@@ -44,19 +46,23 @@ class MedecinModel extends UserModel {
       role: json['role'] as String,
       gender: json['gender'] as String,
       phoneNumber: json['phoneNumber'] as String,
-      dateOfBirth: json['dateOfBirth'] != null
-          ? DateTime.parse(json['dateOfBirth'] as String)
-          : null,
+      dateOfBirth:
+          json['dateOfBirth'] != null
+              ? DateTime.parse(json['dateOfBirth'] as String)
+              : null,
       speciality: json['speciality'] as String,
       numLicence: json['numLicence'] as String,
-      appointmentDuration: json['appointmentDuration'] != null
-          ? json['appointmentDuration'] as int
-          : 30, // Default 30 minutes
+      appointmentDuration:
+          json['appointmentDuration'] != null
+              ? json['appointmentDuration'] as int
+              : 30, // Default 30 minutes
       accountStatus: json['accountStatus'] as bool?,
       verificationCode: json['verificationCode'] as int?,
-      validationCodeExpiresAt: json['validationCodeExpiresAt'] != null
-          ? DateTime.parse(json['validationCodeExpiresAt'] as String)
-          : null,
+      validationCodeExpiresAt:
+          json['validationCodeExpiresAt'] != null
+              ? DateTime.parse(json['validationCodeExpiresAt'] as String)
+              : null,
+      fcmToken: json['fcmToken'] as String?,
     );
   }
 
@@ -105,6 +111,7 @@ class MedecinModel extends UserModel {
     String? speciality,
     String? numLicence,
     int? appointmentDuration,
+    String? fcmToken,
   }) {
     return MedecinModel(
       id: id ?? this.id,
@@ -117,10 +124,12 @@ class MedecinModel extends UserModel {
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       accountStatus: accountStatus ?? this.accountStatus,
       verificationCode: verificationCode ?? this.verificationCode,
-      validationCodeExpiresAt: validationCodeExpiresAt ?? this.validationCodeExpiresAt,
+      validationCodeExpiresAt:
+          validationCodeExpiresAt ?? this.validationCodeExpiresAt,
       speciality: speciality ?? this.speciality,
       numLicence: numLicence ?? this.numLicence,
       appointmentDuration: appointmentDuration ?? this.appointmentDuration,
+      fcmToken: fcmToken ?? this.fcmToken,
     );
   }
 }

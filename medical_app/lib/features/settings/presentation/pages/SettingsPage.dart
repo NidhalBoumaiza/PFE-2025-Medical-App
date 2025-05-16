@@ -13,6 +13,7 @@ import 'package:medical_app/i18n/app_translation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../authentication/presentation/pages/login_screen.dart';
 import 'package:medical_app/injection_container.dart' as di;
+import 'change_password_screen.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -249,7 +250,12 @@ class _SettingsPageState extends State<SettingsPage> {
               vertical: 8,
             ),
             onTap: () {
-              // Navigate to password change
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChangePasswordScreen(),
+                ),
+              );
             },
           ),
           const Divider(height: 1),

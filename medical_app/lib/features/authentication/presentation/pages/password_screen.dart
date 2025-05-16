@@ -25,7 +25,8 @@ class PasswordScreen extends StatefulWidget {
 class _PasswordScreenState extends State<PasswordScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
   bool _isObscurePassword = true;
   bool _isObscureConfirmPassword = true;
 
@@ -63,9 +64,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: 20.h),
-                  
+
                   // Header image
                   Center(
                     child: Image.asset(
@@ -74,9 +75,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
                       width: 200.w,
                     ),
                   ),
-                  
+
                   SizedBox(height: 30.h),
-                  
+
                   // Form fields
                   Form(
                     key: _formKey,
@@ -92,9 +93,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             color: Colors.black87,
                           ),
                         ),
-                        
+
                         SizedBox(height: 10.h),
-                        
+
                         // Password field
                         Container(
                           decoration: BoxDecoration(
@@ -187,9 +188,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             },
                           ),
                         ),
-                        
+
                         SizedBox(height: 24.h),
-                        
+
                         // Confirm Password label
                         Text(
                           "Confirmer le mot de passe",
@@ -199,9 +200,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             color: Colors.black87,
                           ),
                         ),
-                        
+
                         SizedBox(height: 10.h),
-                        
+
                         // Confirm Password field
                         Container(
                           decoration: BoxDecoration(
@@ -278,7 +279,8 @@ class _PasswordScreenState extends State<PasswordScreen> {
                                 ),
                                 onPressed: () {
                                   setState(() {
-                                    _isObscureConfirmPassword = !_isObscureConfirmPassword;
+                                    _isObscureConfirmPassword =
+                                        !_isObscureConfirmPassword;
                                   });
                                 },
                               ),
@@ -297,19 +299,67 @@ class _PasswordScreenState extends State<PasswordScreen> {
                       ],
                     ),
                   ),
-                  
+
                   SizedBox(height: 30.h),
-                  
+
                   // Submit button
                   BlocConsumer<SignupBloc, SignupState>(
                     listener: (context, state) {
                       if (state is SignupSuccess) {
-                        showSuccessSnackBar(context, "Inscription réussie");
-                        context.read<ForgotPasswordBloc>().add(
-                          SendVerificationCode(
-                            email: widget.entity.email,
-                            codeType: VerificationCodeType.activationDeCompte,
-                          ),
+                        // Updated success message explaining account activation
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                              ),
+                              title: Row(
+                                children: [
+                                  Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                    size: 28.sp,
+                                  ),
+                                  SizedBox(width: 10.w),
+                                  Text(
+                                    "account_created".tr,
+                                    style: GoogleFonts.raleway(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              content: Text(
+                                "account_creation_success".tr,
+                                style: GoogleFonts.raleway(height: 1.5),
+                              ),
+                              actions: [
+                                TextButton(
+                                  child: Text(
+                                    "Continuer",
+                                    style: GoogleFonts.raleway(
+                                      color: AppColors.primaryColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.pop(context); // Close dialog
+                                    // Send verification code
+                                    context.read<ForgotPasswordBloc>().add(
+                                      SendVerificationCode(
+                                        email: widget.entity.email,
+                                        codeType:
+                                            VerificationCodeType
+                                                .activationDeCompte,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            );
+                          },
                         );
                       } else if (state is SignupError) {
                         showErrorSnackBar(context, state.message);
@@ -317,49 +367,121 @@ class _PasswordScreenState extends State<PasswordScreen> {
                     },
                     builder: (context, state) {
                       final isLoading = state is SignupLoading;
-                      return Container(
-                        width: double.infinity,
-                        height: 55.h,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryColor,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16.r),
-                            ),
-                            elevation: 2,
-                          ),
-                          onPressed: isLoading
-                              ? null
-                              : () {
-                                  if (_formKey.currentState!.validate()) {
-                                    context.read<SignupBloc>().add(
-                                      SignupWithUserEntity(
-                                        user: widget.entity,
-                                        password: passwordController.text,
-                                      ),
-                                    );
-                                  }
-                                },
-                          child: isLoading
-                              ? CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 3,
-                                )
-                              : Text(
-                                  "Créer le compte",
-                                  style: GoogleFonts.raleway(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w600,
+                      return BlocListener<
+                        ForgotPasswordBloc,
+                        ForgotPasswordState
+                      >(
+                        listener: (context, forgotPasswordState) {
+                          if (forgotPasswordState is ForgotPasswordLoading) {
+                            // Show loading indicator while sending verification code
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext context) {
+                                return Dialog(
+                                  backgroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16.r),
                                   ),
-                                ),
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 30.h,
+                                      horizontal: 20.w,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CircularProgressIndicator(
+                                          color: AppColors.primaryColor,
+                                        ),
+                                        SizedBox(height: 24.h),
+                                        Text(
+                                          "Envoi du code de vérification...",
+                                          style: GoogleFonts.raleway(
+                                            fontSize: 16.sp,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          } else if (forgotPasswordState
+                              is ForgotPasswordSuccess) {
+                            // Close loading dialog if it's open
+                            Navigator.of(context).pop();
+
+                            // Navigate to verification code screen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => VerifyCodeScreen(
+                                      email: widget.entity.email,
+                                      isAccountCreation: true,
+                                    ),
+                              ),
+                            );
+                          } else if (forgotPasswordState
+                              is ForgotPasswordError) {
+                            // Close loading dialog if it's open
+                            if (Navigator.of(context).canPop()) {
+                              Navigator.of(context).pop();
+                            }
+                            showErrorSnackBar(
+                              context,
+                              forgotPasswordState.message,
+                            );
+                          }
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          height: 55.h,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryColor,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                              ),
+                              elevation: 2,
+                            ),
+                            onPressed:
+                                isLoading
+                                    ? null
+                                    : () {
+                                      if (_formKey.currentState!.validate()) {
+                                        context.read<SignupBloc>().add(
+                                          SignupWithUserEntity(
+                                            user: widget.entity,
+                                            password: passwordController.text,
+                                          ),
+                                        );
+                                      }
+                                    },
+                            child:
+                                isLoading
+                                    ? CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 3,
+                                    )
+                                    : Text(
+                                      "Créer le compte",
+                                      style: GoogleFonts.raleway(
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                          ),
                         ),
                       );
                     },
                   ),
-                  
+
                   SizedBox(height: 20.h),
-                  
+
                   // Back button
                   Center(
                     child: TextButton(

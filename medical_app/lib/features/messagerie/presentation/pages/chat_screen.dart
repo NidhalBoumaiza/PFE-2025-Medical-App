@@ -71,7 +71,7 @@ class _ChatScreenState extends State<ChatScreen> {
     // This improves the user experience by giving time for the UI to render
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
-        _markMessagesAsRead();
+    _markMessagesAsRead();
       }
     });
   }
@@ -126,16 +126,16 @@ class _ChatScreenState extends State<ChatScreen> {
                 print('Marking message ${doc.id} as read in listener');
 
                 // Update UI through BLoC
-                final readMessage = MessageModel(
+          final readMessage = MessageModel(
                   id: doc.id,
-                  conversationId: widget.chatId,
-                  senderId: data['senderId'] as String,
-                  content: data['content'] as String,
-                  type: data['type'] as String,
-                  url: data['url'] as String?,
-                  fileName: data['fileName'] as String?,
-                  timestamp: DateTime.parse(data['timestamp'] as String),
-                  status: MessageStatus.read,
+            conversationId: widget.chatId,
+            senderId: data['senderId'] as String,
+            content: data['content'] as String,
+            type: data['type'] as String,
+            url: data['url'] as String?,
+            fileName: data['fileName'] as String?,
+            timestamp: DateTime.parse(data['timestamp'] as String),
+            status: MessageStatus.read,
                   readBy: [...readBy, currentUserId],
                 );
 
@@ -193,11 +193,11 @@ class _ChatScreenState extends State<ChatScreen> {
       print('Marking messages as read for recipientId: ${widget.recipientId}');
       final messages =
           await _firestore
-              .collection('conversations')
-              .doc(widget.chatId)
-              .collection('messages')
-              .where('senderId', isEqualTo: widget.recipientId)
-              .get();
+          .collection('conversations')
+          .doc(widget.chatId)
+          .collection('messages')
+          .where('senderId', isEqualTo: widget.recipientId)
+          .get();
 
       if (messages.docs.isEmpty) {
         print('No messages from recipient found to mark as read');
@@ -222,7 +222,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
 
       if (updatesNeeded) {
-        await batch.commit();
+      await batch.commit();
         print('Successfully marked messages as read');
 
         // Also update the conversation's last message read status
@@ -350,11 +350,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   ElevatedButton(
                     onPressed:
                         _selectedImages.isEmpty
-                            ? null
-                            : () {
-                              _sendImages();
-                              Navigator.pop(context);
-                            },
+                        ? null
+                        : () {
+                      _sendImages();
+                      Navigator.pop(context);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryColor,
                       shape: RoundedRectangleBorder(
@@ -453,15 +453,15 @@ class _ChatScreenState extends State<ChatScreen> {
       context: context,
       builder:
           (context) => Dialog(
-            child: CachedNetworkImage(
-              imageUrl: url,
-              placeholder: (context, url) => CircularProgressIndicator(),
+        child: CachedNetworkImage(
+          imageUrl: url,
+          placeholder: (context, url) => CircularProgressIndicator(),
               errorWidget:
                   (context, url, error) =>
                       Icon(Icons.error, size: 50.sp, color: AppColors.grey),
-              fit: BoxFit.contain,
-            ),
-          ),
+          fit: BoxFit.contain,
+        ),
+      ),
     );
   }
 
@@ -531,200 +531,200 @@ class _ChatScreenState extends State<ChatScreen> {
                             color: AppColors.primaryColor,
                           ),
                         )
-                        : messages.isEmpty
-                        ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.chat_bubble_outline,
-                                size: 48.sp,
-                                color: AppColors.grey.withOpacity(0.5),
-                              ),
-                              SizedBox(height: 16.h),
-                              Text(
+                    : messages.isEmpty
+                    ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline,
+                        size: 48.sp,
+                        color: AppColors.grey.withOpacity(0.5),
+                      ),
+                      SizedBox(height: 16.h),
+                      Text(
                                 'no_messages_yet'.tr,
-                                style: GoogleFonts.raleway(
-                                  fontSize: 16.sp,
-                                  color: AppColors.grey,
-                                ),
-                              ),
-                              SizedBox(height: 8.h),
-                              Text(
+                        style: GoogleFonts.raleway(
+                          fontSize: 16.sp,
+                          color: AppColors.grey,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
                                 'start_conversation'.tr,
-                                style: GoogleFonts.raleway(
-                                  fontSize: 14.sp,
-                                  color: AppColors.grey.withOpacity(0.7),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                        : ListView.builder(
-                          controller: _scrollController,
-                          reverse: true,
-                          physics: const AlwaysScrollableScrollPhysics(),
+                        style: GoogleFonts.raleway(
+                          fontSize: 14.sp,
+                          color: AppColors.grey.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+                    : ListView.builder(
+                  controller: _scrollController,
+                  reverse: true,
+                  physics: const AlwaysScrollableScrollPhysics(),
                           padding: EdgeInsets.symmetric(
                             vertical: 16.h,
                             horizontal: 8.w,
                           ),
-                          itemCount: messages.length,
-                          itemBuilder: (context, index) {
-                            final message = messages[index];
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
                             final isMe =
                                 message.senderId == _auth.currentUser!.uid;
-
-                            // Add date header if needed
+                    
+                    // Add date header if needed
                             final showDateHeader =
                                 index == messages.length - 1 ||
                                 !_isSameDay(
                                   messages[index].timestamp,
                                   messages[index + 1].timestamp,
                                 );
-
-                            return Column(
-                              children: [
-                                if (showDateHeader)
-                                  _buildDateHeader(message.timestamp),
-                                Align(
-                                  key: ValueKey(message.id),
+                    
+                    return Column(
+                      children: [
+                        if (showDateHeader)
+                          _buildDateHeader(message.timestamp),
+                        Align(
+                          key: ValueKey(message.id),
                                   alignment:
                                       isMe
                                           ? Alignment.centerRight
                                           : Alignment.centerLeft,
-                                  child: ConstrainedBox(
-                                    constraints: BoxConstraints(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
                                       maxWidth:
                                           MediaQuery.of(context).size.width *
                                           0.75,
-                                    ),
-                                    child: Container(
-                                      margin: EdgeInsets.only(
-                                        top: 8.h,
-                                        bottom: 8.h,
-                                        left: isMe ? 64.w : 8.w,
-                                        right: isMe ? 8.w : 64.w,
-                                      ),
+                            ),
+                            child: Container(
+                              margin: EdgeInsets.only(
+                                top: 8.h,
+                                bottom: 8.h,
+                                left: isMe ? 64.w : 8.w,
+                                right: isMe ? 8.w : 64.w,
+                              ),
                                       padding: EdgeInsets.symmetric(
                                         horizontal: 16.w,
                                         vertical: 10.h,
                                       ),
-                                      decoration: BoxDecoration(
+                              decoration: BoxDecoration(
                                         color:
                                             isMe
                                                 ? AppColors.primaryColor
                                                 : Colors.white,
-                                        borderRadius: BorderRadius.only(
-                                          topLeft: Radius.circular(16.r),
-                                          topRight: Radius.circular(16.r),
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(16.r),
+                                  topRight: Radius.circular(16.r),
                                           bottomLeft: Radius.circular(
                                             isMe ? 16.r : 0,
                                           ),
                                           bottomRight: Radius.circular(
                                             isMe ? 0 : 16.r,
                                           ),
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
                                             color: Colors.black.withOpacity(
                                               0.05,
                                             ),
-                                            blurRadius: 4,
-                                            offset: Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Column(
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
                                         crossAxisAlignment:
                                             isMe
                                                 ? CrossAxisAlignment.end
                                                 : CrossAxisAlignment.start,
-                                        children: [
-                                          if (message.type == 'text')
-                                            Text(
-                                              message.content,
-                                              style: GoogleFonts.raleway(
-                                                fontSize: 15.sp,
+                                children: [
+                                  if (message.type == 'text')
+                                    Text(
+                                      message.content,
+                                      style: GoogleFonts.raleway(
+                                        fontSize: 15.sp,
                                                 color:
                                                     isMe
                                                         ? Colors.white
                                                         : Colors.black87,
-                                              ),
-                                            ),
+                                      ),
+                                    ),
                                           if (message.type == 'image' &&
                                               message.url != null)
-                                            GestureDetector(
+                                    GestureDetector(
                                               onTap:
                                                   () =>
                                                       _viewMedia(message.url!),
-                                              child: ClipRRect(
+                                      child: ClipRRect(
                                                 borderRadius:
                                                     BorderRadius.circular(8.r),
-                                                child: CachedNetworkImage(
-                                                  imageUrl: message.url!,
-                                                  width: 200.w,
-                                                  height: 200.h,
-                                                  fit: BoxFit.cover,
+                                        child: CachedNetworkImage(
+                                          imageUrl: message.url!,
+                                          width: 200.w,
+                                          height: 200.h,
+                                          fit: BoxFit.cover,
                                                   placeholder:
                                                       (
                                                         context,
                                                         url,
                                                       ) => Container(
-                                                        width: 200.w,
-                                                        height: 200.h,
+                                            width: 200.w,
+                                            height: 200.h,
                                                         color:
                                                             Colors
                                                                 .grey
                                                                 .shade300,
-                                                        child: Center(
-                                                          child: CircularProgressIndicator(
+                                            child: Center(
+                                              child: CircularProgressIndicator(
                                                             color:
                                                                 isMe
                                                                     ? Colors
                                                                         .white70
                                                                     : AppColors
                                                                         .primaryColor,
-                                                            strokeWidth: 2,
-                                                          ),
-                                                        ),
-                                                      ),
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                          ),
                                                   errorWidget:
                                                       (
                                                         context,
                                                         url,
                                                         error,
                                                       ) => Container(
-                                                        width: 200.w,
-                                                        height: 200.h,
+                                            width: 200.w,
+                                            height: 200.h,
                                                         color:
                                                             Colors
                                                                 .grey
                                                                 .shade300,
-                                                        child: Center(
-                                                          child: Icon(
-                                                            Icons.error_outline,
-                                                            size: 40.sp,
-                                                            color: Colors.red,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                ),
+                                            child: Center(
+                                              child: Icon(
+                                                Icons.error_outline,
+                                                size: 40.sp,
+                                                color: Colors.red,
                                               ),
                                             ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                           if (message.type == 'file' &&
                                               message.fileName != null)
-                                            GestureDetector(
+                                    GestureDetector(
                                               onTap:
                                                   () => _downloadFile(
                                                     message.url!,
                                                     message.fileName!,
                                                   ),
-                                              child: Container(
+                                      child: Container(
                                                 padding: EdgeInsets.symmetric(
                                                   vertical: 8.h,
                                                   horizontal: 12.w,
                                                 ),
-                                                decoration: BoxDecoration(
+                                        decoration: BoxDecoration(
                                                   color:
                                                       isMe
                                                           ? Colors.white
@@ -736,86 +736,86 @@ class _ChatScreenState extends State<ChatScreen> {
                                                       BorderRadius.circular(
                                                         8.r,
                                                       ),
-                                                ),
-                                                child: Row(
+                                        ),
+                                        child: Row(
                                                   mainAxisSize:
                                                       MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.description,
-                                                      size: 20.sp,
+                                          children: [
+                                            Icon(
+                                              Icons.description,
+                                              size: 20.sp,
                                                       color:
                                                           isMe
                                                               ? Colors.white
                                                               : AppColors
                                                                   .primaryColor,
-                                                    ),
-                                                    SizedBox(width: 8.w),
-                                                    Flexible(
-                                                      child: Text(
-                                                        message.fileName!,
-                                                        style: GoogleFonts.raleway(
-                                                          fontSize: 14.sp,
+                                            ),
+                                            SizedBox(width: 8.w),
+                                            Flexible(
+                                              child: Text(
+                                                message.fileName!,
+                                                style: GoogleFonts.raleway(
+                                                  fontSize: 14.sp,
                                                           color:
                                                               isMe
                                                                   ? Colors.white
                                                                   : Colors
                                                                       .black87,
-                                                        ),
-                                                        maxLines: 1,
+                                                ),
+                                                maxLines: 1,
                                                         overflow:
                                                             TextOverflow
                                                                 .ellipsis,
-                                                      ),
-                                                    ),
-                                                    SizedBox(width: 8.w),
-                                                    Icon(
-                                                      Icons.download,
-                                                      size: 18.sp,
+                                              ),
+                                            ),
+                                            SizedBox(width: 8.w),
+                                            Icon(
+                                              Icons.download,
+                                              size: 18.sp,
                                                       color:
                                                           isMe
                                                               ? Colors.white70
                                                               : AppColors
                                                                   .primaryColor,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
                                             ),
-                                          SizedBox(height: 4.h),
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  SizedBox(height: 4.h),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
                                                 DateFormat(
                                                   'HH:mm',
                                                 ).format(message.timestamp),
-                                                style: GoogleFonts.raleway(
-                                                  fontSize: 12.sp,
+                                        style: GoogleFonts.raleway(
+                                          fontSize: 12.sp,
                                                   color:
                                                       isMe
                                                           ? Colors.white
                                                               .withOpacity(0.7)
                                                           : Colors.grey,
-                                                ),
-                                              ),
-                                              if (isMe) ...[
-                                                SizedBox(width: 4.w),
+                                        ),
+                                      ),
+                                      if (isMe) ...[
+                                        SizedBox(width: 4.w),
                                                 _buildMessageStatusIcon(
                                                   message.status,
                                                 ),
-                                              ],
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                      ],
+                                    ],
                                   ),
-                                ),
-                              ],
-                            );
-                          },
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
+                      ],
+                    );
+                  },
+                ),
               ),
               if (state is MessagerieError)
                 Padding(
@@ -938,7 +938,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-
+  
   // Helper method to build message status icon
   Widget _buildMessageStatusIcon(MessageStatus status) {
     switch (status) {
@@ -973,7 +973,7 @@ class _ChatScreenState extends State<ChatScreen> {
         );
     }
   }
-
+  
   // Helper to build date headers
   Widget _buildDateHeader(DateTime messageTime) {
     final now = DateTime.now();
@@ -984,7 +984,7 @@ class _ChatScreenState extends State<ChatScreen> {
       messageTime.month,
       messageTime.day,
     );
-
+    
     String dateText;
     if (messageDate == today) {
       dateText = "today".tr;
@@ -993,7 +993,7 @@ class _ChatScreenState extends State<ChatScreen> {
     } else {
       dateText = DateFormat('EEEE, d MMMM').format(messageTime);
     }
-
+    
     return Container(
       margin: EdgeInsets.symmetric(vertical: 16.h),
       child: Center(
@@ -1014,7 +1014,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-
+  
   // Helper to check if two dates are the same day
   bool _isSameDay(DateTime date1, DateTime date2) {
     return date1.year == date2.year &&

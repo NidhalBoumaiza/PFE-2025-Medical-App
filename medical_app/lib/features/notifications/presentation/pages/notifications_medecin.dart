@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:medical_app/core/utils/app_colors.dart';
 import 'package:medical_app/features/authentication/data/data%20sources/auth_local_data_source.dart';
 import 'package:medical_app/features/authentication/domain/entities/user_entity.dart';
@@ -11,13 +10,10 @@ import 'package:medical_app/features/notifications/domain/entities/notification_
 import 'package:medical_app/features/notifications/presentation/bloc/notification_bloc.dart';
 import 'package:medical_app/features/notifications/presentation/bloc/notification_event.dart';
 import 'package:medical_app/features/notifications/presentation/bloc/notification_state.dart';
-import 'package:medical_app/features/rendez_vous/domain/entities/rendez_vous_entity.dart';
 import 'package:medical_app/features/rendez_vous/presentation/blocs/rendez-vous%20BLoC/rendez_vous_bloc.dart';
 import 'package:medical_app/features/rendez_vous/presentation/pages/appointment_details_page.dart';
 import 'package:medical_app/injection_container.dart' as di;
 
-import '../../../messagerie/presentation/pages/conversations_list_screen.dart';
-import '../../../ordonnance/presentation/pages/OrdonnancesPage.dart';
 
 class NotificationsMedecin extends StatefulWidget {
   const NotificationsMedecin({super.key});
@@ -508,42 +504,38 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
 
-    // Extract sender name from data if available
-    String senderName = '';
-    String patientName = '';
-    if (notification.data != null) {
-      senderName = notification.data!['senderName'] ?? '';
-      patientName = notification.data!['patientName'] ?? '';
-    }
+    // Get time ago string
+    final timeAgo = _getTimeAgo(notification.createdAt);
 
     return Card(
-      margin: EdgeInsets.only(bottom: 16.h),
       elevation: 2,
+      margin: EdgeInsets.only(bottom: 12.h),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.r),
-        side:
-            notification.isRead
-                ? BorderSide.none
-                : BorderSide(
-                  color: AppColors.primaryColor.withOpacity(0.5),
-                  width: 1,
-                ),
+        borderRadius: BorderRadius.circular(12.r),
+        side: BorderSide(
+          color:
+              notification.isRead
+                  ? Colors.transparent
+                  : AppColors.primaryColor.withOpacity(0.5),
+          width: notification.isRead ? 0 : 1.5,
+        ),
       ),
       child: InkWell(
         onTap: () {
-          // Mark as read when tapped
-          if (!notification.isRead) {
-            context.read<NotificationBloc>().add(
-              MarkNotificationAsReadEvent(notificationId: notification.id),
-            );
-          }
+          // Mark as read
+          context.read<NotificationBloc>().add(
+            MarkNotificationAsReadEvent(notificationId: notification.id),
+          );
+
+          // Navigate to details
           _navigateToDetails(notification);
         },
-        borderRadius: BorderRadius.circular(15.r),
+        borderRadius: BorderRadius.circular(12.r),
         child: Padding(
-          padding: EdgeInsets.all(16.r),
+          padding: EdgeInsets.all(16.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -554,16 +546,38 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          notification.title,
-                          style: GoogleFonts.raleway(
-                            fontSize: 16.sp,
-                            fontWeight:
-                                notification.isRead
-                                    ? FontWeight.normal
-                                    : FontWeight.bold,
-                            color: theme.textTheme.titleMedium?.color,
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                notification.title,
+                                style: GoogleFonts.raleway(
+                                  fontSize: 16.sp,
+                                  fontWeight:
+                                      notification.isRead
+                                          ? FontWeight.normal
+                                          : FontWeight.bold,
+                                  color: theme.textTheme.titleMedium?.color,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            SizedBox(width: 4.w),
+                            Flexible(
+                              flex: 1,
+                              child: Text(
+                                timeAgo,
+                                style: GoogleFonts.raleway(
+                                  fontSize: 12.sp,
+                                  color: theme.textTheme.bodySmall?.color,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                         SizedBox(height: 4.h),
                         Text(
@@ -574,48 +588,6 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                        ),
-                        SizedBox(height: 8.h),
-                        Row(
-                          children: [
-                            if (patientName.isNotEmpty)
-                              Padding(
-                                padding: EdgeInsets.only(right: 8.w),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 8.w,
-                                    vertical: 2.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(4.r),
-                                  ),
-                                  child: Text(
-                                    'Patient: $patientName',
-                                    style: GoogleFonts.raleway(
-                                      fontSize: 12.sp,
-                                      color: Colors.blue,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            Icon(
-                              Icons.access_time,
-                              size: 12.sp,
-                              color: Colors.grey[500],
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              DateFormat(
-                                'dd/MM/yyyy HH:mm',
-                              ).format(notification.createdAt),
-                              style: GoogleFonts.raleway(
-                                fontSize: 12.sp,
-                                color: theme.textTheme.bodySmall?.color,
-                              ),
-                            ),
-                          ],
                         ),
                       ],
                     ),
@@ -706,6 +678,27 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
     if (notification.appointmentId != null) {
       print('Accepting appointment ${notification.appointmentId}');
 
+      // Show a loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: AppColors.primaryColor),
+                  SizedBox(width: 20),
+                  Text("Processing...", style: TextStyle(fontSize: 16)),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+
       // Get patient information from notification data
       String patientId = notification.senderId;
       String patientName = '';
@@ -714,6 +707,60 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
         patientName = notification.data!['patientName'];
       }
 
+      // Add a BLoC listener to handle state changes
+      final blocListener = BlocListener<RendezVousBloc, RendezVousState>(
+        listener: (context, state) {
+          if (state is RendezVousStatusUpdatedState ||
+              state is RendezVousError ||
+              state is RendezVousErrorState) {
+            // Close the loading dialog
+            Navigator.of(context, rootNavigator: true).pop();
+
+            if (state is RendezVousErrorState || state is RendezVousError) {
+              // Show error message
+              String errorMessage =
+                  state is RendezVousErrorState
+                      ? state.message
+                      : (state as RendezVousError).message;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error: $errorMessage'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            } else if (state is RendezVousStatusUpdatedState) {
+              // Mark notification as read
+              context.read<NotificationBloc>().add(
+                MarkNotificationAsReadEvent(notificationId: notification.id),
+              );
+
+              // Show success message
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('appointment_accepted'.tr),
+                  backgroundColor: Colors.green,
+                ),
+              );
+
+              // Refresh notifications
+              if (_currentUser.id != null) {
+                context.read<NotificationBloc>().add(
+                  GetNotificationsEvent(userId: _currentUser.id!),
+                );
+              }
+            }
+          }
+        },
+        child: Container(), // This won't be rendered
+      );
+
+      // Add the listener to the tree temporarily
+      Navigator.of(
+        context,
+      ).overlay?.insert(OverlayEntry(builder: (context) => blocListener));
+
+      // Update the appointment status
       context.read<RendezVousBloc>().add(
         UpdateRendezVousStatus(
           rendezVousId: notification.appointmentId!,
@@ -724,21 +771,33 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
           doctorName: _currentUser.name + ' ' + _currentUser.lastName,
         ),
       );
-
-      // Mark notification as read
-      context.read<NotificationBloc>().add(
-        MarkNotificationAsReadEvent(notificationId: notification.id),
-      );
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('appointment_accepted'.tr)));
     }
   }
 
   void _rejectAppointment(NotificationEntity notification) {
     if (notification.appointmentId != null) {
       print('Rejecting appointment ${notification.appointmentId}');
+
+      // Show a loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: AppColors.primaryColor),
+                  SizedBox(width: 20),
+                  Text("Processing...", style: TextStyle(fontSize: 16)),
+                ],
+              ),
+            ),
+          );
+        },
+      );
 
       // Get patient information from notification data
       String patientId = notification.senderId;
@@ -748,6 +807,60 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
         patientName = notification.data!['patientName'];
       }
 
+      // Add a BLoC listener to handle state changes
+      final blocListener = BlocListener<RendezVousBloc, RendezVousState>(
+        listener: (context, state) {
+          if (state is RendezVousStatusUpdatedState ||
+              state is RendezVousError ||
+              state is RendezVousErrorState) {
+            // Close the loading dialog
+            Navigator.of(context, rootNavigator: true).pop();
+
+            if (state is RendezVousErrorState || state is RendezVousError) {
+              // Show error message
+              String errorMessage =
+                  state is RendezVousErrorState
+                      ? state.message
+                      : (state as RendezVousError).message;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error: $errorMessage'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            } else if (state is RendezVousStatusUpdatedState) {
+              // Mark notification as read
+              context.read<NotificationBloc>().add(
+                MarkNotificationAsReadEvent(notificationId: notification.id),
+              );
+
+              // Show success message
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('appointment_rejected'.tr),
+                  backgroundColor: Colors.red,
+                ),
+              );
+
+              // Refresh notifications
+              if (_currentUser.id != null) {
+                context.read<NotificationBloc>().add(
+                  GetNotificationsEvent(userId: _currentUser.id!),
+                );
+              }
+            }
+          }
+        },
+        child: Container(), // This won't be rendered
+      );
+
+      // Add the listener to the tree temporarily
+      Navigator.of(
+        context,
+      ).overlay?.insert(OverlayEntry(builder: (context) => blocListener));
+
+      // Update the appointment status
       context.read<RendezVousBloc>().add(
         UpdateRendezVousStatus(
           rendezVousId: notification.appointmentId!,
@@ -758,15 +871,6 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
           doctorName: _currentUser.name + ' ' + _currentUser.lastName,
         ),
       );
-
-      // Mark notification as read
-      context.read<NotificationBloc>().add(
-        MarkNotificationAsReadEvent(notificationId: notification.id),
-      );
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('appointment_rejected'.tr)));
     }
   }
 
@@ -823,10 +927,31 @@ class _NotificationsMedecinState extends State<NotificationsMedecin> {
       );
     } else if (notification.prescriptionId != null) {
       // Navigate to prescription details
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => OrdonnancesPage()),
-      );
+      // Navigator.push(
+      //   context,
+      //   MaterialPageRoute(builder: (context) => OrdonnancesPage()),
+      // );
+    }
+  }
+
+  String _getTimeAgo(DateTime createdAt) {
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+
+    if (difference.inSeconds < 60) {
+      return 'just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} minutes ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} hours ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    } else if (difference.inDays < 30) {
+      return '${difference.inDays ~/ 7} weeks ago';
+    } else if (difference.inDays < 365) {
+      return '${difference.inDays ~/ 30} months ago';
+    } else {
+      return '${difference.inDays ~/ 365} years ago';
     }
   }
 }

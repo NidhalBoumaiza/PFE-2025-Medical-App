@@ -17,6 +17,7 @@ class PatientModel extends UserModel {
     int? verificationCode,
     required this.antecedent,
     DateTime? validationCodeExpiresAt,
+    String? fcmToken,
   }) : super(
     id: id,
     name: name,
@@ -29,6 +30,7 @@ class PatientModel extends UserModel {
     accountStatus: accountStatus,
     verificationCode: verificationCode,
     validationCodeExpiresAt: validationCodeExpiresAt,
+         fcmToken: fcmToken,
   );
 
   factory PatientModel.fromJson(Map<String, dynamic> json) {
@@ -40,13 +42,15 @@ class PatientModel extends UserModel {
       role: json['role'] as String,
       gender: json['gender'] as String,
       phoneNumber: json['phoneNumber'] as String,
-      dateOfBirth: json['dateOfBirth'] != null
+      dateOfBirth:
+          json['dateOfBirth'] != null
           ? DateTime.parse(json['dateOfBirth'] as String)
           : null,
       antecedent: json['antecedent'] as String,
       accountStatus: json['accountStatus'] as bool?,
       verificationCode: json['verificationCode'] as int?,
-      validationCodeExpiresAt: json['validationCodeExpiresAt'] != null
+      validationCodeExpiresAt:
+          json['validationCodeExpiresAt'] != null
           ? DateTime.parse(json['validationCodeExpiresAt'] as String)
           : null,
     );
@@ -90,6 +94,7 @@ class PatientModel extends UserModel {
     int? verificationCode,
     DateTime? validationCodeExpiresAt,
     String? antecedent,
+    String? fcmToken,
   }) {
     return PatientModel(
       id: id ?? this.id,
@@ -102,8 +107,10 @@ class PatientModel extends UserModel {
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       accountStatus: accountStatus ?? this.accountStatus,
       verificationCode: verificationCode ?? this.verificationCode,
-      validationCodeExpiresAt: validationCodeExpiresAt ?? this.validationCodeExpiresAt,
+      validationCodeExpiresAt:
+          validationCodeExpiresAt ?? this.validationCodeExpiresAt,
       antecedent: antecedent ?? this.antecedent,
+      fcmToken: fcmToken ?? this.fcmToken,
     );
   }
 }

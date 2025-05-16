@@ -9,6 +9,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:medical_app/constants.dart';
 import 'package:medical_app/core/utils/app_themes.dart';
 import 'package:medical_app/core/utils/theme_manager.dart';
 import 'package:medical_app/cubit/theme_cubit/theme_cubit.dart';
@@ -40,14 +41,10 @@ import 'i18n/app_translation.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'features/dashboard/presentation/blocs/dashboard BLoC/dashboard_bloc.dart';
 import 'features/ordonnance/presentation/bloc/prescription_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // API endpoints for the Express backend
-class ApiEndpoints {
-  // Replace with your actual Express server URL - use localhost or IP with emulator, real server URL for devices
-  static const String baseUrl = 'http://192.168.1.18:3000/api/v1';
-  static const String sendNotification = '$baseUrl/notifications/send';
-  static const String saveNotification = '$baseUrl/notifications/save';
-}
+// This class is now moved to constants.dart
 
 // Set up the background message handler for FCM
 @pragma('vm:entry-point')
@@ -100,7 +97,7 @@ Future<void> sendNotification({
 }) async {
   try {
     final response = await http.post(
-      Uri.parse(ApiEndpoints.sendNotification),
+      Uri.parse(AppConstants.sendNotification),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'token': token,
@@ -148,7 +145,7 @@ Future<void> saveNotificationToServer({
     }
 
     final response = await http.post(
-      Uri.parse(ApiEndpoints.saveNotification),
+      Uri.parse(AppConstants.saveNotification),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(data),
     );
@@ -208,6 +205,21 @@ void main() async {
 
   // Initialize service locator
   await di.init();
+
+  // Now that service locator is initialized, properly save the FCM token
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final savedToken = prefs.getString('FCM_TOKEN');
+
+    if (savedToken != null) {
+      print(
+        'Found saved FCM token, saving it properly now that DI is initialized',
+      );
+      await _saveFcmToken(savedToken);
+    }
+  } catch (e) {
+    print('Error processing saved FCM token: $e');
+  }
 
   final authLocalDataSource = di.sl<AuthLocalDataSource>();
   Widget initialScreen;
@@ -293,36 +305,139 @@ Future<void> _initializeFCM() async {
     sound: true,
   );
 
-  // Get FCM token and save it to user's document in Firestore
+  // Get FCM token and save it temporarily to SharedPreferences
+  // It will be properly saved to Firestore after DI initialization
   String? fcmToken = await FirebaseMessaging.instance.getToken();
   if (fcmToken != null) {
-    await _saveFcmToken(fcmToken);
-    print('FCM Token: $fcmToken'); // Print token for testing purposes
+    try {
+      // Save to SharedPreferences first
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('FCM_TOKEN', fcmToken);
+
+      // Try to save to Firestore if possible
+      await _saveFcmToken(fcmToken);
+      print('FCM Token: $fcmToken'); // Print token for testing purposes
+    } catch (e) {
+      print('Initial save of FCM token encountered an error: $e');
+      // Error is expected here if DI isn't initialized yet - token is in SharedPreferences
+    }
   } else {
     print('Failed to get FCM token');
   }
 
   // Listen for token refresh
   FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
-    _saveFcmToken(newToken);
-    print('FCM Token refreshed: $newToken');
+    // Save new token to SharedPreferences first
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setString('FCM_TOKEN', newToken);
+      print('FCM Token refreshed and saved to SharedPreferences: $newToken');
+
+      // Try to save to Firestore if possible
+      _saveFcmToken(newToken);
+    });
   });
 }
 
 Future<void> _saveFcmToken(String token) async {
+  // Validate the FCM token
+  if (token.isEmpty) {
+    print('Error: Attempted to save empty FCM token');
+    return;
+  }
+
   try {
+    // Check if dependency injection is initialized properly
+    if (!di.sl.isRegistered<AuthLocalDataSource>()) {
+      print(
+        'AuthLocalDataSource not registered yet, saving token to SharedPreferences',
+      );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('FCM_TOKEN', token);
+      return;
+    }
+
     final authLocalDataSource = di.sl<AuthLocalDataSource>();
     final user = await authLocalDataSource.getUser();
 
     if (user.id != null && user.id!.isNotEmpty) {
-      await FirebaseFirestore.instance.collection('users').doc(user.id).update({
-        'fcmToken': token,
-      });
+      // Determine the collection based on user's role
+      String collection = 'users';
+      if (user.role == 'patient') {
+        collection = 'patients';
+      } else if (user.role == 'medecin') {
+        collection = 'medecins';
+      }
 
-      print('FCM Token saved: $token');
+      try {
+        // Save the FCM token to the appropriate collection
+        await FirebaseFirestore.instance
+            .collection(collection)
+            .doc(user.id)
+            .update({'fcmToken': token});
+        print('FCM Token saved to $collection collection: $token');
+      } catch (collectionError) {
+        print('Error updating FCM token in $collection: $collectionError');
+
+        // If the update failed, try to set the document instead
+        try {
+          await FirebaseFirestore.instance
+              .collection(collection)
+              .doc(user.id)
+              .set({'fcmToken': token}, SetOptions(merge: true));
+          print('FCM Token saved to $collection by merging: $token');
+        } catch (setError) {
+          print('Error setting FCM token in $collection: $setError');
+        }
+      }
+
+      // Also update the token in the 'users' collection as a backup for notifications
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.id)
+            .update({'fcmToken': token});
+        print('FCM Token saved to users collection: $token');
+      } catch (userCollectionError) {
+        if (userCollectionError is FirebaseException &&
+            userCollectionError.code == 'not-found') {
+          // If user doesn't exist in 'users' collection, create it
+          try {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.id)
+                .set({
+                  'id': user.id,
+                  'name': user.name ?? '',
+                  'lastName': user.lastName ?? '',
+                  'email': user.email ?? '',
+                  'role': user.role ?? '',
+                  'fcmToken': token,
+                });
+            print('Created new user in users collection with FCM token');
+          } catch (createError) {
+            print('Error creating user document: $createError');
+          }
+        } else {
+          print('Error updating FCM token in users: $userCollectionError');
+        }
+      }
+    } else {
+      // Store the token in SharedPreferences for later use
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('FCM_TOKEN', token);
+      print('User ID not available, saved FCM token to SharedPreferences');
     }
   } catch (e) {
     print('Error saving FCM token: $e');
+
+    // Store the token in SharedPreferences as a fallback
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('FCM_TOKEN', token);
+      print('Saved FCM token to SharedPreferences as fallback');
+    } catch (storageError) {
+      print('Error saving FCM token to SharedPreferences: $storageError');
+    }
   }
 }
 

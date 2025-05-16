@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:get/get.dart';
 import 'package:medical_app/core/utils/app_colors.dart';
 import 'package:medical_app/core/utils/custom_snack_bar.dart';
 import 'package:medical_app/core/utils/navigation_with_transition.dart';
@@ -20,12 +21,13 @@ import 'available_doctor_screen.dart';
 
 class RendezVousPatient extends StatefulWidget {
   final String? selectedSpecialty;
-  final bool showAppBar; // Whether to show the app bar (true when navigating directly, false from bottom nav)
+  final bool
+  showAppBar; // Whether to show the app bar (true when navigating directly, false from bottom nav)
 
   const RendezVousPatient({
-    super.key, 
-    this.selectedSpecialty, 
-    this.showAppBar = true
+    super.key,
+    this.selectedSpecialty,
+    this.showAppBar = true,
   });
 
   @override
@@ -37,7 +39,7 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
   String? selectedSpecialty;
   DateTime? selectedDateTime;
   final _formKey = GlobalKey<FormState>();
-  
+
   // Calendar variables
   bool isCalendarVisible = false;
   CalendarFormat _calendarFormat = CalendarFormat.month;
@@ -79,38 +81,40 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
 
   void _showTimePicker(DateTime date) async {
     final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
-        builder: (context, child) {
-          return Theme(
-            data: ThemeData.light().copyWith(
-              colorScheme: ColorScheme.light(
-                primary: AppColors.primaryColor,
-                onPrimary: AppColors.whiteColor,
-              ),
-              textButtonTheme: TextButtonThemeData(
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primaryColor,
-                ),
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.primaryColor,
+              onPrimary: AppColors.whiteColor,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryColor,
               ),
             ),
-            child: child!,
-          );
-        },
-      );
+          ),
+          child: child!,
+        );
+      },
+    );
 
-      if (pickedTime != null) {
-        setState(() {
-          selectedDateTime = DateTime(
+    if (pickedTime != null) {
+      setState(() {
+        selectedDateTime = DateTime(
           date.year,
           date.month,
           date.day,
-            pickedTime.hour,
-            pickedTime.minute,
-          );
-          dateTimeController.text = DateFormat('dd/MM/yyyy à HH:mm').format(selectedDateTime!);
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+        dateTimeController.text = DateFormat(
+          'dd/MM/yyyy à HH:mm',
+        ).format(selectedDateTime!);
         isCalendarVisible = false; // Hide calendar after selection
-        });
+      });
     }
   }
 
@@ -118,13 +122,13 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return SafeArea(
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
           title: Text(
-            "MediLink",
+            "medilink".tr,
             style: GoogleFonts.raleway(
               fontWeight: FontWeight.bold,
               fontSize: 18.sp,
@@ -133,21 +137,24 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
           ),
           backgroundColor: AppColors.primaryColor,
           elevation: 2,
-          leading: widget.showAppBar ? IconButton(
-            icon: const Icon(
-              Icons.chevron_left,
-              size: 28,
-              color: Colors.white,
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ) : null,
+          leading:
+              widget.showAppBar
+                  ? IconButton(
+                    icon: const Icon(
+                      Icons.chevron_left,
+                      size: 28,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  )
+                  : null,
           actions: [
             IconButton(
               icon: Icon(Icons.calendar_today, color: Colors.white),
               onPressed: _toggleCalendar,
-              tooltip: "Sélectionner une date",
+              tooltip: "select_date".tr,
             ),
           ],
         ),
@@ -158,7 +165,10 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
               child: Form(
                 key: _formKey,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 16.h,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -170,69 +180,72 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                           width: 180.w,
                         ),
                       ),
-                      
+
                       SizedBox(height: 24.h),
-                      
+
                       // Title
                       Text(
-                        "Trouver votre médecin",
+                        "find_your_doctor".tr,
                         style: GoogleFonts.raleway(
                           fontSize: 24.sp,
                           fontWeight: FontWeight.bold,
                           color: theme.textTheme.headlineMedium?.color,
                         ),
                       ),
-                      
+
                       SizedBox(height: 8.h),
-                      
+
                       // Subtitle
                       Text(
-                        "Sélectionnez une spécialité et une date pour votre consultation",
+                        "select_specialty_date".tr,
                         style: GoogleFonts.raleway(
                           fontSize: 14.sp,
                           color: theme.textTheme.bodySmall?.color,
                         ),
                       ),
-                      
+
                       SizedBox(height: 28.h),
-                      
+
                       // Specialty selection
                       Text(
-                        "Spécialité médicale",
+                        "medical_specialty".tr,
                         style: GoogleFonts.raleway(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
                           color: theme.textTheme.titleMedium?.color,
                         ),
                       ),
-                      
+
                       SizedBox(height: 8.h),
-                      
+
                       Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16.r),
                           color: isDarkMode ? theme.cardColor : Colors.white,
                           border: Border.all(
-                            color: isDarkMode 
-                              ? Colors.grey.shade700
-                              : Colors.grey.shade200,
+                            color:
+                                isDarkMode
+                                    ? Colors.grey.shade700
+                                    : Colors.grey.shade200,
                             width: 1,
                           ),
-                          boxShadow: isDarkMode
-                            ? []
-                            : [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.1),
-                                  spreadRadius: 1,
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
+                          boxShadow:
+                              isDarkMode
+                                  ? []
+                                  : [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.1),
+                                      spreadRadius: 1,
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 1),
+                                    ),
+                                  ],
                         ),
                         child: DropdownButtonFormField<String>(
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: isDarkMode ? theme.cardColor : Colors.white,
+                            fillColor:
+                                isDarkMode ? theme.cardColor : Colors.white,
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 20.w,
                               vertical: 16.h,
@@ -266,9 +279,12 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                                 width: 1,
                               ),
                             ),
-                            hintText: "Choisir une spécialité",
+                            hintText: "choose_specialty".tr,
                             hintStyle: GoogleFonts.raleway(
-                              color: isDarkMode ? Colors.grey[400] : Colors.grey[400],
+                              color:
+                                  isDarkMode
+                                      ? Colors.grey[400]
+                                      : Colors.grey[400],
                               fontSize: 15.sp,
                             ),
                             prefixIcon: Icon(
@@ -281,24 +297,29 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                             Icons.arrow_drop_down,
                             color: AppColors.primaryColor,
                           ),
-                          dropdownColor: isDarkMode ? theme.cardColor : Colors.white,
+                          dropdownColor:
+                              isDarkMode ? theme.cardColor : Colors.white,
                           style: GoogleFonts.raleway(
                             fontSize: 15.sp,
                             color: theme.textTheme.bodyMedium?.color,
                           ),
                           value: selectedSpecialty,
-                          items: specialties
-                              .map((specialty) => DropdownMenuItem(
-                                    value: specialty,
-                                    child: Text(
-                                      specialty,
-                                      style: GoogleFonts.raleway(
-                                        fontSize: 15.sp,
-                                        color: theme.textTheme.bodyMedium?.color,
+                          items:
+                              specialties
+                                  .map(
+                                    (specialty) => DropdownMenuItem(
+                                      value: specialty,
+                                      child: Text(
+                                        specialty,
+                                        style: GoogleFonts.raleway(
+                                          fontSize: 15.sp,
+                                          color:
+                                              theme.textTheme.bodyMedium?.color,
+                                        ),
                                       ),
                                     ),
-                                  ))
-                              .toList(),
+                                  )
+                                  .toList(),
                           onChanged: (value) {
                             setState(() {
                               selectedSpecialty = value;
@@ -306,50 +327,53 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                           },
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return "Veuillez sélectionner une spécialité";
+                              return "please_select_specialty".tr;
                             }
                             return null;
                           },
                         ),
                       ),
-                      
+
                       SizedBox(height: 24.h),
-                      
+
                       // Date and time selection
                       Text(
-                        "Date et heure souhaitées",
+                        "desired_date_time".tr,
                         style: GoogleFonts.raleway(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
                           color: theme.textTheme.titleMedium?.color,
                         ),
                       ),
-                      
+
                       SizedBox(height: 8.h),
-                      
+
                       GestureDetector(
                         onTap: () => _selectDateTime(context),
                         child: AbsorbPointer(
                           child: Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(16.r),
-                              color: isDarkMode ? theme.cardColor : Colors.white,
+                              color:
+                                  isDarkMode ? theme.cardColor : Colors.white,
                               border: Border.all(
-                                color: isDarkMode
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade200,
+                                color:
+                                    isDarkMode
+                                        ? Colors.grey.shade700
+                                        : Colors.grey.shade200,
                                 width: 1,
                               ),
-                              boxShadow: isDarkMode
-                                ? []
-                                : [
-                                    BoxShadow(
-                                      color: Colors.grey.withOpacity(0.1),
-                                      spreadRadius: 1,
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 1),
-                                    ),
-                                  ],
+                              boxShadow:
+                                  isDarkMode
+                                      ? []
+                                      : [
+                                        BoxShadow(
+                                          color: Colors.grey.withOpacity(0.1),
+                                          spreadRadius: 1,
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
                             ),
                             child: TextFormField(
                               controller: dateTimeController,
@@ -359,7 +383,8 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                               ),
                               decoration: InputDecoration(
                                 filled: true,
-                                fillColor: isDarkMode ? theme.cardColor : Colors.white,
+                                fillColor:
+                                    isDarkMode ? theme.cardColor : Colors.white,
                                 contentPadding: EdgeInsets.symmetric(
                                   horizontal: 20.w,
                                   vertical: 16.h,
@@ -393,9 +418,12 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                                     width: 1,
                                   ),
                                 ),
-                                hintText: "Sélectionner la date et l'heure",
+                                hintText: "select_date_time".tr,
                                 hintStyle: GoogleFonts.raleway(
-                                  color: isDarkMode ? Colors.grey[400] : Colors.grey[400],
+                                  color:
+                                      isDarkMode
+                                          ? Colors.grey[400]
+                                          : Colors.grey[400],
                                   fontSize: 15.sp,
                                 ),
                                 prefixIcon: Icon(
@@ -406,7 +434,7 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return "Veuillez sélectionner une date et une heure";
+                                  return "please_select_date_time".tr;
                                 }
                                 return null;
                               },
@@ -414,14 +442,14 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                           ),
                         ),
                       ),
-                      
+
                       SizedBox(height: 40.h),
-                      
+
                       // Search button
                       BlocBuilder<RendezVousBloc, RendezVousState>(
                         builder: (context, state) {
                           final isLoading = state is RendezVousLoading;
-                          
+
                           return Container(
                             width: double.infinity,
                             height: 55.h,
@@ -435,47 +463,52 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                                 ),
                                 elevation: isDarkMode ? 0 : 2,
                               ),
-                              onPressed: isLoading
-                                  ? null
-                                  : () async {
-                                      if (_formKey.currentState!.validate()) {
-                                        if (selectedDateTime != null) {
-                                          final authLocalDataSource =
-                                              sl.sl<AuthLocalDataSource>();
-                                          final user =
-                                              await authLocalDataSource.getUser();
-                                          final patientName =
-                                              '${user.name} ${user.lastName}'
-                                                  .trim();
+                              onPressed:
+                                  isLoading
+                                      ? null
+                                      : () async {
+                                        if (_formKey.currentState!.validate()) {
+                                          if (selectedDateTime != null) {
+                                            final authLocalDataSource =
+                                                sl.sl<AuthLocalDataSource>();
+                                            final user =
+                                                await authLocalDataSource
+                                                    .getUser();
+                                            final patientName =
+                                                '${user.name} ${user.lastName}'
+                                                    .trim();
 
-                                          navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-                                            context,
-                                            AvailableDoctorsScreen(
-                                              specialty: selectedSpecialty!,
-                                              startTime: selectedDateTime!,
-                                              patientId: user.id!,
-                                              patientName: patientName,
-                                            ),
-                                          );
-                                        } else {
-                                          showErrorSnackBar(context, 
-                                            "Veuillez sélectionner une date et une heure valides"
-                                          );
+                                            navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                                              context,
+                                              AvailableDoctorsScreen(
+                                                specialty: selectedSpecialty!,
+                                                startTime: selectedDateTime!,
+                                                patientId: user.id!,
+                                                patientName: patientName,
+                                              ),
+                                            );
+                                          } else {
+                                            showErrorSnackBar(
+                                              context,
+                                              "please_select_valid_date_time"
+                                                  .tr,
+                                            );
+                                          }
                                         }
-                                      }
-                                    },
-                              child: isLoading
-                                  ? CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 3,
-                                    )
-                                  : Text(
-                                      "Rechercher un médecin",
-                                      style: GoogleFonts.raleway(
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.w600,
+                                      },
+                              child:
+                                  isLoading
+                                      ? CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 3,
+                                      )
+                                      : Text(
+                                        "search_doctor".tr,
+                                        style: GoogleFonts.raleway(
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                    ),
                             ),
                           );
                         },
@@ -485,13 +518,14 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                 ),
               ),
             ),
-            
+
             // Calendar overlay
             if (isCalendarVisible)
               Container(
-                color: isDarkMode 
-                  ? Colors.black.withOpacity(0.8)
-                  : Colors.white.withOpacity(0.9),
+                color:
+                    isDarkMode
+                        ? Colors.black.withOpacity(0.8)
+                        : Colors.white.withOpacity(0.9),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -511,10 +545,10 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                           });
                         },
                         selectedDayPredicate: (day) {
-                          return selectedDateTime != null && 
-                            day.year == selectedDateTime!.year &&
-                            day.month == selectedDateTime!.month &&
-                            day.day == selectedDateTime!.day;
+                          return selectedDateTime != null &&
+                              day.year == selectedDateTime!.year &&
+                              day.month == selectedDateTime!.month &&
+                              day.day == selectedDateTime!.day;
                         },
                         onDaySelected: _onDaySelected,
                         calendarStyle: CalendarStyle(
@@ -527,7 +561,9 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                             shape: BoxShape.circle,
                           ),
                           markersMaxCount: 3,
-                          weekendTextStyle: TextStyle(color: Colors.red.shade300),
+                          weekendTextStyle: TextStyle(
+                            color: Colors.red.shade300,
+                          ),
                           outsideDaysVisible: false,
                         ),
                         headerStyle: HeaderStyle(
@@ -553,7 +589,7 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                             fontWeight: FontWeight.bold,
                           ),
                           weekendStyle: TextStyle(
-                            color: Colors.red.shade300, 
+                            color: Colors.red.shade300,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

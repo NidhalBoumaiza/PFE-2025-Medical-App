@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:medical_app/core/utils/app_colors.dart';
 import 'package:medical_app/core/utils/custom_snack_bar.dart';
@@ -32,6 +33,7 @@ class AvailableDoctorsScreen extends StatefulWidget {
 
 class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
   final Map<String, double> _doctorRatings = {};
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -40,7 +42,7 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
       FetchDoctorsBySpecialty(widget.specialty, widget.startTime),
     );
   }
-  
+
   void _loadDoctorRating(String doctorId) {
     // Load doctor's average rating
     context.read<RatingBloc>().add(GetDoctorAverageRating(doctorId));
@@ -61,58 +63,64 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
   }
 
   Future<void> _confirmRendezVous(
-      BuildContext context, MedecinEntity doctor) async {
+    BuildContext context,
+    MedecinEntity doctor,
+  ) async {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+    final formattedDate = DateFormat(
+      'dd/MM/yyyy à HH:mm',
+    ).format(widget.startTime);
+
     final bool? confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Confirmer la consultation',
-          style: GoogleFonts.raleway(
-            fontWeight: FontWeight.bold,
-            color: theme.textTheme.titleLarge?.color,
-          ),
-        ),
-        content: Text(
-          'Voulez-vous confirmer la consultation avec Dr. ${doctor.name} ${doctor.lastName} pour le ${DateFormat('dd/MM/yyyy à HH:mm').format(widget.startTime)} ?',
-          style: GoogleFonts.raleway(
-            color: theme.textTheme.bodyMedium?.color,
-          ),
-        ),
-        backgroundColor: theme.dialogTheme.backgroundColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Annuler',
+      builder:
+          (context) => AlertDialog(
+            title: Text(
+              'confirm_consultation'.tr,
               style: GoogleFonts.raleway(
-                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8),
+                fontWeight: FontWeight.bold,
+                color: theme.textTheme.titleLarge?.color,
               ),
             ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              'Confirmer',
+            content: Text(
+              'confirm_consultation_with_doctor'.tr
+                  .replaceAll('{0}', '${doctor.name} ${doctor.lastName}')
+                  .replaceAll('{1}', formattedDate),
               style: GoogleFonts.raleway(
-                fontWeight: FontWeight.w600,
+                color: theme.textTheme.bodyMedium?.color,
               ),
             ),
+            backgroundColor: theme.dialogTheme.backgroundColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(
+                  'cancel'.tr,
+                  style: GoogleFonts.raleway(
+                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8),
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(
+                  'confirm'.tr,
+                  style: GoogleFonts.raleway(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
 
     if (confirmed == true) {
@@ -133,15 +141,15 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
-          'Médecins disponibles',
+          'available_doctors'.tr,
           style: GoogleFonts.raleway(
-            fontWeight: FontWeight.bold,
             fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ),
@@ -179,17 +187,58 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
               ],
             ),
           ),
-          
+
           Expanded(
             child: BlocConsumer<RendezVousBloc, RendezVousState>(
               listener: (context, state) {
                 if (state is RendezVousError) {
+                  if (_isLoading) {
+                    Navigator.of(context).pop();
+                    setState(() => _isLoading = false);
+                  }
                   showErrorSnackBar(context, state.message);
+                } else if (state is AddingRendezVousState) {
+                  setState(() => _isLoading = true);
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (BuildContext context) {
+                      return Dialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20.0),
+                        ),
+                        child: Container(
+                          padding: EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(
+                                color: AppColors.primaryColor,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'creating_appointment'.tr,
+                                style: GoogleFonts.raleway(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
                 } else if (state is RendezVousCreated) {
-                  showSuccessSnackBar(context, 'Consultation confirmée, en attente d\'approbation');
-                  Navigator.pop(context);
+                  if (_isLoading) {
+                    Navigator.of(context).pop();
+                    setState(() => _isLoading = false);
+                  }
+
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+
+                  showSuccessSnackBar(context, 'consultation_request_sent'.tr);
                 } else if (state is DoctorsLoaded) {
-                  // Load ratings for all doctors
                   for (var doctor in state.doctors) {
                     if (doctor.id != null) {
                       _loadDoctorRating(doctor.id!);
@@ -216,13 +265,14 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
                             Icon(
                               Icons.search_off,
                               size: 64.sp,
-                              color: isDarkMode 
-                                ? theme.iconTheme.color?.withOpacity(0.4)
-                                : Colors.grey[400],
+                              color:
+                                  isDarkMode
+                                      ? theme.iconTheme.color?.withOpacity(0.4)
+                                      : Colors.grey[400],
                             ),
                             SizedBox(height: 16.h),
                             Text(
-                              'Aucun médecin disponible pour cette spécialité à cette date',
+                              'no_available_doctors'.tr,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.raleway(
                                 fontSize: 16.sp,
@@ -234,7 +284,7 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
                       ),
                     );
                   }
-                  
+
                   return ListView.builder(
                     padding: EdgeInsets.all(12.w),
                     itemCount: doctors.length,
@@ -252,16 +302,14 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
       ),
     );
   }
-  
+
   Widget _buildDoctorCard(MedecinEntity doctor) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return Card(
       margin: EdgeInsets.symmetric(vertical: 8.h, horizontal: 4.w),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16.r),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
       elevation: 2,
       child: InkWell(
         onTap: () => _navigateToDoctorProfile(doctor),
@@ -280,11 +328,7 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
                       color: AppColors.primaryColor,
                       borderRadius: BorderRadius.circular(12.r),
                     ),
-                    child: Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 32.sp,
-                    ),
+                    child: Icon(Icons.person, color: Colors.white, size: 32.sp),
                   ),
                   SizedBox(width: 16.w),
                   Expanded(
@@ -310,15 +354,17 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
                         SizedBox(height: 4.h),
                         BlocListener<RatingBloc, RatingState>(
                           listener: (context, state) {
-                            if (state is DoctorRatingState && 
+                            if (state is DoctorRatingState &&
                                 doctor.id != null) {
                               setState(() {
-                                _doctorRatings[doctor.id!] = state.averageRating;
+                                _doctorRatings[doctor.id!] =
+                                    state.averageRating;
                               });
-                            } else if (state is DoctorAverageRatingLoaded && 
+                            } else if (state is DoctorAverageRatingLoaded &&
                                 doctor.id != null) {
                               setState(() {
-                                _doctorRatings[doctor.id!] = state.averageRating;
+                                _doctorRatings[doctor.id!] =
+                                    state.averageRating;
                               });
                             }
                           },
@@ -331,9 +377,10 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
                               ),
                               SizedBox(width: 4.w),
                               Text(
-                                _doctorRatings.containsKey(doctor.id) 
-                                  ? _doctorRatings[doctor.id]!.toStringAsFixed(1)
-                                  : "N/A",
+                                _doctorRatings.containsKey(doctor.id)
+                                    ? _doctorRatings[doctor.id]!
+                                        .toStringAsFixed(1)
+                                    : "N/A",
                                 style: GoogleFonts.raleway(
                                   fontSize: 14.sp,
                                   color: theme.textTheme.bodyMedium?.color,
@@ -352,15 +399,10 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   OutlinedButton.icon(
-                    icon: Icon(
-                      Icons.info_outline,
-                      size: 18.sp,
-                    ),
+                    icon: Icon(Icons.info_outline, size: 18.sp),
                     label: Text(
-                      "Voir profil",
-                      style: GoogleFonts.raleway(
-                        fontSize: 14.sp,
-                      ),
+                      "view_profile".tr,
+                      style: GoogleFonts.raleway(fontSize: 14.sp),
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primaryColor,
@@ -374,12 +416,9 @@ class _AvailableDoctorsScreenState extends State<AvailableDoctorsScreen> {
                   SizedBox(width: 8.w),
                   Expanded(
                     child: ElevatedButton.icon(
-                      icon: Icon(
-                        Icons.calendar_today,
-                        size: 18.sp,
-                      ),
+                      icon: Icon(Icons.calendar_today, size: 18.sp),
                       label: Text(
-                        "Sélectionner",
+                        "select".tr,
                         style: GoogleFonts.raleway(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w600,

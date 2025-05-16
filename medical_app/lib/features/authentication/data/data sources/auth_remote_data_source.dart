@@ -10,6 +10,7 @@ import 'package:medical_app/features/authentication/data/models/medecin_model.da
 import 'package:medical_app/features/authentication/data/models/patient_model.dart';
 import 'package:medical_app/features/authentication/data/models/user_model.dart';
 import 'auth_local_data_source.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum VerificationCodeType {
   compteActive,
@@ -44,7 +45,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final FirebaseFirestore firestore;
   final GoogleSignIn googleSignIn;
   final AuthLocalDataSource localDataSource;
-  final String emailServiceUrl = 'http://192.168.1.18:3000/api/v1/users'; //adresse ip de notre pc
+  final String emailServiceUrl =
+      'http://192.168.1.18:3000/api/v1/users'; //adresse ip de notre pc
 
   AuthRemoteDataSourceImpl({
     required this.firebaseAuth,
@@ -80,14 +82,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final response = await http.post(
         Uri.parse('$emailServiceUrl/sendMailService'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'subject': subject,
-          'code': code,
-        }),
+        body: jsonEncode({'email': email, 'subject': subject, 'code': code}),
       );
       if (response.statusCode != 201) {
-        throw ServerException('Failed to send verification email: ${response.statusCode}');
+        throw ServerException(
+          'Failed to send verification email: ${response.statusCode}',
+        );
       }
     } catch (e) {
       throw ServerException('Unexpected error sending email: $e');
@@ -111,12 +111,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (googleUser == null) {
         throw AuthException('Google Sign-In cancelled');
       }
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      final userCredential = await firebaseAuth.signInWithCredential(credential);
+      final userCredential = await firebaseAuth.signInWithCredential(
+        credential,
+      );
       final user = userCredential.user;
       if (user != null) {
         final userData = UserModel(
@@ -129,7 +132,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           phoneNumber: user.phoneNumber ?? '',
           dateOfBirth: null,
         );
-        await firestore.collection('users').doc(user.uid).set(userData.toJson());
+        await firestore
+            .collection('users')
+            .doc(user.uid)
+            .set(userData.toJson());
         await localDataSource.cacheUser(userData);
         await localDataSource.saveToken(user.uid);
       }
@@ -147,29 +153,39 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final normalizedEmail = user.email.toLowerCase().trim();
       final collections = ['patients', 'medecins', 'users'];
       for (var collection in collections) {
-        print('createAccount: Checking collection=$collection for email=$normalizedEmail');
-        final emailQuery = await firestore
-            .collection(collection)
-            .where('email', isEqualTo: normalizedEmail)
-            .get();
-        print('createAccount: Email query result: ${emailQuery.docs.length} docs found');
+        print(
+          'createAccount: Checking collection=$collection for email=$normalizedEmail',
+        );
+        final emailQuery =
+            await firestore
+                .collection(collection)
+                .where('email', isEqualTo: normalizedEmail)
+                .get();
+        print(
+          'createAccount: Email query result: ${emailQuery.docs.length} docs found',
+        );
         if (emailQuery.docs.isNotEmpty) {
           throw UsedEmailOrPhoneNumberException('Email already used');
         }
         if (user.phoneNumber.isNotEmpty) {
           print('createAccount: Checking phoneNumber=${user.phoneNumber}');
-          final phoneQuery = await firestore
-              .collection(collection)
-              .where('phoneNumber', isEqualTo: user.phoneNumber)
-              .get();
-          print('createAccount: Phone query result: ${phoneQuery.docs.length} docs found');
+          final phoneQuery =
+              await firestore
+                  .collection(collection)
+                  .where('phoneNumber', isEqualTo: user.phoneNumber)
+                  .get();
+          print(
+            'createAccount: Phone query result: ${phoneQuery.docs.length} docs found',
+          );
           if (phoneQuery.docs.isNotEmpty) {
             throw UsedEmailOrPhoneNumberException('Phone number already used');
           }
         }
       }
 
-      print('createAccount: Creating Firebase Auth user with email=$normalizedEmail');
+      print(
+        'createAccount: Creating Firebase Auth user with email=$normalizedEmail',
+      );
       final userCredential = await firebaseAuth.createUserWithEmailAndPassword(
         email: normalizedEmail,
         password: password,
@@ -179,12 +195,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         print('createAccount: Firebase user created, UID=${firebaseUser.uid}');
         final randomNumber = generateFourDigitNumber();
         print('createAccount: Generated verificationCode=$randomNumber');
-        final collection = user is PatientModel
-            ? 'patients'
-            : user is MedecinModel
-            ? 'medecins'
-            : 'users';
+        final collection =
+            user is PatientModel
+                ? 'patients'
+                : user is MedecinModel
+                ? 'medecins'
+                : 'users';
         print('createAccount: Using collection=$collection');
+
+        // Get FCM token from SharedPreferences if available
+        final prefs = await SharedPreferences.getInstance();
+        final fcmToken = prefs.getString('FCM_TOKEN');
+
         UserModel updatedUser;
         if (user is PatientModel) {
           updatedUser = PatientModel(
@@ -199,7 +221,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             antecedent: user.antecedent,
             accountStatus: false,
             verificationCode: randomNumber,
-            validationCodeExpiresAt: DateTime.now().add(const Duration(minutes: 60)),
+            validationCodeExpiresAt: DateTime.now().add(
+              const Duration(minutes: 60),
+            ),
           );
         } else if (user is MedecinModel) {
           updatedUser = MedecinModel(
@@ -215,7 +239,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             numLicence: user.numLicence,
             accountStatus: false,
             verificationCode: randomNumber,
-            validationCodeExpiresAt: DateTime.now().add(const Duration(minutes: 60)),
+            validationCodeExpiresAt: DateTime.now().add(
+              const Duration(minutes: 60),
+            ),
           );
         } else {
           updatedUser = UserModel(
@@ -228,11 +254,49 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             phoneNumber: user.phoneNumber,
             dateOfBirth: user.dateOfBirth,
             verificationCode: randomNumber,
-            validationCodeExpiresAt: DateTime.now().add(const Duration(minutes: 60)),
+            validationCodeExpiresAt: DateTime.now().add(
+              const Duration(minutes: 60),
+            ),
           );
         }
+
+        // Create user document with FCM token if available
+        Map<String, dynamic> userData = updatedUser.toJson();
+        if (fcmToken != null && fcmToken.isNotEmpty) {
+          userData['fcmToken'] = fcmToken;
+          print('createAccount: Added FCM token to user data: $fcmToken');
+        }
+
         print('createAccount: Saving user to Firestore');
-        await firestore.collection(collection).doc(firebaseUser.uid).set(updatedUser.toJson());
+        await firestore
+            .collection(collection)
+            .doc(firebaseUser.uid)
+            .set(userData);
+
+        // Also save to users collection for notifications service
+        Map<String, dynamic> userDataForUsers = {
+          'id': updatedUser.id,
+          'name': updatedUser.name,
+          'lastName': updatedUser.lastName,
+          'email': normalizedEmail,
+          'role': updatedUser.role,
+        };
+
+        if (fcmToken != null && fcmToken.isNotEmpty) {
+          userDataForUsers['fcmToken'] = fcmToken;
+        }
+
+        // Save minimal user data to 'users' collection for notification service
+        if (collection != 'users') {
+          await firestore
+              .collection('users')
+              .doc(firebaseUser.uid)
+              .set(userDataForUsers);
+          print(
+            'createAccount: Also saved minimal user data to users collection',
+          );
+        }
+
         print('createAccount: Caching user locally');
         await localDataSource.cacheUser(updatedUser);
         print('createAccount: Saving token');
@@ -249,7 +313,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw AuthException('User creation failed');
       }
     } on FirebaseAuthException catch (e) {
-      print('createAccount: FirebaseAuthException: code=${e.code}, message=${e.message}');
+      print(
+        'createAccount: FirebaseAuthException: code=${e.code}, message=${e.message}',
+      );
       if (e.code == 'email-already-in-use') {
         throw UsedEmailOrPhoneNumberException('Email already in use');
       } else if (e.code == 'weak-password') {
@@ -275,38 +341,85 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final firebaseUser = userCredential.user;
       if (firebaseUser != null) {
         print('login: Firebase user signed in, UID=${firebaseUser.uid}');
-        final patientDoc = await firestore.collection('patients').doc(firebaseUser.uid).get();
+
+        // Get the FCM token from SharedPreferences if available
+        final prefs = await SharedPreferences.getInstance();
+        final fcmToken = prefs.getString('FCM_TOKEN');
+
+        UserModel user;
+        String collection = "";
+
+        // Check collections in order of priority
+        final patientDoc =
+            await firestore.collection('patients').doc(firebaseUser.uid).get();
         if (patientDoc.exists) {
-          final user = PatientModel.fromJson(patientDoc.data()!);
+          user = PatientModel.fromJson(patientDoc.data()!);
+          collection = 'patients';
           print('login: Found user in patients, email=${user.email}');
-          await localDataSource.cacheUser(user);
-          await localDataSource.saveToken(firebaseUser.uid);
-          return user;
+        } else {
+          final medecinDoc =
+              await firestore
+                  .collection('medecins')
+                  .doc(firebaseUser.uid)
+                  .get();
+          if (medecinDoc.exists) {
+            user = MedecinModel.fromJson(medecinDoc.data()!);
+            collection = 'medecins';
+            print('login: Found user in medecins, email=${user.email}');
+          } else {
+            final userDoc =
+                await firestore.collection('users').doc(firebaseUser.uid).get();
+            if (userDoc.exists) {
+              user = UserModel.fromJson(userDoc.data()!);
+              collection = 'users';
+              print('login: Found user in users, email=${user.email}');
+            } else {
+              print('login: Error - User data not found in Firestore');
+              throw AuthException('User data not found');
+            }
+          }
         }
-        final medecinDoc = await firestore.collection('medecins').doc(firebaseUser.uid).get();
-        if (medecinDoc.exists) {
-          final user = MedecinModel.fromJson(medecinDoc.data()!);
-          print('login: Found user in medecins, email=${user.email}');
-          await localDataSource.cacheUser(user);
-          await localDataSource.saveToken(firebaseUser.uid);
-          return user;
+
+        // Save the FCM token if it's available
+        if (fcmToken != null && fcmToken.isNotEmpty) {
+          // Update the FCM token in the appropriate collection
+          await firestore.collection(collection).doc(firebaseUser.uid).update({
+            'fcmToken': fcmToken,
+          });
+
+          // Also update/create in users collection for notification service
+          try {
+            await firestore.collection('users').doc(firebaseUser.uid).update({
+              'fcmToken': fcmToken,
+            });
+          } catch (e) {
+            // If user doesn't exist in 'users' collection, create it
+            await firestore.collection('users').doc(firebaseUser.uid).set({
+              'id': user.id,
+              'name': user.name,
+              'lastName': user.lastName,
+              'email': user.email,
+              'role': user.role,
+              'fcmToken': fcmToken,
+            });
+          }
+
+          print('login: Updated FCM token for user: $fcmToken');
+        } else {
+          print('login: No FCM token available to update');
         }
-        final userDoc = await firestore.collection('users').doc(firebaseUser.uid).get();
-        if (userDoc.exists) {
-          final user = UserModel.fromJson(userDoc.data()!);
-          print('login: Found user in users, email=${user.email}');
-          await localDataSource.cacheUser(user);
-          await localDataSource.saveToken(firebaseUser.uid);
-          return user;
-        }
-        print('login: Error - User data not found in Firestore');
-        throw AuthException('User data not found');
+
+        await localDataSource.cacheUser(user);
+        await localDataSource.saveToken(firebaseUser.uid);
+        return user;
       } else {
         print('login: Error - Firebase sign-in failed');
         throw AuthException('Login failed');
       }
     } on FirebaseAuthException catch (e) {
-      print('login: FirebaseAuthException: code=${e.code}, message=${e.message}');
+      print(
+        'login: FirebaseAuthException: code=${e.code}, message=${e.message}',
+      );
       if (e.code == 'user-not-found' || e.code == 'wrong-password') {
         throw UnauthorizedException('Invalid email or password');
       } else {
@@ -323,24 +436,29 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       print('updateUser: Starting for user id=${user.id}, email=${user.email}');
       final normalizedEmail = user.email.toLowerCase().trim();
-      final collection = user is PatientModel
-          ? 'patients'
-          : user is MedecinModel
-          ? 'medecins'
-          : 'users';
-      
+      final collection =
+          user is PatientModel
+              ? 'patients'
+              : user is MedecinModel
+              ? 'medecins'
+              : 'users';
+
       // Check if appointmentDuration has changed (for doctors)
       if (user is MedecinModel) {
         try {
-          final existingDoctor = await firestore.collection('medecins').doc(user.id).get();
+          final existingDoctor =
+              await firestore.collection('medecins').doc(user.id).get();
           if (existingDoctor.exists) {
             final existingData = existingDoctor.data();
-            final existingDuration = existingData?['appointmentDuration'] as int? ?? 30;
-            
+            final existingDuration =
+                existingData?['appointmentDuration'] as int? ?? 30;
+
             // If duration has changed, we'll need to update appointments
             if (existingDuration != user.appointmentDuration) {
-              print('updateUser: Detected change in appointmentDuration from $existingDuration to ${user.appointmentDuration}');
-              
+              print(
+                'updateUser: Detected change in appointmentDuration from $existingDuration to ${user.appointmentDuration}',
+              );
+
               // First update the doctor record
               final updatedUser = MedecinModel(
                 id: user.id,
@@ -358,18 +476,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
                 verificationCode: user.verificationCode,
                 validationCodeExpiresAt: user.validationCodeExpiresAt,
               );
-              
+
               print('updateUser: Updating doctor record with new duration');
-              await firestore.collection(collection).doc(user.id).set(updatedUser.toJson());
-              
+              await firestore
+                  .collection(collection)
+                  .doc(user.id)
+                  .set(updatedUser.toJson());
+
               // Then update future appointments
               print('updateUser: Updating future appointments');
-              await _updateFutureAppointmentsEndTime(user.id!, user.appointmentDuration);
-              
+              await _updateFutureAppointmentsEndTime(
+                user.id!,
+                user.appointmentDuration,
+              );
+
               // Cache updated user
               print('updateUser: Caching updated user locally');
               await localDataSource.cacheUser(updatedUser);
-              
+
               print('updateUser: Completed with appointment updates');
               return unit;
             }
@@ -379,54 +503,60 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           // Continue with normal update flow if this part fails
         }
       }
-      
+
       // Normal update flow
-      final updatedUser = user is PatientModel
-          ? PatientModel(
-        id: user.id,
-        name: user.name,
-        lastName: user.lastName,
-        email: normalizedEmail,
-        role: user.role,
-        gender: user.gender,
-        phoneNumber: user.phoneNumber,
-        dateOfBirth: user.dateOfBirth,
-        antecedent: user.antecedent,
-        accountStatus: user.accountStatus,
-        verificationCode: user.verificationCode,
-        validationCodeExpiresAt: user.validationCodeExpiresAt,
-      )
-          : user is MedecinModel
-          ? MedecinModel(
-        id: user.id,
-        name: user.name,
-        lastName: user.lastName,
-        email: normalizedEmail,
-        role: user.role,
-        gender: user.gender,
-        phoneNumber: user.phoneNumber,
-        dateOfBirth: user.dateOfBirth,
-        speciality: user.speciality,
-        numLicence: user.numLicence,
-        appointmentDuration: user.appointmentDuration,
-        accountStatus: user.accountStatus,
-        verificationCode: user.verificationCode,
-        validationCodeExpiresAt: user.validationCodeExpiresAt,
-      )
-          : UserModel(
-        id: user.id,
-        name: user.name,
-        lastName: user.lastName,
-        email: normalizedEmail,
-        role: user.role,
-        gender: user.gender,
-        phoneNumber: user.phoneNumber,
-        dateOfBirth: user.dateOfBirth,
-        verificationCode: user.verificationCode,
-        validationCodeExpiresAt: user.validationCodeExpiresAt,
+      final updatedUser =
+          user is PatientModel
+              ? PatientModel(
+                id: user.id,
+                name: user.name,
+                lastName: user.lastName,
+                email: normalizedEmail,
+                role: user.role,
+                gender: user.gender,
+                phoneNumber: user.phoneNumber,
+                dateOfBirth: user.dateOfBirth,
+                antecedent: user.antecedent,
+                accountStatus: user.accountStatus,
+                verificationCode: user.verificationCode,
+                validationCodeExpiresAt: user.validationCodeExpiresAt,
+              )
+              : user is MedecinModel
+              ? MedecinModel(
+                id: user.id,
+                name: user.name,
+                lastName: user.lastName,
+                email: normalizedEmail,
+                role: user.role,
+                gender: user.gender,
+                phoneNumber: user.phoneNumber,
+                dateOfBirth: user.dateOfBirth,
+                speciality: user.speciality,
+                numLicence: user.numLicence,
+                appointmentDuration: user.appointmentDuration,
+                accountStatus: user.accountStatus,
+                verificationCode: user.verificationCode,
+                validationCodeExpiresAt: user.validationCodeExpiresAt,
+              )
+              : UserModel(
+                id: user.id,
+                name: user.name,
+                lastName: user.lastName,
+                email: normalizedEmail,
+                role: user.role,
+                gender: user.gender,
+                phoneNumber: user.phoneNumber,
+                dateOfBirth: user.dateOfBirth,
+                verificationCode: user.verificationCode,
+                validationCodeExpiresAt: user.validationCodeExpiresAt,
+              );
+      print(
+        'updateUser: Updating Firestore in collection=$collection, doc=${user.id}',
       );
-      print('updateUser: Updating Firestore in collection=$collection, doc=${user.id}');
-      await firestore.collection(collection).doc(user.id).set(updatedUser.toJson());
+      await firestore
+          .collection(collection)
+          .doc(user.id)
+          .set(updatedUser.toJson());
       print('updateUser: Caching user locally');
       await localDataSource.cacheUser(updatedUser);
       print('updateUser: Completed successfully');
@@ -446,7 +576,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required VerificationCodeType codeType,
   }) async {
     try {
-      print('sendVerificationCode: Starting for email=$email, codeType=$codeType');
+      print(
+        'sendVerificationCode: Starting for email=$email, codeType=$codeType',
+      );
       final normalizedEmail = email.toLowerCase().trim();
       print('sendVerificationCode: Normalized email=$normalizedEmail');
 
@@ -458,29 +590,46 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       // Step 2: Search for the user by email in each collection
       print('sendVerificationCode: Searching for user in collections');
       for (var collection in collections) {
-        print('sendVerificationCode: Querying collection=$collection for email=$normalizedEmail');
-        final query = await firestore
-            .collection(collection)
-            .where('email', isEqualTo: normalizedEmail)
-            .get();
-        print('sendVerificationCode: Query result for $collection: ${query.docs.length} docs found');
+        print(
+          'sendVerificationCode: Querying collection=$collection for email=$normalizedEmail',
+        );
+        final query =
+            await firestore
+                .collection(collection)
+                .where('email', isEqualTo: normalizedEmail)
+                .get();
+        print(
+          'sendVerificationCode: Query result for $collection: ${query.docs.length} docs found',
+        );
         if (query.docs.isNotEmpty) {
           collectionName = collection;
           userId = query.docs.first.id;
-          print('sendVerificationCode: User found in collection=$collectionName, userId=$userId');
-          print('sendVerificationCode: Document data=${query.docs.first.data()}');
+          print(
+            'sendVerificationCode: User found in collection=$collectionName, userId=$userId',
+          );
+          print(
+            'sendVerificationCode: Document data=${query.docs.first.data()}',
+          );
           break;
         } else {
-          print('sendVerificationCode: No documents found in $collection for email=$normalizedEmail');
+          print(
+            'sendVerificationCode: No documents found in $collection for email=$normalizedEmail',
+          );
           // Fallback: Check all documents for case-insensitive match
           final allDocs = await firestore.collection(collection).get();
-          print('sendVerificationCode: Checking all documents in $collection for case-insensitive match');
+          print(
+            'sendVerificationCode: Checking all documents in $collection for case-insensitive match',
+          );
           for (var doc in allDocs.docs) {
             final data = doc.data();
-            if (data['email'] != null && data['email'].toString().toLowerCase().trim() == normalizedEmail) {
+            if (data['email'] != null &&
+                data['email'].toString().toLowerCase().trim() ==
+                    normalizedEmail) {
               collectionName = collection;
               userId = doc.id;
-              print('sendVerificationCode: User found with case-insensitive match in $collection, userId=$userId');
+              print(
+                'sendVerificationCode: User found with case-insensitive match in $collection, userId=$userId',
+              );
               print('sendVerificationCode: Document data=$data');
               // Update email to normalized form
               await firestore.collection(collection).doc(userId).update({
@@ -496,12 +645,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       // Step 3: Check if user was found
       if (collectionName == null || userId == null) {
-        print('sendVerificationCode: Error - User not found for email=$normalizedEmail');
+        print(
+          'sendVerificationCode: Error - User not found for email=$normalizedEmail',
+        );
         for (var collection in collections) {
           final allDocs = await firestore.collection(collection).get();
-          print('sendVerificationCode: All documents in $collection: ${allDocs.docs.length}');
+          print(
+            'sendVerificationCode: All documents in $collection: ${allDocs.docs.length}',
+          );
           for (var doc in allDocs.docs) {
-            print('sendVerificationCode: Doc in $collection: id=${doc.id}, data=${doc.data()}');
+            print(
+              'sendVerificationCode: Doc in $collection: id=${doc.id}, data=${doc.data()}',
+            );
           }
         }
         throw AuthException('User not found');
@@ -512,19 +667,34 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       print('sendVerificationCode: Generated verificationCode=$randomNumber');
 
       // Step 5: Update Firestore with verification code, expiration, and codeType
-      print('sendVerificationCode: Updating Firestore for collection=$collectionName, userId=$userId');
-      await firestore.collection(collectionName).doc(userId).update({
-        'verificationCode': randomNumber,
-        'validationCodeExpiresAt': DateTime.now().add(const Duration(minutes: 60)),
-        'codeType': codeType.toString().split('.').last,
-      }).catchError((e) {
-        print('sendVerificationCode: Firestore update failed with error=$e');
-        throw FirebaseException(plugin: 'firestore', message: 'Failed to update verification code: $e');
-      });
+      print(
+        'sendVerificationCode: Updating Firestore for collection=$collectionName, userId=$userId',
+      );
+      await firestore
+          .collection(collectionName)
+          .doc(userId)
+          .update({
+            'verificationCode': randomNumber,
+            'validationCodeExpiresAt': DateTime.now().add(
+              const Duration(minutes: 60),
+            ),
+            'codeType': codeType.toString().split('.').last,
+          })
+          .catchError((e) {
+            print(
+              'sendVerificationCode: Firestore update failed with error=$e',
+            );
+            throw FirebaseException(
+              plugin: 'firestore',
+              message: 'Failed to update verification code: $e',
+            );
+          });
       print('sendVerificationCode: Firestore updated successfully');
 
       // Step 6: Send the verification email
-      print('sendVerificationCode: Sending email with subject=${getSubjectForCodeType(codeType)}');
+      print(
+        'sendVerificationCode: Sending email with subject=${getSubjectForCodeType(codeType)}',
+      );
       await sendVerificationEmail(
         email: normalizedEmail,
         subject: getSubjectForCodeType(codeType),
@@ -554,24 +724,33 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required VerificationCodeType codeType,
   }) async {
     try {
-      print('verifyCode: Starting for email=$email, code=$verificationCode, codeType=$codeType');
+      print(
+        'verifyCode: Starting for email=$email, code=$verificationCode, codeType=$codeType',
+      );
       final normalizedEmail = email.toLowerCase().trim();
       final collections = ['patients', 'medecins', 'users'];
       String? collectionName;
       String? userId;
       dynamic userData;
       for (var collection in collections) {
-        print('verifyCode: Querying collection=$collection for email=$normalizedEmail');
-        final query = await firestore
-            .collection(collection)
-            .where('email', isEqualTo: normalizedEmail)
-            .get();
-        print('verifyCode: Query result for $collection: ${query.docs.length} docs found');
+        print(
+          'verifyCode: Querying collection=$collection for email=$normalizedEmail',
+        );
+        final query =
+            await firestore
+                .collection(collection)
+                .where('email', isEqualTo: normalizedEmail)
+                .get();
+        print(
+          'verifyCode: Query result for $collection: ${query.docs.length} docs found',
+        );
         if (query.docs.isNotEmpty) {
           collectionName = collection;
           userId = query.docs.first.id;
           userData = query.docs.first.data();
-          print('verifyCode: User found in collection=$collectionName, userId=$userId');
+          print(
+            'verifyCode: User found in collection=$collectionName, userId=$userId',
+          );
           break;
         }
       }
@@ -580,18 +759,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw AuthException('User not found');
       }
       if (userData['verificationCode'] != verificationCode) {
-        print('verifyCode: Error - Invalid verification code: expected=${userData['verificationCode']}, provided=$verificationCode');
+        print(
+          'verifyCode: Error - Invalid verification code: expected=${userData['verificationCode']}, provided=$verificationCode',
+        );
         throw AuthException('Invalid verification code');
       }
-      if (userData['validationCodeExpiresAt']?.toDate().isBefore(DateTime.now()) ?? true) {
+      if (userData['validationCodeExpiresAt']?.toDate().isBefore(
+            DateTime.now(),
+          ) ??
+          true) {
         print('verifyCode: Error - Verification code expired');
         throw AuthException('Verification code expired');
       }
       if (userData['codeType'] != codeType.toString().split('.').last) {
-        print('verifyCode: Error - Invalid code type: expected=${userData['codeType']}, provided=${codeType.toString().split('.').last}');
+        print(
+          'verifyCode: Error - Invalid code type: expected=${userData['codeType']}, provided=${codeType.toString().split('.').last}',
+        );
         throw AuthException('Invalid code type');
       }
-      if (codeType == VerificationCodeType.activationDeCompte || codeType == VerificationCodeType.compteActive) {
+      if (codeType == VerificationCodeType.activationDeCompte ||
+          codeType == VerificationCodeType.compteActive) {
         print('verifyCode: Updating account status to active');
         await firestore.collection(collectionName).doc(userId).update({
           'accountStatus': true,
@@ -618,81 +805,74 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required int verificationCode,
   }) async {
     try {
-      print('changePassword: Starting for email=$email, verificationCode=$verificationCode');
-      final normalizedEmail = email.toLowerCase().trim();
-      final collections = ['patients', 'medecins', 'users'];
-      String? collectionName;
-      String? userId;
-      dynamic userData;
-      for (var collection in collections) {
-        print('changePassword: Querying collection=$collection for email=$normalizedEmail');
-        final query = await firestore
-            .collection(collection)
-            .where('email', isEqualTo: normalizedEmail)
-            .get();
-        print('changePassword: Query result for $collection: ${query.docs.length} docs found');
-        if (query.docs.isNotEmpty) {
-          collectionName = collection;
-          userId = query.docs.first.id;
-          userData = query.docs.first.data();
-          print('changePassword: User found in collection=$collectionName, userId=$userId');
-          break;
-        }
-      }
-      if (collectionName == null || userId == null) {
-        print('changePassword: Error - User not found for email=$normalizedEmail');
-        throw AuthException('User not found');
-      }
-      if (userData['verificationCode'] != verificationCode) {
-        print('changePassword: Error - Invalid verification code: expected=${userData['verificationCode']}, provided=$verificationCode');
-        throw AuthException('Invalid verification code');
-      }
-      if (userData['validationCodeExpiresAt']?.toDate().isBefore(DateTime.now()) ?? true) {
-        print('changePassword: Error - Verification code expired');
-        throw AuthException('Verification code expired');
-      }
-      if (userData['codeType'] != VerificationCodeType.changerMotDePasse.toString().split('.').last &&
-          userData['codeType'] != VerificationCodeType.motDePasseOublie.toString().split('.').last) {
-        print('changePassword: Error - Invalid code type: expected=changerMotDePasse or motDePasseOublie, provided=${userData['codeType']}');
-        throw AuthException('Invalid code type for password change');
-      }
-      final user = firebaseAuth.currentUser;
-      if (user != null && user.email?.toLowerCase().trim() == normalizedEmail) {
-        print('changePassword: Updating password for user UID=${user.uid}');
-        await user.updatePassword(newPassword);
-        print('changePassword: Clearing verification code');
-        await clearVerificationCode(collection: collectionName, docId: userId);
-        print('changePassword: Completed successfully');
+      print(
+        'changePassword: Starting for email=$email, verificationCode=$verificationCode',
+      );
+
+      // Call our new direct password reset API endpoint
+      final response = await http.post(
+        Uri.parse('$emailServiceUrl/resetPasswordDirect'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email.toLowerCase().trim(),
+          'newPassword': newPassword,
+          'verificationCode': verificationCode,
+        }),
+      );
+
+      print('changePassword: API response status=${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        print('changePassword: Password reset successful');
         return unit;
       } else {
-        print('changePassword: Error - User not authenticated or email mismatch: user.email=${user?.email}, normalizedEmail=$normalizedEmail');
-        throw AuthException('User not authenticated');
+        // Parse the error message from the API response
+        Map<String, dynamic> responseData = {};
+        try {
+          responseData = json.decode(response.body);
+        } catch (e) {
+          print('changePassword: Error parsing response body: $e');
+        }
+
+        final errorMessage =
+            responseData['message'] ?? 'Failed to reset password';
+        print('changePassword: Error from API: $errorMessage');
+        throw AuthException(errorMessage);
       }
-    } on FirebaseAuthException catch (e) {
-      print('changePassword: FirebaseAuthException: ${e.message}');
-      throw AuthException(e.message ?? 'Failed to change password');
     } catch (e) {
       print('changePassword: Unexpected error: $e');
+      if (e is AuthException) {
+        rethrow;
+      }
       throw ServerException('Unexpected error: $e');
     }
   }
 
   // Helper method to update future appointments' endTime when a doctor's appointmentDuration changes
-  Future<void> _updateFutureAppointmentsEndTime(String doctorId, int appointmentDuration) async {
+  Future<void> _updateFutureAppointmentsEndTime(
+    String doctorId,
+    int appointmentDuration,
+  ) async {
     try {
-      print('_updateFutureAppointmentsEndTime: Starting for doctorId=$doctorId with duration=$appointmentDuration');
-      
+      print(
+        '_updateFutureAppointmentsEndTime: Starting for doctorId=$doctorId with duration=$appointmentDuration',
+      );
+
       // Get current date/time
       final now = DateTime.now();
-      
+
       // Query all future appointments for this doctor with status "pending" or "accepted"
-      final appointmentsQuery = await firestore.collection('rendez_vous')
-          .where('doctorId', isEqualTo: doctorId)
-          .where('startTime', isGreaterThanOrEqualTo: now.toIso8601String())
-          .get();
-      
-      print('_updateFutureAppointmentsEndTime: Found ${appointmentsQuery.docs.length} future appointments');
-      
+      final appointmentsQuery =
+          await firestore
+              .collection('rendez_vous')
+              .where('doctorId', isEqualTo: doctorId)
+              .where('startTime', isGreaterThanOrEqualTo: now.toIso8601String())
+              .get();
+
+      print(
+        '_updateFutureAppointmentsEndTime: Found ${appointmentsQuery.docs.length} future appointments',
+      );
+
       // Update each appointment's endTime
       for (final doc in appointmentsQuery.docs) {
         try {
@@ -703,26 +883,32 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           } else if (doc.data()['startTime'] is Timestamp) {
             startTime = (doc.data()['startTime'] as Timestamp).toDate();
           } else {
-            print('_updateFutureAppointmentsEndTime: Skipping appointment with invalid startTime format');
+            print(
+              '_updateFutureAppointmentsEndTime: Skipping appointment with invalid startTime format',
+            );
             continue;
           }
-          
+
           // Calculate new endTime
           final endTime = startTime.add(Duration(minutes: appointmentDuration));
-          
+
           // Update the appointment
           await firestore.collection('rendez_vous').doc(doc.id).update({
             'endTime': endTime.toIso8601String(),
           });
-          
-          print('_updateFutureAppointmentsEndTime: Updated appointment ${doc.id}');
+
+          print(
+            '_updateFutureAppointmentsEndTime: Updated appointment ${doc.id}',
+          );
         } catch (e) {
-          print('_updateFutureAppointmentsEndTime: Error updating appointment ${doc.id}: $e');
+          print(
+            '_updateFutureAppointmentsEndTime: Error updating appointment ${doc.id}: $e',
+          );
           // Continue with other appointments even if one fails
           continue;
         }
       }
-      
+
       print('_updateFutureAppointmentsEndTime: Completed');
     } catch (e) {
       print('_updateFutureAppointmentsEndTime: Error: $e');

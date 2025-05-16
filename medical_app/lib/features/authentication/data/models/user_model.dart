@@ -1,6 +1,8 @@
 import '../../domain/entities/user_entity.dart';
 
 class UserModel extends UserEntity {
+  final String? fcmToken;
+
   UserModel({
     String? id,
     required String name,
@@ -12,20 +14,21 @@ class UserModel extends UserEntity {
     DateTime? dateOfBirth,
     bool? accountStatus,
     int? verificationCode,
-    DateTime? validationCodeExpiresAt
+    DateTime? validationCodeExpiresAt,
+    this.fcmToken,
   }) : super(
-    id: id,
-    name: name,
-    lastName: lastName,
-    email: email,
-    role: role,
-    gender: gender,
-    phoneNumber: phoneNumber,
-    dateOfBirth: dateOfBirth,
-    accountStatus: accountStatus,
-    verificationCode: verificationCode,
-    validationCodeExpiresAt: validationCodeExpiresAt,
-  );
+         id: id,
+         name: name,
+         lastName: lastName,
+         email: email,
+         role: role,
+         gender: gender,
+         phoneNumber: phoneNumber,
+         dateOfBirth: dateOfBirth,
+         accountStatus: accountStatus,
+         verificationCode: verificationCode,
+         validationCodeExpiresAt: validationCodeExpiresAt,
+       );
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
@@ -36,14 +39,17 @@ class UserModel extends UserEntity {
       role: json['role'] as String,
       gender: json['gender'] as String,
       phoneNumber: json['phoneNumber'] as String,
-      dateOfBirth: json['dateOfBirth'] != null
-          ? DateTime.parse(json['dateOfBirth'] as String)
-          : null,
+      dateOfBirth:
+          json['dateOfBirth'] != null
+              ? DateTime.parse(json['dateOfBirth'] as String)
+              : null,
       accountStatus: json['accountStatus'] as bool?,
       verificationCode: json['verificationCode'] as int?,
-      validationCodeExpiresAt: json['validationCodeExpiresAt'] != null
-          ? DateTime.parse(json['validationCodeExpiresAt'] as String)
-          : null,
+      validationCodeExpiresAt:
+          json['validationCodeExpiresAt'] != null
+              ? DateTime.parse(json['validationCodeExpiresAt'] as String)
+              : null,
+      fcmToken: json['fcmToken'] as String?,
     );
   }
 
@@ -70,7 +76,11 @@ class UserModel extends UserEntity {
       data['verificationCode'] = verificationCode;
     }
     if (validationCodeExpiresAt != null) {
-      data['validationCodeExpiresAt'] = validationCodeExpiresAt!.toIso8601String();
+      data['validationCodeExpiresAt'] =
+          validationCodeExpiresAt!.toIso8601String();
+    }
+    if (fcmToken != null) {
+      data['fcmToken'] = fcmToken;
     }
     return data;
   }
@@ -87,6 +97,7 @@ class UserModel extends UserEntity {
     bool? accountStatus,
     int? verificationCode,
     DateTime? validationCodeExpiresAt,
+    String? fcmToken,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -99,7 +110,9 @@ class UserModel extends UserEntity {
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       accountStatus: accountStatus ?? this.accountStatus,
       verificationCode: verificationCode ?? this.verificationCode,
-      validationCodeExpiresAt: validationCodeExpiresAt ?? this.validationCodeExpiresAt,
+      validationCodeExpiresAt:
+          validationCodeExpiresAt ?? this.validationCodeExpiresAt,
+      fcmToken: fcmToken ?? this.fcmToken,
     );
   }
 }

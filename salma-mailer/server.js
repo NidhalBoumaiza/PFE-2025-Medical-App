@@ -1,36 +1,59 @@
 const app = require("./app");
-//const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 
-process.on("uncaughtException", (err) => {
-  console.log("UNCAUGHT EXCEPTION! 💥 Shutting down...");
-  console.log(err.name, err.message);
-  process.exit(1);
-});
-
+// Load environment variables
 dotenv.config({ path: "./.env" });
 
-// const DB = process.env.DATABASE;
-// mongoose.set("strictQuery", true);
-
-// mongoose
-//   .connect(DB, {
-//     useNewUrlParser: true,
-//     // useCreateIndex: true,
-//     // useFindAndModify: true,
-//     useUnifiedTopology: true,
-//   })
-//   .then(() => console.log("DB connection successful!"));
+// Add a test route to app.js exports
+app.get("/api/v1/test", (req, res) => {
+  res.status(200).json({
+    status: "success",
+    message: "Server is running correctly",
+    timestamp: new Date().toISOString(),
+  });
+});
 
 const port = process.env.PORT || 3000;
 const server = app.listen(port, () => {
-  console.log(`App running on port ${port}...`);
-});
+  console.log("\n===========================================");
+  console.log("🚀 Notification Server running on port " + port);
+  console.log("===========================================");
+  console.log("\n📌 Available endpoints:");
+  console.log("- GET  /api/v1/test - Test server connection");
+  console.log(
+    "- POST /api/v1/notifications/send - Send notification using Firebase FCM"
+  );
+  console.log(
+    "- POST /api/v1/notifications/save - Save notification to Firestore"
+  );
+  console.log(
+    "- GET  /api/v1/notifications/user-token/:userId - Get user's FCM token"
+  );
+  console.log(
+    "- POST /api/v1/notifications/test-send - Send test notification (no Firebase)"
+  );
+  console.log("\n📝 Example notification request:");
+  console.log(
+    JSON.stringify(
+      {
+        token: "fcm-token-here",
+        title: "New Appointment",
+        body: "You have a new appointment request",
+        data: {
+          type: "newAppointment",
+          senderId: "patient-id",
+          recipientId: "doctor-id",
+          appointmentId: "appointment-id",
+          click_action: "FLUTTER_NOTIFICATION_CLICK",
+        },
+      },
+      null,
+      2
+    )
+  );
 
-process.on("unhandledRejection", (err) => {
-  console.log("UNHANDLED REJECTION! 💥 Shutting down...");
-  console.log(err.name, err.message);
-  server.close(() => {
-    process.exit(1);
-  });
+  console.log(
+    "\n📱 Remember: all data values must be strings in FCM payloads"
+  );
+  console.log("===========================================\n");
 });

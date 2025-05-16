@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:medical_app/core/utils/app_colors.dart';
 import 'package:medical_app/features/authentication/domain/entities/medecin_entity.dart';
 import 'package:medical_app/features/authentication/domain/entities/patient_entity.dart';
@@ -28,6 +29,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _specialityController;
   late TextEditingController _numLicenceController;
   late TextEditingController _appointmentDurationController;
+  bool _hasChanges = false;
 
   @override
   void initState() {
@@ -35,34 +37,61 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController = TextEditingController(text: widget.user.name);
     _lastNameController = TextEditingController(text: widget.user.lastName);
     _emailController = TextEditingController(text: widget.user.email);
-    _phoneNumberController = TextEditingController(text: widget.user.phoneNumber);
+    _phoneNumberController = TextEditingController(
+      text: widget.user.phoneNumber,
+    );
     _genderController = TextEditingController(text: widget.user.gender);
     _dateOfBirthController = TextEditingController(
-        text: widget.user.dateOfBirth != null
-            ? DateFormat('yyyy-MM-dd').format(widget.user.dateOfBirth!)
-            : '');
+      text:
+          widget.user.dateOfBirth != null
+              ? DateFormat('yyyy-MM-dd').format(widget.user.dateOfBirth!)
+              : '',
+    );
 
+    // Initialize patient-specific controllers
     if (widget.user is PatientEntity) {
-      final patientEntity = widget.user as PatientEntity;
-      _antecedentController = TextEditingController(text: patientEntity.antecedent);
-      // Initialize unused controllers with empty values
-      _specialityController = TextEditingController();
-      _numLicenceController = TextEditingController();
-      _appointmentDurationController = TextEditingController();
-    } else if (widget.user is MedecinEntity) {
-      final medecinEntity = widget.user as MedecinEntity;
-      _specialityController = TextEditingController(text: medecinEntity.speciality);
-      _numLicenceController = TextEditingController(text: medecinEntity.numLicence);
-      _appointmentDurationController = TextEditingController(text: medecinEntity.appointmentDuration.toString());
-      // Initialize unused controllers with empty values
-      _antecedentController = TextEditingController();
+      final patient = widget.user as PatientEntity;
+      _antecedentController = TextEditingController(
+        text: patient.antecedent ?? '',
+      );
     } else {
-      // Initialize unused controllers with empty values
+      _antecedentController = TextEditingController();
+    }
+
+    // Initialize doctor-specific controllers
+    if (widget.user is MedecinEntity) {
+      final doctor = widget.user as MedecinEntity;
+      _specialityController = TextEditingController(
+        text: doctor.speciality ?? '',
+      );
+      _numLicenceController = TextEditingController(
+        text: doctor.numLicence ?? '',
+      );
+      _appointmentDurationController = TextEditingController(
+        text: doctor.appointmentDuration?.toString() ?? '30',
+      );
+    } else {
       _specialityController = TextEditingController();
       _numLicenceController = TextEditingController();
-      _antecedentController = TextEditingController();
       _appointmentDurationController = TextEditingController();
     }
+
+    // Add listeners to detect changes
+    _nameController.addListener(_onFieldChanged);
+    _lastNameController.addListener(_onFieldChanged);
+    _phoneNumberController.addListener(_onFieldChanged);
+    _genderController.addListener(_onFieldChanged);
+    _dateOfBirthController.addListener(_onFieldChanged);
+    _antecedentController.addListener(_onFieldChanged);
+    _specialityController.addListener(_onFieldChanged);
+    _numLicenceController.addListener(_onFieldChanged);
+    _appointmentDurationController.addListener(_onFieldChanged);
+  }
+
+  void _onFieldChanged() {
+    setState(() {
+      _hasChanges = true;
+    });
   }
 
   @override
@@ -92,9 +121,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           role: widget.user.role,
           gender: _genderController.text,
           phoneNumber: _phoneNumberController.text,
-          dateOfBirth: _dateOfBirthController.text.isNotEmpty
-              ? DateTime.tryParse(_dateOfBirthController.text)
-              : null,
+          dateOfBirth:
+              _dateOfBirthController.text.isNotEmpty
+                  ? DateTime.tryParse(_dateOfBirthController.text)
+                  : null,
           antecedent: _antecedentController.text,
         );
       } else {
@@ -106,14 +136,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           role: widget.user.role,
           gender: _genderController.text,
           phoneNumber: _phoneNumberController.text,
-          dateOfBirth: _dateOfBirthController.text.isNotEmpty
-              ? DateTime.tryParse(_dateOfBirthController.text)
-              : null,
+          dateOfBirth:
+              _dateOfBirthController.text.isNotEmpty
+                  ? DateTime.tryParse(_dateOfBirthController.text)
+                  : null,
           speciality: _specialityController.text,
           numLicence: _numLicenceController.text,
-          appointmentDuration: _appointmentDurationController.text.isNotEmpty
-              ? int.parse(_appointmentDurationController.text)
-              : 30,
+          appointmentDuration:
+              _appointmentDurationController.text.isNotEmpty
+                  ? int.parse(_appointmentDurationController.text)
+                  : 30,
         );
       }
       Navigator.pop(context, updatedUser);
@@ -123,9 +155,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _dateOfBirthController.text.isNotEmpty
-          ? DateTime.parse(_dateOfBirthController.text)
-          : DateTime.now(),
+      initialDate:
+          _dateOfBirthController.text.isNotEmpty
+              ? DateTime.parse(_dateOfBirthController.text)
+              : DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
@@ -146,145 +179,348 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (picked != null) {
       setState(() {
         _dateOfBirthController.text = DateFormat('yyyy-MM-dd').format(picked);
+        _hasChanges = true;
       });
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Edit Profile'.tr),
-        backgroundColor: AppColors.primaryColor,
-        foregroundColor: AppColors.whiteColor,
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: Theme.of(context).brightness == Brightness.dark
-                ? [Colors.grey[900]!, Colors.grey[800]!]
-                : [Colors.white, Colors.grey[100]!],
-          ),
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-          child: SingleChildScrollView(
-            child: Form(
-              key: _formKey,
-              child: Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 15.h),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTextField(
-                        controller: _nameController,
-                        label: 'first_name_label'.tr,
-                        icon: Icons.person,
-                        validator: (value) => value!.isEmpty ? 'name_required'.tr : null,
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildTextField(
-                        controller: _lastNameController,
-                        label: 'last_name_label'.tr,
-                        icon: Icons.person,
-                        validator: (value) => value!.isEmpty ? 'last_name_required'.tr : null,
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildTextField(
-                        enabled: false,
-                        controller: _emailController,
-                        label: 'email'.tr,
-                        icon: Icons.email,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value!.isEmpty) return 'email_required'.tr;
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                            return 'invalid_email_message'.tr;
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildTextField(
-                        controller: _phoneNumberController,
-                        label: 'phone_number_label'.tr,
-                        icon: Icons.phone,
-                        keyboardType: TextInputType.phone,
-                        validator: (value) => value!.isEmpty ? 'phone_number_required'.tr : null,
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildTextField(
-                        controller: _genderController,
-                        label: 'gender'.tr,
-                        icon: Icons.person,
-                        validator: (value) => value!.isEmpty ? 'gender_required'.tr : null,
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildTextField(
-                        controller: _dateOfBirthController,
-                        label: 'date_of_birth_label'.tr,
-                        icon: Icons.calendar_today,
-                        readOnly: true,
-                        onTap: () => _selectDate(context),
-                        hintText: 'YYYY-MM-DD',
-                      ),
-                      if (widget.user is PatientEntity) ...[
-                        SizedBox(height: 16.h),
-                        _buildTextField(
-                          controller: _antecedentController,
-                          label: 'antecedent'.tr,
-                          icon: Icons.medical_services,
-                          validator: (value) => value!.isEmpty ? 'antecedent_required'.tr : null,
-                        ),
-                      ],
-                      if (widget.user is MedecinEntity) ...[
-                        SizedBox(height: 16.h),
-                        _buildTextField(
-                          controller: _specialityController,
-                          label: 'speciality'.tr,
-                          icon: Icons.work,
-                          validator: (value) => value!.isEmpty ? 'speciality_required'.tr : null,
-                        ),
-                        SizedBox(height: 16.h),
-                        _buildTextField(
-                          controller: _numLicenceController,
-                          label: 'num_licence'.tr,
-                          icon: Icons.badge,
-                          validator: (value) => value!.isEmpty ? 'num_licence_required'.tr : null,
-                        ),
-                        SizedBox(height: 16.h),
-                        _buildTextField(
-                          controller: _appointmentDurationController,
-                          label: 'appointment_duration'.tr,
-                          icon: Icons.access_time,
-                          keyboardType: TextInputType.number,
-                          validator: (value) => value!.isEmpty ? 'appointment_duration_required'.tr : null,
-                        ),
-                      ],
-                      SizedBox(height: 20.h),
-                      Center(
-                        child: ElevatedButton(
-                          onPressed: _saveChanges,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryColor,
-                            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-                            elevation: 3,
-                          ),
-                          child: Text(
-                            'save'.tr,
-                            style: TextStyle(fontSize: 16.sp, color: AppColors.whiteColor),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+  // Show a confirmation dialog when user tries to go back with unsaved changes
+  Future<bool> _onWillPop() async {
+    if (!_hasChanges) {
+      return true;
+    }
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(
+              'Discard Changes?',
+              style: GoogleFonts.raleway(fontWeight: FontWeight.bold),
+            ),
+            content: Text(
+              'You have unsaved changes. Are you sure you want to discard them?',
+              style: GoogleFonts.raleway(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(
+                  'Cancel',
+                  style: GoogleFonts.raleway(color: Colors.grey),
                 ),
               ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: Text(
+                  'Discard',
+                  style: GoogleFonts.raleway(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    return result ?? false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'edit_profile'.tr,
+            style: GoogleFonts.raleway(
+              fontWeight: FontWeight.bold,
+              fontSize: 18.sp,
+              color: Colors.white,
+            ),
+          ),
+          backgroundColor: AppColors.primaryColor,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () async {
+              if (await _onWillPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+          actions: [
+            if (_hasChanges)
+              IconButton(
+                icon: const Icon(Icons.save, color: Colors.white),
+                onPressed: _saveChanges,
+                tooltip: 'save'.tr,
+              ),
+          ],
+          elevation: 0,
+        ),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppColors.primaryColor,
+                AppColors.primaryColor.withOpacity(0.8),
+                AppColors.primaryColor.withOpacity(0.1),
+                Colors.white,
+              ],
+              stops: const [0.0, 0.1, 0.3, 0.5],
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Profile picture & header
+                SizedBox(
+                  height: 120.h,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 40.r,
+                          backgroundColor: Colors.white,
+                          child: Icon(
+                            Icons.person,
+                            size: 40.sp,
+                            color: AppColors.primaryColor,
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
+                        Text(
+                          '${widget.user.name} ${widget.user.lastName}',
+                          style: GoogleFonts.raleway(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Form fields in scrollable area
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(30.r),
+                        topRight: Radius.circular(30.r),
+                      ),
+                    ),
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.all(20.w),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: 10.h),
+
+                            Text(
+                              'personal_information'.tr,
+                              style: GoogleFonts.raleway(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryColor,
+                              ),
+                            ),
+                            SizedBox(height: 20.h),
+
+                            // First Name field
+                            _buildTextField(
+                              controller: _nameController,
+                              label: 'first_name_label'.tr,
+                              icon: Icons.person,
+                              validator:
+                                  (value) =>
+                                      value!.isEmpty
+                                          ? 'name_required'.tr
+                                          : null,
+                            ),
+                            SizedBox(height: 16.h),
+
+                            // Last Name field
+                            _buildTextField(
+                              controller: _lastNameController,
+                              label: 'last_name_label'.tr,
+                              icon: Icons.person,
+                              validator:
+                                  (value) =>
+                                      value!.isEmpty
+                                          ? 'last_name_required'.tr
+                                          : null,
+                            ),
+                            SizedBox(height: 16.h),
+
+                            // Email field (disabled)
+                            _buildTextField(
+                              enabled: false,
+                              controller: _emailController,
+                              label: 'email'.tr,
+                              icon: Icons.email,
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                            SizedBox(height: 16.h),
+
+                            // Phone Number field
+                            _buildTextField(
+                              controller: _phoneNumberController,
+                              label: 'phone_number_label'.tr,
+                              icon: Icons.phone,
+                              keyboardType: TextInputType.phone,
+                              validator:
+                                  (value) =>
+                                      value!.isEmpty
+                                          ? 'phone_number_required'.tr
+                                          : null,
+                            ),
+                            SizedBox(height: 16.h),
+
+                            // Gender field
+                            _buildDropdownField(
+                              controller: _genderController,
+                              label: 'gender'.tr,
+                              icon: Icons.people,
+                              options: ['Male', 'Female', 'Other'],
+                              validator:
+                                  (value) =>
+                                      value!.isEmpty
+                                          ? 'gender_required'.tr
+                                          : null,
+                            ),
+                            SizedBox(height: 16.h),
+
+                            // Date of Birth field
+                            _buildTextField(
+                              controller: _dateOfBirthController,
+                              label: 'date_of_birth_label'.tr,
+                              icon: Icons.calendar_today,
+                              readOnly: true,
+                              onTap: () => _selectDate(context),
+                              hintText: 'YYYY-MM-DD',
+                            ),
+
+                            // Patient specific fields
+                            if (widget.user is PatientEntity) ...[
+                              SizedBox(height: 30.h),
+                              Text(
+                                'medical_information'.tr,
+                                style: GoogleFonts.raleway(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryColor,
+                                ),
+                              ),
+                              SizedBox(height: 20.h),
+                              _buildTextField(
+                                controller: _antecedentController,
+                                label: 'medical_history_label'.tr,
+                                icon: Icons.medical_services,
+                                maxLines: 3,
+                                hintText: 'medical_history_hint'.tr,
+                              ),
+                            ],
+
+                            // Doctor specific fields
+                            if (widget.user is MedecinEntity) ...[
+                              SizedBox(height: 30.h),
+                              Text(
+                                'professional_information'.tr,
+                                style: GoogleFonts.raleway(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryColor,
+                                ),
+                              ),
+                              SizedBox(height: 20.h),
+                              _buildTextField(
+                                controller: _specialityController,
+                                label: 'specialty_label'.tr,
+                                icon: Icons.medical_services,
+                                validator:
+                                    (value) =>
+                                        value!.isEmpty
+                                            ? 'specialty_required'.tr
+                                            : null,
+                              ),
+                              SizedBox(height: 16.h),
+                              _buildTextField(
+                                controller: _numLicenceController,
+                                label: 'license_number_label'.tr,
+                                icon: Icons.badge,
+                                validator:
+                                    (value) =>
+                                        value!.isEmpty
+                                            ? 'license_number_required'.tr
+                                            : null,
+                              ),
+                              SizedBox(height: 16.h),
+                              _buildTextField(
+                                controller: _appointmentDurationController,
+                                label: 'appointment_duration'.tr,
+                                icon: Icons.timer,
+                                keyboardType: TextInputType.number,
+                                validator: (value) {
+                                  if (value!.isEmpty)
+                                    return 'appointment_duration_required'.tr;
+                                  final duration = int.tryParse(value);
+                                  if (duration == null || duration <= 0) {
+                                    return 'Please enter a valid duration';
+                                  }
+                                  return null;
+                                },
+                                suffix: Text(
+                                  'minutes'.tr,
+                                  style: GoogleFonts.raleway(
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ),
+                            ],
+
+                            SizedBox(height: 40.h),
+
+                            // Save button
+                            Container(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _hasChanges ? _saveChanges : null,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryColor,
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor: Colors.grey[300],
+                                  padding: EdgeInsets.symmetric(vertical: 15.h),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16.r),
+                                  ),
+                                  elevation: 2,
+                                ),
+                                child: Text(
+                                  'save'.tr,
+                                  style: GoogleFonts.raleway(
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 20.h),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -293,52 +529,147 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildTextField({
-    bool? enabled,
     required TextEditingController controller,
     required String label,
     required IconData icon,
+    bool enabled = true,
     TextInputType? keyboardType,
     String? hintText,
+    int maxLines = 1,
     String? Function(String?)? validator,
     bool readOnly = false,
     VoidCallback? onTap,
+    Widget? suffix,
   }) {
-    return TextFormField(
-      enabled: enabled ?? true,
-      controller: controller,
-      keyboardType: keyboardType,
-      readOnly: readOnly,
-      onTap: onTap,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hintText,
-        labelStyle: TextStyle(color: AppColors.primaryColor),
-        floatingLabelBehavior: FloatingLabelBehavior.always,
-        contentPadding: EdgeInsets.symmetric(
-          vertical: 12.h,
-          horizontal: 16.w,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.r),
-          borderSide: BorderSide(color: AppColors.primaryColor),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.r),
-          borderSide: BorderSide(color: AppColors.primaryColor.withOpacity(0.5)),
-        ),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.r),
-          borderSide: BorderSide(color: AppColors.primaryColor.withOpacity(0.3)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.r),
-          borderSide: BorderSide(color: AppColors.primaryColor, width: 2),
-        ),
-        prefixIcon: Icon(icon, color: AppColors.primaryColor),
-        filled: true,
-        fillColor: enabled == false ? Colors.grey[300] : Colors.grey[100],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      validator: validator,
+      child: TextFormField(
+        controller: controller,
+        enabled: enabled,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        readOnly: readOnly,
+        onTap: onTap,
+        style: GoogleFonts.raleway(fontSize: 14.sp),
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hintText,
+          labelStyle: GoogleFonts.raleway(color: AppColors.primaryColor),
+          floatingLabelBehavior: FloatingLabelBehavior.auto,
+          contentPadding: EdgeInsets.symmetric(
+            vertical: 16.h,
+            horizontal: 16.w,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide(color: AppColors.primaryColor, width: 1),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide(color: Colors.red, width: 1),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide(color: Colors.red, width: 1),
+          ),
+          prefixIcon: Icon(icon, color: AppColors.primaryColor),
+          suffixIcon: suffix,
+          filled: true,
+          fillColor: enabled ? Colors.white : Colors.grey[100],
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
+  Widget _buildDropdownField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required List<String> options,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: options.contains(controller.text) ? controller.text : null,
+        items:
+            options.map((option) {
+              return DropdownMenuItem<String>(
+                value: option,
+                child: Text(option),
+              );
+            }).toList(),
+        onChanged: (value) {
+          if (value != null) {
+            controller.text = value;
+            _hasChanges = true;
+          }
+        },
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: GoogleFonts.raleway(color: AppColors.primaryColor),
+          contentPadding: EdgeInsets.symmetric(
+            vertical: 16.h,
+            horizontal: 16.w,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide(color: AppColors.primaryColor, width: 1),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide(color: Colors.red, width: 1),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide(color: Colors.red, width: 1),
+          ),
+          prefixIcon: Icon(icon, color: AppColors.primaryColor),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        validator: validator,
+        style: GoogleFonts.raleway(fontSize: 14.sp),
+        dropdownColor: Colors.white,
+        icon: Icon(Icons.arrow_drop_down, color: AppColors.primaryColor),
+      ),
     );
   }
 }

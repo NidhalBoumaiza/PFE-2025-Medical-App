@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get/get.dart';
 
 import '../../../../core/utils/app_colors.dart';
 import '../../../authentication/domain/entities/medecin_entity.dart';
@@ -17,7 +18,7 @@ class DoctorProfilePage extends StatefulWidget {
   final VoidCallback? onBookAppointment;
 
   const DoctorProfilePage({
-    Key? key, 
+    Key? key,
     required this.doctor,
     this.canBookAppointment = false,
     this.onBookAppointment,
@@ -44,34 +45,35 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
 
   Future<void> _loadDoctorRatingsDirectly() async {
     if (widget.doctor.id == null) return;
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       // 1. Get ratings count and calculate average
-      final QuerySnapshot ratingSnapshot = await _firestore
-          .collection('doctor_ratings')
-          .where('doctorId', isEqualTo: widget.doctor.id)
-          .get();
-      
+      final QuerySnapshot ratingSnapshot =
+          await _firestore
+              .collection('doctor_ratings')
+              .where('doctorId', isEqualTo: widget.doctor.id)
+              .get();
+
       // Calculate total rating and count
       double totalRating = 0.0;
       final docs = ratingSnapshot.docs;
-      
+
       for (var doc in docs) {
         final data = doc.data() as Map<String, dynamic>;
         if (data.containsKey('rating')) {
           totalRating += (data['rating'] as num).toDouble();
         }
       }
-      
+
       // 2. Get the actual rating documents for display
       final List<DoctorRatingEntity> ratings = [];
       for (var doc in docs) {
         final data = doc.data() as Map<String, dynamic>;
-        
+
         // Convert Timestamp to DateTime
         DateTime createdAt;
         if (data['createdAt'] is Timestamp) {
@@ -79,29 +81,30 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
         } else {
           createdAt = DateTime.now(); // Fallback if createdAt is missing
         }
-        
-        ratings.add(DoctorRatingEntity(
-          id: doc.id,
-          doctorId: data['doctorId'],
-          patientId: data['patientId'],
-          patientName: data['patientName'],
-          rating: (data['rating'] as num).toDouble(),
-          comment: data['comment'],
-          createdAt: createdAt,
-          rendezVousId: data['rendezVousId'],
-        ));
+
+        ratings.add(
+          DoctorRatingEntity(
+            id: doc.id,
+            doctorId: data['doctorId'],
+            patientId: data['patientId'],
+            patientName: data['patientName'],
+            rating: (data['rating'] as num).toDouble(),
+            comment: data['comment'],
+            createdAt: createdAt,
+            rendezVousId: data['rendezVousId'],
+          ),
+        );
       }
-      
+
       // Sort ratings by date (newest first)
       ratings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      
+
       setState(() {
         _ratingCount = docs.length;
         _averageRating = _ratingCount > 0 ? totalRating / _ratingCount : 0.0;
         _ratings = ratings;
         _isLoading = false;
       });
-      
     } catch (e) {
       print('Error loading doctor ratings: $e');
       setState(() {
@@ -114,15 +117,15 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
-          "Profil du médecin",
+          "doctor_profile".tr,
           style: GoogleFonts.raleway(
-            fontWeight: FontWeight.bold,
             fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ),
@@ -139,12 +142,12 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
           children: [
             // Doctor header card with basic info
             _buildDoctorHeaderCard(),
-            
+
             // Ratings section
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
               child: Text(
-                "Évaluations des patients",
+                "reviews".tr,
                 style: GoogleFonts.raleway(
                   fontSize: 18.sp,
                   fontWeight: FontWeight.bold,
@@ -152,19 +155,19 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                 ),
               ),
             ),
-            
+
             // Rating summary
             _isLoading
                 ? Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16.h),
-                      child: CircularProgressIndicator(
-                        color: AppColors.primaryColor,
-                      ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    child: CircularProgressIndicator(
+                      color: AppColors.primaryColor,
                     ),
-                  )
+                  ),
+                )
                 : _buildRatingSummary(_averageRating, _ratingCount),
-            
+
             // Patient comments
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
@@ -177,65 +180,65 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                 ),
               ),
             ),
-            
+
             // Comments list
             _isLoading
                 ? Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16.h),
-                      child: CircularProgressIndicator(
-                        color: AppColors.primaryColor,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    child: CircularProgressIndicator(
+                      color: AppColors.primaryColor,
+                    ),
+                  ),
+                )
+                : _ratings.isEmpty
+                ? Padding(
+                  padding: EdgeInsets.all(16.w),
+                  child: Center(
+                    child: Text(
+                      "no_reviews_available".tr,
+                      style: GoogleFonts.raleway(
+                        fontSize: 16.sp,
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
                       ),
                     ),
-                  )
-                : _ratings.isEmpty
-                    ? Padding(
-                        padding: EdgeInsets.all(16.w),
-                        child: Center(
-                          child: Text(
-                            "Aucun commentaire disponible",
-                            style: GoogleFonts.raleway(
-                              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
-                              fontSize: 16.sp,
-                            ),
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        padding: EdgeInsets.symmetric(horizontal: 16.w),
-                        itemCount: _ratings.length,
-                        itemBuilder: (context, index) {
-                          return _buildRatingItem(_ratings[index]);
-                        },
-                      ),
-            
+                  ),
+                )
+                : ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  itemCount: _ratings.length,
+                  itemBuilder: (context, index) {
+                    return _buildRatingItem(_ratings[index]);
+                  },
+                ),
+
             SizedBox(height: 100.h), // Extra space at bottom for FAB
           ],
         ),
       ),
-      floatingActionButton: widget.canBookAppointment
-          ? FloatingActionButton.extended(
-              onPressed: widget.onBookAppointment,
-              icon: Icon(Icons.calendar_today),
-              label: Text("Prendre RDV"),
-              backgroundColor: AppColors.primaryColor,
-            )
-          : null,
+      floatingActionButton:
+          widget.canBookAppointment
+              ? FloatingActionButton.extended(
+                onPressed: widget.onBookAppointment,
+                icon: Icon(Icons.calendar_today),
+                label: Text("book_appointment".tr),
+                backgroundColor: AppColors.primaryColor,
+              )
+              : null,
     );
   }
 
   Widget _buildDoctorHeaderCard() {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return Card(
       margin: EdgeInsets.all(16.w),
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16.r),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
       child: Padding(
         padding: EdgeInsets.all(16.w),
         child: Column(
@@ -250,12 +253,7 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                     color: AppColors.primaryColor,
                     borderRadius: BorderRadius.circular(16.r),
                   ),
-                  child: Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size:
-                    40.sp,
-                  ),
+                  child: Icon(Icons.person, color: Colors.white, size: 40.sp),
                 ),
                 SizedBox(width: 16.w),
                 Expanded(
@@ -272,7 +270,8 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                       ),
                       SizedBox(height: 4.h),
                       Text(
-                        widget.doctor.speciality ?? "Spécialité non spécifiée",
+                        widget.doctor.speciality ??
+                            "specialty_not_specified".tr,
                         style: GoogleFonts.raleway(
                           fontSize: 16.sp,
                           color: theme.textTheme.bodyMedium?.color,
@@ -283,22 +282,19 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                 ),
               ],
             ),
-            
+
             Divider(height: 24.h),
-            
+
             // Contact info
             _buildInfoRow(
               Icons.phone,
-              widget.doctor.phoneNumber ?? "Non spécifié",
+              widget.doctor.phoneNumber ?? "not_specified".tr,
             ),
             _buildInfoRow(
               Icons.mail,
-              widget.doctor.email ?? "Non spécifié",
+              widget.doctor.email ?? "not_specified".tr,
             ),
-            _buildInfoRow(
-              Icons.location_on,
-              "Adresse non spécifiée",
-            ),
+            _buildInfoRow(Icons.location_on, "address_not_specified".tr),
           ],
         ),
       ),
@@ -307,16 +303,12 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
 
   Widget _buildInfoRow(IconData icon, String text) {
     final theme = Theme.of(context);
-    
+
     return Padding(
       padding: EdgeInsets.only(bottom: 8.h),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 18.sp,
-            color: AppColors.primaryColor,
-          ),
+          Icon(icon, size: 18.sp, color: AppColors.primaryColor),
           SizedBox(width: 8.w),
           Expanded(
             child: Text(
@@ -335,7 +327,7 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
   Widget _buildRatingSummary(double averageRating, int ratingCount) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return Container(
       padding: EdgeInsets.all(16.w),
       margin: EdgeInsets.symmetric(horizontal: 16.w),
@@ -365,15 +357,13 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
                 itemSize: 20.sp,
                 ignoreGestures: true,
                 unratedColor: isDarkMode ? Colors.grey[700] : Colors.grey[300],
-                itemBuilder: (context, _) => Icon(
-                  Icons.star,
-                  color: Colors.amber,
-                ),
+                itemBuilder:
+                    (context, _) => Icon(Icons.star, color: Colors.amber),
                 onRatingUpdate: (_) {},
               ),
               SizedBox(height: 4.h),
               Text(
-                "$ratingCount évaluations",
+                "$ratingCount ${"evaluations".tr}",
                 style: GoogleFonts.raleway(
                   fontSize: 14.sp,
                   color: theme.textTheme.bodySmall?.color,
@@ -385,11 +375,7 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
           CircleAvatar(
             radius: 26.r,
             backgroundColor: AppColors.primaryColor,
-            child: Icon(
-              Icons.star,
-              color: Colors.white,
-              size: 24.sp,
-            ),
+            child: Icon(Icons.star, color: Colors.white, size: 24.sp),
           ),
         ],
       ),
@@ -399,13 +385,11 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
   Widget _buildRatingItem(DoctorRatingEntity rating) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return Card(
       margin: EdgeInsets.only(bottom: 12.h),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
       child: Padding(
         padding: EdgeInsets.all(12.w),
         child: Column(
@@ -414,12 +398,14 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: isDarkMode ? theme.colorScheme.surface : Colors.grey[200],
+                  backgroundColor:
+                      isDarkMode ? theme.colorScheme.surface : Colors.grey[200],
                   radius: 20.r,
                   child: Text(
-                    (rating.patientName != null && rating.patientName!.isNotEmpty) 
-                      ? rating.patientName![0].toUpperCase() 
-                      : "?",
+                    (rating.patientName != null &&
+                            rating.patientName!.isNotEmpty)
+                        ? rating.patientName![0].toUpperCase()
+                        : "?",
                     style: GoogleFonts.raleway(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.bold,
@@ -481,4 +467,4 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
       ),
     );
   }
-} 
+}

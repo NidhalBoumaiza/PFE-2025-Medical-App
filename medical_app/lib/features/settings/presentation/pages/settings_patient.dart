@@ -13,6 +13,7 @@ import 'package:medical_app/i18n/app_translation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../authentication/presentation/pages/login_screen.dart';
 import 'package:medical_app/injection_container.dart' as di;
+import 'change_password_screen.dart';
 
 class SettingsPatient extends StatefulWidget {
   const SettingsPatient({super.key});
@@ -36,11 +37,7 @@ class _SettingsPatientState extends State<SettingsPatient> {
         ),
         backgroundColor: AppColors.primaryColor,
         leading: IconButton(
-          icon: const Icon(
-            Icons.chevron_left,
-            size: 24,
-            color: Colors.white,
-          ),
+          icon: const Icon(Icons.chevron_left, size: 24, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -55,12 +52,12 @@ class _SettingsPatientState extends State<SettingsPatient> {
             _buildSectionTitle("appearance".tr),
             const SizedBox(height: 8),
             const ThemeCubitSwitch(),
-            
+
             const SizedBox(height: 24),
             _buildSectionTitle("language".tr),
             const SizedBox(height: 8),
             _buildLanguageSelection(),
-            
+
             const SizedBox(height: 24),
             _buildSectionTitle("notifications".tr),
             const SizedBox(height: 8),
@@ -70,7 +67,7 @@ class _SettingsPatientState extends State<SettingsPatient> {
             _buildSectionTitle("account".tr),
             const SizedBox(height: 8),
             _buildAccountSettings(),
-            
+
             const SizedBox(height: 24),
             _buildSectionTitle("about".tr),
             const SizedBox(height: 8),
@@ -80,7 +77,7 @@ class _SettingsPatientState extends State<SettingsPatient> {
       ),
     );
   }
-  
+
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
@@ -91,13 +88,11 @@ class _SettingsPatientState extends State<SettingsPatient> {
       ),
     );
   }
-  
+
   Widget _buildLanguageSelection() {
     return Card(
       elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -112,10 +107,10 @@ class _SettingsPatientState extends State<SettingsPatient> {
       ),
     );
   }
-  
+
   Widget _buildLanguageOption(String language, String langCode) {
     final isSelected = Get.locale?.languageCode == langCode;
-    
+
     return InkWell(
       onTap: () async {
         Get.updateLocale(Locale(langCode));
@@ -145,31 +140,29 @@ class _SettingsPatientState extends State<SettingsPatient> {
       ),
     );
   }
-  
+
   Widget _buildNotificationSettings() {
     return Card(
       elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
             _buildSwitchSetting(
-              title: "appointments".tr, 
+              title: "appointments".tr,
               icon: Icons.calendar_today,
               value: true,
             ),
             const Divider(height: 1),
             _buildSwitchSetting(
-              title: "medications".tr, 
+              title: "medications".tr,
               icon: Icons.medication,
               value: true,
             ),
             const Divider(height: 1),
             _buildSwitchSetting(
-              title: "messages".tr, 
+              title: "messages".tr,
               icon: Icons.message,
               value: true,
             ),
@@ -178,7 +171,7 @@ class _SettingsPatientState extends State<SettingsPatient> {
       ),
     );
   }
-  
+
   Widget _buildSwitchSetting({
     required String title,
     required IconData icon,
@@ -193,10 +186,7 @@ class _SettingsPatientState extends State<SettingsPatient> {
             children: [
               Icon(icon, size: 20, color: AppColors.primaryColor),
               const SizedBox(width: 12),
-              Text(
-                title,
-                style: GoogleFonts.raleway(fontSize: 14),
-              ),
+              Text(title, style: GoogleFonts.raleway(fontSize: 14)),
             ],
           ),
           Switch(
@@ -211,12 +201,11 @@ class _SettingsPatientState extends State<SettingsPatient> {
       ),
     );
   }
+
   Widget _buildAccountSettings() {
     return Card(
       elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Column(
         children: [
           ListTile(
@@ -226,12 +215,15 @@ class _SettingsPatientState extends State<SettingsPatient> {
               style: GoogleFonts.raleway(fontSize: 14),
             ),
             trailing: const Icon(Icons.chevron_right, size: 20),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             onTap: () async {
               try {
                 final authLocalDataSource = di.sl<AuthLocalDataSource>();
                 final userModel = await authLocalDataSource.getUser();
-                
+
                 // Convert UserModel to PatientEntity
                 PatientEntity patientEntity = PatientEntity(
                   id: userModel.id,
@@ -242,30 +234,41 @@ class _SettingsPatientState extends State<SettingsPatient> {
                   gender: userModel.gender,
                   phoneNumber: userModel.phoneNumber,
                   dateOfBirth: userModel.dateOfBirth,
-                  antecedent: userModel is PatientModel ? (userModel as PatientModel).antecedent : '',
+                  antecedent:
+                      userModel is PatientModel
+                          ? (userModel as PatientModel).antecedent
+                          : '',
                 );
-                
+
                 final updatedUser = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => EditProfileScreen(user: patientEntity),
+                    builder:
+                        (context) => EditProfileScreen(user: patientEntity),
                   ),
                 );
-                
+
                 if (updatedUser != null && updatedUser is UserEntity) {
                   // Dispatch update event to the BLoC
-                  context.read<UpdateUserBloc>().add(UpdateUserEvent(updatedUser));
-                  
+                  context.read<UpdateUserBloc>().add(
+                    UpdateUserEvent(updatedUser),
+                  );
+
                   // Cache updated user if successful
                   if (userModel is PatientModel) {
-                    await authLocalDataSource.cacheUser((userModel as PatientModel).copyWith(
-                      name: updatedUser.name,
-                      lastName: updatedUser.lastName,
-                      phoneNumber: updatedUser.phoneNumber,
-                      gender: updatedUser.gender,
-                      dateOfBirth: updatedUser.dateOfBirth,
-                      antecedent: updatedUser is PatientEntity ? (updatedUser as PatientEntity).antecedent : '',
-                    ));
+                    await authLocalDataSource.cacheUser(
+                      (userModel as PatientModel).copyWith(
+                        name: updatedUser.name,
+                        lastName: updatedUser.lastName,
+                        phoneNumber: updatedUser.phoneNumber,
+                        gender: updatedUser.gender,
+                        dateOfBirth: updatedUser.dateOfBirth,
+                        antecedent:
+                            updatedUser is PatientEntity
+                                ? (updatedUser as PatientEntity).antecedent
+                                : '',
+                      ),
+                    );
                   }
                 }
               } catch (e) {
@@ -283,9 +286,17 @@ class _SettingsPatientState extends State<SettingsPatient> {
               style: GoogleFonts.raleway(fontSize: 14),
             ),
             trailing: const Icon(Icons.chevron_right, size: 20),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             onTap: () {
-              // Navigate to password change
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChangePasswordScreen(),
+                ),
+              );
             },
           ),
           const Divider(height: 1),
@@ -293,31 +304,33 @@ class _SettingsPatientState extends State<SettingsPatient> {
             leading: const Icon(Icons.logout, color: Colors.red),
             title: Text(
               "logout".tr,
-              style: GoogleFonts.raleway(
-                fontSize: 14,
-                color: Colors.red,
-              ),
+              style: GoogleFonts.raleway(fontSize: 14, color: Colors.red),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             onTap: () {
               // Logique de déconnexion
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("logout_success".tr)),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text("logout_success".tr)));
               // Rediriger vers la page de connexion
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LoginScreen()),
+              );
             },
           ),
         ],
       ),
     );
   }
+
   Widget _buildAboutCard() {
     return Card(
       elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -333,10 +346,7 @@ class _SettingsPatientState extends State<SettingsPatient> {
             const SizedBox(height: 8),
             Text(
               "copyright".tr,
-              style: GoogleFonts.raleway(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: GoogleFonts.raleway(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -344,5 +354,3 @@ class _SettingsPatientState extends State<SettingsPatient> {
     );
   }
 }
-
-

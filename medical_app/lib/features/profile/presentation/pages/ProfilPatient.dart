@@ -29,13 +29,15 @@ class _ProfilePatientState extends State<ProfilePatient> {
   final Map<String, String> _languageCodes = {
     'Français': 'fr',
     'English': 'en',
-    'العربية': 'ar'
+    'العربية': 'ar',
   };
 
   @override
   void initState() {
     super.initState();
-    _selectedLanguage = _getLanguageFromLocale(Get.locale?.languageCode ?? 'fr');
+    _selectedLanguage = _getLanguageFromLocale(
+      Get.locale?.languageCode ?? 'fr',
+    );
     _loadUserData();
   }
 
@@ -53,9 +55,10 @@ class _ProfilePatientState extends State<ProfilePatient> {
           role: userMap['role'] as String,
           gender: userMap['gender'] as String,
           phoneNumber: userMap['phoneNumber'] as String,
-          dateOfBirth: userMap['dateOfBirth'] != null
-              ? DateTime.parse(userMap['dateOfBirth'] as String)
-              : null,
+          dateOfBirth:
+              userMap['dateOfBirth'] != null
+                  ? DateTime.parse(userMap['dateOfBirth'] as String)
+                  : null,
           antecedent: userMap['antecedent'] as String,
         );
       });
@@ -64,10 +67,14 @@ class _ProfilePatientState extends State<ProfilePatient> {
 
   String _getLanguageFromLocale(String localeCode) {
     switch (localeCode) {
-      case 'fr': return 'Français';
-      case 'en': return 'English';
-      case 'ar': return 'العربية';
-      default: return 'Français';
+      case 'fr':
+        return 'Français';
+      case 'en':
+        return 'English';
+      case 'ar':
+        return 'العربية';
+      default:
+        return 'Français';
     }
   }
 
@@ -83,11 +90,17 @@ class _ProfilePatientState extends State<ProfilePatient> {
     Get.dialog(
       AlertDialog(
         title: Text('logout'.tr, style: GoogleFonts.raleway(fontSize: 22.sp)),
-        content: Text('confirm_logout'.tr, style: GoogleFonts.raleway(fontSize: 18.sp)),
+        content: Text(
+          'confirm_logout'.tr,
+          style: GoogleFonts.raleway(fontSize: 18.sp),
+        ),
         actions: [
           TextButton(
             onPressed: Get.back,
-            child: Text('cancel'.tr, style: GoogleFonts.raleway(fontSize: 16.sp)),
+            child: Text(
+              'cancel'.tr,
+              style: GoogleFonts.raleway(fontSize: 16.sp),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -96,20 +109,31 @@ class _ProfilePatientState extends State<ProfilePatient> {
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.remove('CACHED_USER');
                 await prefs.remove('TOKEN');
-                
+
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Déconnexion réussie", style: GoogleFonts.raleway(fontSize: 16.sp))),
+                  SnackBar(
+                    content: Text(
+                      "logout_success".tr,
+                      style: GoogleFonts.raleway(fontSize: 16.sp),
+                    ),
+                  ),
                 );
-                
+
                 navigateToAnotherScreenWithSlideTransitionFromRightToLeftPushReplacement(
                   context,
                   const LoginScreen(),
                 );
               } catch (e) {
-                showErrorSnackBar(context, 'Failed to logout: $e');
+                showErrorSnackBar(
+                  context,
+                  'logout_error'.tr.replaceAll('{0}', e.toString()),
+                );
               }
             },
-            child: Text('logout'.tr, style: GoogleFonts.raleway(fontSize: 16.sp, color: Colors.red)),
+            child: Text(
+              'logout'.tr,
+              style: GoogleFonts.raleway(fontSize: 16.sp, color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -124,7 +148,7 @@ class _ProfilePatientState extends State<ProfilePatient> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return SafeArea(
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
@@ -141,216 +165,247 @@ class _ProfilePatientState extends State<ProfilePatient> {
           },
           builder: (context, state) {
             if (state is UpdateUserLoading) {
-              return const Center(child: CircularProgressIndicator(color: AppColors.primaryColor));
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.primaryColor),
+              );
             }
             return _patient == null
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primaryColor))
+                ? const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryColor,
+                  ),
+                )
                 : SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: isDarkMode 
-                              ? AppColors.primaryColor.withOpacity(0.15)
-                              : AppColors.primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: EdgeInsets.all(16.w),
-                          child: Column(
-                            children: [
-                              Stack(
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.all(4.w),
-                                    decoration: BoxDecoration(
-                                      color: isDarkMode ? Colors.grey[800] : AppColors.whiteColor,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.primaryColor.withOpacity(0.3),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 3),
-                                        ),
-                                      ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color:
+                              isDarkMode
+                                  ? AppColors.primaryColor.withOpacity(0.15)
+                                  : AppColors.primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: EdgeInsets.all(16.w),
+                        child: Column(
+                          children: [
+                            Stack(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(4.w),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        isDarkMode
+                                            ? Colors.grey[800]
+                                            : AppColors.whiteColor,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primaryColor
+                                            .withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: CircleAvatar(
+                                    radius: 50.r,
+                                    backgroundColor: AppColors.primaryColor
+                                        .withOpacity(0.2),
+                                    child: Icon(
+                                      Icons.person,
+                                      size: 60.sp,
+                                      color: AppColors.primaryColor,
                                     ),
-                                    child: CircleAvatar(
-                                      radius: 50.r,
-                                      backgroundColor: AppColors.primaryColor.withOpacity(0.2),
-                                      child: Icon(
-                                        Icons.person,
-                                        size: 60.sp,
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: GestureDetector(
+                                    onTap: _changeProfilePicture,
+                                    child: Container(
+                                      padding: EdgeInsets.all(8.w),
+                                      decoration: BoxDecoration(
                                         color: AppColors.primaryColor,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color:
+                                              isDarkMode
+                                                  ? Colors.grey[800]!
+                                                  : Colors.white,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        Icons.camera_alt,
+                                        color: Colors.white,
+                                        size: 16.sp,
                                       ),
                                     ),
                                   ),
-                                  Positioned(
-                                    bottom: 0,
-                                    right: 0,
-                                    child: GestureDetector(
-                                      onTap: _changeProfilePicture,
-                                      child: Container(
-                                        padding: EdgeInsets.all(8.w),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primaryColor,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: isDarkMode ? Colors.grey[800]! : Colors.white,
-                                            width: 2,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.camera_alt,
-                                          color: Colors.white,
-                                          size: 16.sp,
-                                        ),
-                                      ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 16.h),
+                            Text(
+                              _patient!.name + " " + _patient!.lastName,
+                              style: GoogleFonts.raleway(
+                                fontSize: 20.sp,
+                                fontWeight: FontWeight.bold,
+                                color: theme.textTheme.titleLarge?.color,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              _patient!.email,
+                              style: GoogleFonts.raleway(
+                                fontSize: 14.sp,
+                                color:
+                                    isDarkMode
+                                        ? Colors.grey[300]
+                                        : Colors.black54,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 20.h),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.w),
+                        child: Text(
+                          'personal_information'.tr,
+                          style: GoogleFonts.raleway(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                            color: theme.textTheme.titleLarge?.color,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 12.h),
+                      _buildInfoTile(
+                        'phone_number_label'.tr,
+                        _patient!.phoneNumber,
+                      ),
+                      _buildInfoTile('gender'.tr, _patient!.gender),
+                      _buildInfoTile(
+                        'date_of_birth_label'.tr,
+                        _patient!.dateOfBirth
+                                ?.toIso8601String()
+                                .split('T')
+                                .first ??
+                            'Non spécifiée',
+                      ),
+                      _buildInfoTile(
+                        'antecedent'.tr,
+                        _patient!.antecedent ?? 'rien',
+                      ),
+                      SizedBox(height: 20.h),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.w),
+                        child: Text(
+                          'settings'.tr,
+                          style: GoogleFonts.raleway(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                            color: theme.textTheme.titleLarge?.color,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 12.h),
+                      _buildSettingsTile(
+                        Icons.notifications,
+                        'notifications'.tr,
+                        Switch(
+                          value: _notificationsEnabled,
+                          onChanged: (value) {
+                            setState(() {
+                              _notificationsEnabled = value;
+                            });
+                          },
+                          activeColor: AppColors.primaryColor,
+                        ),
+                      ),
+                      _buildSettingsTile(
+                        Icons.language,
+                        'language'.tr,
+                        DropdownButton<String>(
+                          value: _selectedLanguage,
+                          underline: const SizedBox(),
+                          dropdownColor:
+                              isDarkMode ? Colors.grey[800] : Colors.white,
+                          items:
+                              _languages.map((String language) {
+                                return DropdownMenuItem<String>(
+                                  value: language,
+                                  child: Text(
+                                    language,
+                                    style: TextStyle(
+                                      color: theme.textTheme.bodyMedium?.color,
+                                      fontSize: 14.sp,
                                     ),
                                   ),
-                                ],
-                              ),
-                              SizedBox(height: 16.h),
-                              Text(
-                                _patient!.name + " " + _patient!.lastName,
-                                style: GoogleFonts.raleway(
-                                  fontSize: 20.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.textTheme.titleLarge?.color,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              SizedBox(height: 4.h),
-                              Text(
-                                _patient!.email,
-                                style: GoogleFonts.raleway(
-                                  fontSize: 14.sp,
-                                  color: isDarkMode ? Colors.grey[300] : Colors.black54,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
+                                );
+                              }).toList(),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              _changeLanguage(newValue);
+                            }
+                          },
                         ),
-                        SizedBox(height: 20.h),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16.w),
-                          child: Text(
-                            'personal_information'.tr,
-                            style: GoogleFonts.raleway(
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.bold,
-                              color: theme.textTheme.titleLarge?.color,
+                      ),
+                      _buildSettingsTile(
+                        Icons.brightness_4,
+                        'dark_mode'.tr,
+                        BlocBuilder<ThemeCubit, ThemeState>(
+                          builder: (context, state) {
+                            final isThemeDark =
+                                state is ThemeLoaded &&
+                                state.themeMode == ThemeMode.dark;
+                            return Switch(
+                              value: isThemeDark,
+                              onChanged:
+                                  (_) =>
+                                      context.read<ThemeCubit>().toggleTheme(),
+                              activeColor: AppColors.primaryColor,
+                            );
+                          },
+                        ),
+                      ),
+                      SizedBox(height: 24.h),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.w),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _showLogoutDialog,
+                            icon: Icon(Icons.logout, size: 18.sp),
+                            label: Text(
+                              'logout'.tr,
+                              style: GoogleFonts.raleway(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ),
-                        SizedBox(height: 12.h),
-                        _buildInfoTile('phone_number_label'.tr, _patient!.phoneNumber),
-                        _buildInfoTile('gender'.tr, _patient!.gender),
-                        _buildInfoTile(
-                          'date_of_birth_label'.tr,
-                          _patient!.dateOfBirth?.toIso8601String().split('T').first ?? 'Non spécifiée',
-                        ),
-                        _buildInfoTile(
-                          'antecedent'.tr,
-                          _patient!.antecedent ?? 'rien',
-                        ),
-                        SizedBox(height: 20.h),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16.w),
-                          child: Text(
-                            'settings'.tr,
-                            style: GoogleFonts.raleway(
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.bold,
-                              color: theme.textTheme.titleLarge?.color,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 12.h),
-                        _buildSettingsTile(
-                          Icons.notifications,
-                          'notifications'.tr,
-                          Switch(
-                            value: _notificationsEnabled,
-                            onChanged: (value) {
-                              setState(() {
-                                _notificationsEnabled = value;
-                              });
-                            },
-                            activeColor: AppColors.primaryColor,
-                          ),
-                        ),
-                        _buildSettingsTile(
-                          Icons.language,
-                          'language'.tr,
-                          DropdownButton<String>(
-                            value: _selectedLanguage,
-                            underline: const SizedBox(),
-                            dropdownColor: isDarkMode ? Colors.grey[800] : Colors.white,
-                            items: _languages.map((String language) {
-                              return DropdownMenuItem<String>(
-                                value: language,
-                                child: Text(
-                                  language,
-                                  style: TextStyle(
-                                    color: theme.textTheme.bodyMedium?.color,
-                                    fontSize: 14.sp,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              if (newValue != null) {
-                                _changeLanguage(newValue);
-                              }
-                            },
-                          ),
-                        ),
-                        _buildSettingsTile(
-                          Icons.brightness_4,
-                          'dark_mode'.tr,
-                          BlocBuilder<ThemeCubit, ThemeState>(
-                            builder: (context, state) {
-                              final isThemeDark = state is ThemeLoaded && state.themeMode == ThemeMode.dark;
-                              return Switch(
-                                value: isThemeDark,
-                                onChanged: (_) => context.read<ThemeCubit>().toggleTheme(),
-                                activeColor: AppColors.primaryColor,
-                              );
-                            },
-                          ),
-                        ),
-                        SizedBox(height: 24.h),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16.w),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _showLogoutDialog,
-                              icon: Icon(Icons.logout, size: 18.sp),
-                              label: Text(
-                                'logout'.tr,
-                                style: GoogleFonts.raleway(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(vertical: 12.h),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: 12.h),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
                             ),
                           ),
                         ),
-                        SizedBox(height: 32.h),
-                      ],
-                    ),
-                  );
+                      ),
+                      SizedBox(height: 32.h),
+                    ],
+                  ),
+                );
           },
         ),
       ),
@@ -360,7 +415,7 @@ class _ProfilePatientState extends State<ProfilePatient> {
   Widget _buildInfoTile(String label, String value) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
       decoration: BoxDecoration(
@@ -399,7 +454,7 @@ class _ProfilePatientState extends State<ProfilePatient> {
   Widget _buildSettingsTile(IconData icon, String label, Widget trailing) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
       decoration: BoxDecoration(
@@ -414,11 +469,7 @@ class _ProfilePatientState extends State<ProfilePatient> {
         ],
       ),
       child: ListTile(
-        leading: Icon(
-          icon,
-          color: AppColors.primaryColor,
-          size: 20.sp,
-        ),
+        leading: Icon(icon, color: AppColors.primaryColor, size: 20.sp),
         title: Text(
           label,
           style: GoogleFonts.raleway(

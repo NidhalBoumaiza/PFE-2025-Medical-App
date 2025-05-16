@@ -94,6 +94,9 @@ import 'package:medical_app/features/notifications/presentation/bloc/notificatio
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import 'package:medical_app/features/authentication/presentation/blocs/update_password_bloc/update_password_bloc.dart';
+import 'package:medical_app/features/authentication/domain/usecases/update_password_direct_use_case.dart';
+
 final sl = GetIt.instance;
 
 Future<void> init() async {
@@ -108,6 +111,9 @@ Future<void> init() async {
   );
   sl.registerFactory(() => VerifyCodeBloc(verifyCodeUseCase: sl()));
   sl.registerFactory(() => ResetPasswordBloc(changePasswordUseCase: sl()));
+  sl.registerFactory(
+    () => UpdatePasswordBloc(updatePasswordDirectUseCase: sl()),
+  );
   sl.registerFactory(
     () => RendezVousBloc(
       fetchRendezVousUseCase: sl(),
@@ -180,6 +186,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetMessagesUseCase(sl()));
   sl.registerLazySingleton(() => GetMessagesStreamUseCase(sl()));
   sl.registerLazySingleton(() => SendVerificationCodeUseCase(sl()));
+  sl.registerLazySingleton(() => UpdatePasswordDirectUseCase(sl()));
 
   // Dashboard Use Cases
   sl.registerLazySingleton(() => GetDoctorDashboardStatsUseCase(sl()));

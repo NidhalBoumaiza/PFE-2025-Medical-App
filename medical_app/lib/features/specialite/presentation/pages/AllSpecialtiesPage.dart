@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../../../core/utils/navigation_with_transition.dart';
 import '../../../rendez_vous/presentation/pages/RendezVousPatient.dart';
@@ -7,7 +8,8 @@ import '../../../../core/utils/app_colors.dart';
 class AllSpecialtiesPage extends StatefulWidget {
   final List<Map<String, dynamic>> specialties;
 
-  const AllSpecialtiesPage({Key? key, required this.specialties}) : super(key: key);
+  const AllSpecialtiesPage({Key? key, required this.specialties})
+    : super(key: key);
 
   @override
   _AllSpecialtiesPageState createState() => _AllSpecialtiesPageState();
@@ -30,10 +32,12 @@ class _AllSpecialtiesPageState extends State<AllSpecialtiesPage> {
         _filteredSpecialties = widget.specialties;
       } else {
         // Filter specialties based on the query (case-insensitive)
-        _filteredSpecialties = widget.specialties.where((specialty) {
-          final specialtyName = specialty['text']?.toString().toLowerCase() ?? '';
-          return specialtyName.contains(query.toLowerCase());
-        }).toList();
+        _filteredSpecialties =
+            widget.specialties.where((specialty) {
+              final specialtyName =
+                  specialty['text']?.toString().toLowerCase() ?? '';
+              return specialtyName.contains(query.toLowerCase());
+            }).toList();
       }
     });
   }
@@ -42,17 +46,14 @@ class _AllSpecialtiesPageState extends State<AllSpecialtiesPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text("Spécialités"),
+        title: Text("specialties".tr),
         backgroundColor: AppColors.primaryColor,
         leading: IconButton(
-          icon: const Icon(
-            Icons.chevron_left,
-            size: 30,
-          ),
+          icon: const Icon(Icons.chevron_left, size: 30),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -68,19 +69,29 @@ class _AllSpecialtiesPageState extends State<AllSpecialtiesPage> {
               decoration: BoxDecoration(
                 color: isDarkMode ? theme.cardColor : Colors.white,
                 borderRadius: BorderRadius.circular(25),
-                border: Border.all(color: AppColors.primaryColor.withOpacity(0.3)),
+                border: Border.all(
+                  color: AppColors.primaryColor.withOpacity(0.3),
+                ),
               ),
               child: TextField(
                 style: TextStyle(color: theme.textTheme.bodyMedium?.color),
                 decoration: InputDecoration(
-                  hintText: "Trouver médecin, spécialité...",
-                  hintStyle: TextStyle(color: isDarkMode ? AppColors.primaryColor.withOpacity(0.7) : AppColors.primaryColor),
+                  hintText: "find_doctor_specialty".tr,
+                  hintStyle: TextStyle(
+                    color:
+                        isDarkMode
+                            ? AppColors.primaryColor.withOpacity(0.7)
+                            : AppColors.primaryColor,
+                  ),
                   prefixIcon: const Icon(
                     Icons.search,
                     color: AppColors.primaryColor,
                   ),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                    horizontal: 20,
+                  ),
                 ),
                 onChanged: (value) {
                   _filterSpecialties(value);
@@ -103,7 +114,10 @@ class _AllSpecialtiesPageState extends State<AllSpecialtiesPage> {
                     onTap: () {
                       navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
                         context,
-                        RendezVousPatient(selectedSpecialty: _filteredSpecialties[index]['text']),
+                        RendezVousPatient(
+                          selectedSpecialty:
+                              _filteredSpecialties[index]['text'],
+                        ),
                       );
                     },
                     child: Card(

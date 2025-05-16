@@ -29,4 +29,9 @@ abstract class AuthRepository {
     required String newPassword,
     required int verificationCode,
   });
+  Future<Either<Failure, Unit>> updatePasswordDirect({
+    required String email,
+    required String currentPassword,
+    required String newPassword,
+  });
 }

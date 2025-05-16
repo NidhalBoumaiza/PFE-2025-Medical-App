@@ -20,7 +20,7 @@ class EmptyCacheException extends Equatable implements Exception {
   List<Object?> get props => [message];
 }
 
-/// An exception thrown when there’s no internet connection.
+/// An exception thrown when there's no internet connection.
 class OfflineException extends Equatable implements Exception {
   final String message;
 
@@ -44,7 +44,7 @@ class ServerMessageException extends Equatable implements Exception {
 class UnauthorizedException extends Equatable implements Exception {
   final String message;
 
-  const UnauthorizedException([this.message = 'Unauthorized access']);
+  const UnauthorizedException([this.message = 'unauthorized_failure_message']);
 
   @override
   List<Object?> get props => [message];
@@ -74,17 +74,23 @@ class AuthException extends Equatable implements Exception {
 class UsedEmailOrPhoneNumberException extends Equatable implements Exception {
   final String message;
 
-  const UsedEmailOrPhoneNumberException([this.message = 'Email or phone number already used']);
+  const UsedEmailOrPhoneNumberException([
+    this.message = 'Email or phone number already used',
+  ]);
 
   @override
   List<Object?> get props => [message];
 }
 
 /// An exception thrown when an inactive account's validation code has expired.
-class YouHaveToCreateAccountAgainException extends Equatable implements Exception {
+class YouHaveToCreateAccountAgainException extends Equatable
+    implements Exception {
   final String message;
 
-  const YouHaveToCreateAccountAgainException([this.message = 'Account inactive and validation code expired. Please create a new account.']);
+  const YouHaveToCreateAccountAgainException([
+    this.message =
+        'Account inactive and validation code expired. Please create a new account.',
+  ]);
 
   @override
   List<Object?> get props => [message];

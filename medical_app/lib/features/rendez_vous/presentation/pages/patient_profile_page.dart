@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get/get.dart';
 
 import '../../../../core/utils/app_colors.dart';
 import '../../../authentication/domain/entities/patient_entity.dart';
@@ -13,7 +14,7 @@ class PatientProfilePage extends StatefulWidget {
   final List<RendezVousEntity>? pastAppointments;
 
   const PatientProfilePage({
-    Key? key, 
+    Key? key,
     required this.patient,
     this.pastAppointments,
   }) : super(key: key);
@@ -46,34 +47,38 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
 
   Future<void> _loadPatientAppointments() async {
     try {
-      final querySnapshot = await _firestore
-          .collection('rendez_vous')
-          .where('patientId', isEqualTo: widget.patient.id)
-          .where('status', whereIn: ['completed', 'cancelled'])
-          .orderBy('startTime', descending: true)
-          .limit(10)
-          .get();
+      final querySnapshot =
+          await _firestore
+              .collection('rendez_vous')
+              .where('patientId', isEqualTo: widget.patient.id)
+              .where('status', whereIn: ['completed', 'cancelled'])
+              .orderBy('startTime', descending: true)
+              .limit(10)
+              .get();
 
-      final appointments = querySnapshot.docs.map((doc) {
-        final data = doc.data();
-        return RendezVousEntity(
-          id: doc.id,
-          patientId: data['patientId'],
-          doctorId: data['doctorId'],
-          patientName: data['patientName'],
-          doctorName: data['doctorName'],
-          speciality: data['speciality'],
-          startTime: (data['startTime'] is Timestamp) 
-              ? (data['startTime'] as Timestamp).toDate()
-              : DateTime.parse(data['startTime']),
-          endTime: data['endTime'] != null
-              ? (data['endTime'] is Timestamp)
-                  ? (data['endTime'] as Timestamp).toDate()
-                  : DateTime.parse(data['endTime'])
-              : null,
-          status: data['status'],
-        );
-      }).toList();
+      final appointments =
+          querySnapshot.docs.map((doc) {
+            final data = doc.data();
+            return RendezVousEntity(
+              id: doc.id,
+              patientId: data['patientId'],
+              doctorId: data['doctorId'],
+              patientName: data['patientName'],
+              doctorName: data['doctorName'],
+              speciality: data['speciality'],
+              startTime:
+                  (data['startTime'] is Timestamp)
+                      ? (data['startTime'] as Timestamp).toDate()
+                      : DateTime.parse(data['startTime']),
+              endTime:
+                  data['endTime'] != null
+                      ? (data['endTime'] is Timestamp)
+                          ? (data['endTime'] as Timestamp).toDate()
+                          : DateTime.parse(data['endTime'])
+                      : null,
+              status: data['status'],
+            );
+          }).toList();
 
       setState(() {
         _pastAppointments = appointments;
@@ -112,7 +117,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
           children: [
             // Patient header card with basic info
             _buildPatientHeaderCard(),
-            
+
             // Medical History section
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
@@ -125,9 +130,9 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                 ),
               ),
             ),
-            
+
             _buildMedicalHistoryCard(),
-            
+
             // Past Appointments
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
@@ -140,10 +145,10 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                 ),
               ),
             ),
-            
+
             // Appointments list
             _isLoading
-              ? Center(
+                ? Center(
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 16.h),
                     child: CircularProgressIndicator(
@@ -151,19 +156,17 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                     ),
                   ),
                 )
-              : _buildPastAppointmentsList(),
+                : _buildPastAppointmentsList(),
           ],
         ),
       ),
     );
   }
-  
+
   Widget _buildPatientHeaderCard() {
     return Card(
       margin: EdgeInsets.all(16.w),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 4,
       child: Padding(
         padding: EdgeInsets.all(20.w),
@@ -186,11 +189,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                       ),
                     ],
                   ),
-                  child: Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 40.sp,
-                  ),
+                  child: Icon(Icons.person, color: Colors.white, size: 40.sp),
                 ),
                 SizedBox(width: 16.w),
                 Expanded(
@@ -222,15 +221,11 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
               ],
             ),
             Divider(height: 30.h, thickness: 1),
-            
+
             // Contact info
             Row(
               children: [
-                Icon(
-                  Icons.email_outlined,
-                  color: Colors.orange,
-                  size: 20.sp,
-                ),
+                Icon(Icons.email_outlined, color: Colors.orange, size: 20.sp),
                 SizedBox(width: 8.w),
                 Text(
                   widget.patient.email,
@@ -244,11 +239,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
             SizedBox(height: 8.h),
             Row(
               children: [
-                Icon(
-                  Icons.phone_outlined,
-                  color: Colors.orange,
-                  size: 20.sp,
-                ),
+                Icon(Icons.phone_outlined, color: Colors.orange, size: 20.sp),
                 SizedBox(width: 8.w),
                 Text(
                   widget.patient.phoneNumber,
@@ -270,7 +261,9 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                 SizedBox(width: 8.w),
                 Text(
                   widget.patient.dateOfBirth != null
-                      ? DateFormat('dd/MM/yyyy').format(widget.patient.dateOfBirth!)
+                      ? DateFormat(
+                        'dd/MM/yyyy',
+                      ).format(widget.patient.dateOfBirth!)
                       : "Date de naissance non spécifiée",
                   style: GoogleFonts.raleway(
                     fontSize: 14.sp,
@@ -282,11 +275,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
             SizedBox(height: 8.h),
             Row(
               children: [
-                Icon(
-                  Icons.person_outline,
-                  color: Colors.orange,
-                  size: 20.sp,
-                ),
+                Icon(Icons.person_outline, color: Colors.orange, size: 20.sp),
                 SizedBox(width: 8.w),
                 Text(
                   widget.patient.gender,
@@ -306,9 +295,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
   Widget _buildMedicalHistoryCard() {
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 2,
       child: Padding(
         padding: EdgeInsets.all(16.w),
@@ -339,7 +326,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
             Text(
               widget.patient.antecedent.isNotEmpty
                   ? widget.patient.antecedent
-                  : "Aucun antécédent médical spécifié",
+                  : "no_medical_history".tr,
               style: GoogleFonts.raleway(
                 fontSize: 14.sp,
                 color: Colors.grey.shade700,
@@ -366,11 +353,8 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
               ),
               SizedBox(height: 16.h),
               Text(
-                "Aucune consultation précédente",
-                style: GoogleFonts.raleway(
-                  fontSize: 16.sp,
-                  color: Colors.grey,
-                ),
+                "no_previous_consultations".tr,
+                style: GoogleFonts.raleway(fontSize: 16.sp, color: Colors.grey),
               ),
             ],
           ),
@@ -404,7 +388,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Dr. ${appointment.doctorName ?? 'Non assigné'}",
+                            "Dr. ${appointment.doctorName ?? 'doctor_not_assigned'.tr}",
                             style: GoogleFonts.raleway(
                               fontSize: 16.sp,
                               fontWeight: FontWeight.bold,
@@ -415,7 +399,8 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                           ),
                           SizedBox(height: 4.h),
                           Text(
-                            appointment.speciality ?? "Spécialité non spécifiée",
+                            appointment.speciality ??
+                                "specialty_not_specified".tr,
                             style: GoogleFonts.raleway(
                               fontSize: 14.sp,
                               color: Colors.grey.shade600,
@@ -430,7 +415,9 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                         vertical: 4.h,
                       ),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(appointment.status).withOpacity(0.2),
+                        color: _getStatusColor(
+                          appointment.status,
+                        ).withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: Text(
@@ -447,11 +434,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
                 Divider(height: 24.h),
                 Row(
                   children: [
-                    Icon(
-                      Icons.event,
-                      size: 18.sp,
-                      color: Colors.grey.shade600,
-                    ),
+                    Icon(Icons.event, size: 18.sp, color: Colors.grey.shade600),
                     SizedBox(width: 6.w),
                     Text(
                       DateFormat('dd/MM/yyyy').format(appointment.startTime),
@@ -488,11 +471,11 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
     final currentDate = DateTime.now();
     int age = currentDate.year - birthDate.year;
     final monthDiff = currentDate.month - birthDate.month;
-    
+
     if (monthDiff < 0 || (monthDiff == 0 && currentDate.day < birthDate.day)) {
       age--;
     }
-    
+
     return age;
   }
 
@@ -514,15 +497,15 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
   String _getStatusText(String status) {
     switch (status) {
       case "completed":
-        return "Terminé";
+        return "status_completed".tr;
       case "accepted":
-        return "Confirmé";
+        return "status_confirmed".tr;
       case "pending":
-        return "En attente";
+        return "status_pending".tr;
       case "cancelled":
-        return "Annulé";
+        return "status_cancelled".tr;
       default:
-        return "Inconnu";
+        return "status_unknown".tr;
     }
   }
-} 
+}

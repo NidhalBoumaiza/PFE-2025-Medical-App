@@ -41,27 +41,22 @@ class RendezVousError extends RendezVousState {
 class RendezVousStatusUpdated extends RendezVousState {}
 
 class RendezVousCreated extends RendezVousState {
-  final String rendezVousId;
-  final String patientName;
+  final String? rendezVousId;
+  final String? patientName;
 
-  const RendezVousCreated({
-    required this.rendezVousId,
-    required this.patientName,
-  });
+  const RendezVousCreated({this.rendezVousId, this.patientName});
 
   @override
-  List<Object> get props => [rendezVousId, patientName];
+  List<Object?> get props => [rendezVousId, patientName];
 }
 
 class RendezVousDoctorAssigned extends RendezVousState {}
 
 class PastAppointmentsChecked extends RendezVousState {
   final int updatedCount;
-  
-  const PastAppointmentsChecked({
-    required this.updatedCount,
-  });
-  
+
+  const PastAppointmentsChecked({required this.updatedCount});
+
   @override
   List<Object> get props => [updatedCount];
 }
@@ -72,10 +67,7 @@ class RendezVousStatusUpdatedState extends RendezVousState {
   final String id;
   final String status;
 
-  const RendezVousStatusUpdatedState({
-    required this.id,
-    required this.status,
-  });
+  const RendezVousStatusUpdatedState({required this.id, required this.status});
 
   @override
   List<Object> get props => [id, status];

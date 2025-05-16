@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -49,26 +50,28 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userJson = prefs.getString('CACHED_USER');
-      
+
       if (userJson != null) {
         final userMap = jsonDecode(userJson) as Map<String, dynamic>;
         final user = UserModel.fromJson(userMap);
-        
+
         setState(() {
           currentUser = user;
           isLoading = false;
         });
-        
+
         if (user.id != null) {
           // Fetch dashboard stats
           _dashboardBloc.add(FetchDoctorDashboardStats(doctorId: user.id!));
-          
+
           // Check and update past appointments
-          _rendezVousBloc.add(CheckAndUpdatePastAppointments(
-            userId: user.id!,
-            userRole: 'doctor',
-          ));
-          
+          _rendezVousBloc.add(
+            CheckAndUpdatePastAppointments(
+              userId: user.id!,
+              userRole: 'doctor',
+            ),
+          );
+
           // Check if the doctor has appointment duration set
           _checkAppointmentDuration(user.id!);
         }
@@ -89,8 +92,10 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
           ),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
+        ),
       );
     }
   }
@@ -99,13 +104,15 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
   Future<void> _checkAppointmentDuration(String doctorId) async {
     try {
       final FirebaseFirestore firestore = FirebaseFirestore.instance;
-      final doctorDoc = await firestore.collection('medecins').doc(doctorId).get();
-      
+      final doctorDoc =
+          await firestore.collection('medecins').doc(doctorId).get();
+
       if (doctorDoc.exists) {
         final data = doctorDoc.data() as Map<String, dynamic>;
-        
+
         // If appointmentDuration doesn't exist or is null, show dialog
-        if (!data.containsKey('appointmentDuration') || data['appointmentDuration'] == null) {
+        if (!data.containsKey('appointmentDuration') ||
+            data['appointmentDuration'] == null) {
           // Delay showing the dialog slightly to ensure the UI is ready
           Future.delayed(Duration(milliseconds: 500), () {
             _showAppointmentDurationDialog();
@@ -116,18 +123,18 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
       print('Error checking appointment duration: $e');
     }
   }
-  
+
   // Dialog to set appointment duration
   void _showAppointmentDurationDialog() {
     int selectedDuration = 30; // Default duration
-    
+
     showDialog(
       context: context,
       barrierDismissible: false, // User must select a duration
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
-            'Durée de consultation',
+            'consultation_duration'.tr,
             style: GoogleFonts.raleway(
               fontWeight: FontWeight.bold,
               fontSize: 20.sp,
@@ -139,17 +146,15 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Veuillez définir la durée de vos consultations. Cette durée sera appliquée à tous vos rendez-vous.',
-                    style: GoogleFonts.raleway(
-                      fontSize: 16.sp,
-                    ),
+                    'set_consultation_duration_message'.tr,
+                    style: GoogleFonts.raleway(fontSize: 16.sp),
                   ),
                   SizedBox(height: 24.h),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Durée: ',
+                        'duration'.tr + ': ',
                         style: GoogleFonts.raleway(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
@@ -157,17 +162,16 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                       ),
                       DropdownButton<int>(
                         value: selectedDuration,
-                        items: [15, 20, 30, 45, 60, 90, 120].map((int value) {
-                          return DropdownMenuItem<int>(
-                            value: value,
-                            child: Text(
-                              '$value minutes',
-                              style: GoogleFonts.raleway(
-                                fontSize: 16.sp,
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                        items:
+                            [15, 20, 30, 45, 60, 90, 120].map((int value) {
+                              return DropdownMenuItem<int>(
+                                value: value,
+                                child: Text(
+                                  '$value ' + 'minutes'.tr,
+                                  style: GoogleFonts.raleway(fontSize: 16.sp),
+                                ),
+                              );
+                            }).toList(),
                         onChanged: (int? newValue) {
                           if (newValue != null) {
                             setState(() {
@@ -188,21 +192,28 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                 // Save the selected duration to Firestore
                 try {
                   if (currentUser?.id != null) {
-                    final FirebaseFirestore firestore = FirebaseFirestore.instance;
-                    await firestore.collection('medecins').doc(currentUser!.id).update({
-                      'appointmentDuration': selectedDuration,
-                    });
-                    
+                    final FirebaseFirestore firestore =
+                        FirebaseFirestore.instance;
+                    await firestore
+                        .collection('medecins')
+                        .doc(currentUser!.id)
+                        .update({'appointmentDuration': selectedDuration});
+
                     // Show success message
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Durée de consultation définie à $selectedDuration minutes',
+                          'consultation_duration_set'.tr.replaceAll(
+                            '{0}',
+                            selectedDuration.toString(),
+                          ),
                           style: GoogleFonts.raleway(),
                         ),
                         backgroundColor: Colors.green,
                         behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     );
                   }
@@ -211,19 +222,21 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        'Erreur lors de la sauvegarde: $e',
+                        'error_saving'.tr.replaceAll('{0}', e.toString()),
                         style: GoogleFonts.raleway(),
                       ),
                       backgroundColor: Colors.red,
                       behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   );
                 }
                 Navigator.of(context).pop();
               },
               child: Text(
-                'Confirmer',
+                'confirm'.tr,
                 style: GoogleFonts.raleway(
                   color: AppColors.primaryColor,
                   fontWeight: FontWeight.bold,
@@ -241,41 +254,44 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: isLoading
-          ? Center(
-            child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: AppColors.primaryColor),
-                  SizedBox(height: 16.h),
-                  Text(
-                    "Chargement de votre tableau de bord...",
-                    style: GoogleFonts.raleway(
-                      fontSize: 16.sp,
-                      color: theme.textTheme.bodyMedium?.color,
+      body:
+          isLoading
+              ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: AppColors.primaryColor),
+                    SizedBox(height: 16.h),
+                    Text(
+                      "Chargement de votre tableau de bord...",
+                      style: GoogleFonts.raleway(
+                        fontSize: 16.sp,
+                        color: theme.textTheme.bodyMedium?.color,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              )
+              : RefreshIndicator(
+                onRefresh: () async {
+                  if (currentUser?.id != null) {
+                    _dashboardBloc.add(
+                      FetchDoctorDashboardStats(doctorId: currentUser!.id!),
+                    );
+                  }
+                },
+                color: AppColors.primaryColor,
+                child: _buildDashboardContent(),
               ),
-            )
-          : RefreshIndicator(
-              onRefresh: () async {
-                if (currentUser?.id != null) {
-                  _dashboardBloc.add(FetchDoctorDashboardStats(doctorId: currentUser!.id!));
-                }
-              },
-              color: AppColors.primaryColor,
-              child: _buildDashboardContent(),
-            ),
     );
   }
 
   Widget _buildDashboardContent() {
     final theme = Theme.of(context);
-    
+
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: Padding(
@@ -286,7 +302,9 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
               return SizedBox(
                 height: MediaQuery.of(context).size.height * 0.8,
                 child: const Center(
-                  child: CircularProgressIndicator(color: AppColors.primaryColor),
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryColor,
+                  ),
                 ),
               );
             } else if (state is DashboardError) {
@@ -331,14 +349,21 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   ElevatedButton.icon(
                     onPressed: () {
                       if (currentUser?.id != null) {
-                        _dashboardBloc.add(FetchDoctorDashboardStats(doctorId: currentUser!.id!));
+                        _dashboardBloc.add(
+                          FetchDoctorDashboardStats(doctorId: currentUser!.id!),
+                        );
                       }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryColor,
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24.w,
+                        vertical: 12.h,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       elevation: 2,
                     ),
                     icon: Icon(Icons.refresh, size: 20.sp),
@@ -366,7 +391,8 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
               totalPatients = state.dashboardStats.totalPatients;
               totalAppointments = state.dashboardStats.totalAppointments;
               pendingAppointments = state.dashboardStats.pendingAppointments;
-              completedAppointments = state.dashboardStats.completedAppointments;
+              completedAppointments =
+                  state.dashboardStats.completedAppointments;
               upcomingAppointments = state.dashboardStats.upcomingAppointments;
             }
 
@@ -402,10 +428,10 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   ),
                 ),
                 SizedBox(height: 12.h),
-                
+
                 GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   crossAxisCount: 2,
                   childAspectRatio: 1.18,
                   crossAxisSpacing: 12.w,
@@ -419,7 +445,9 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const DoctorPatientsPage()),
+                          MaterialPageRoute(
+                            builder: (context) => const DoctorPatientsPage(),
+                          ),
                         );
                       },
                     ),
@@ -429,10 +457,12 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                       icon: Icons.calendar_month,
                       iconColor: Colors.purple,
                       onTap: () {
-                            Navigator.push(
-                              context,
-                          MaterialPageRoute(builder: (context) => const AppointmentsMedecins()),
-                            );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AppointmentsMedecins(),
+                          ),
+                        );
                       },
                     ),
                     DashboardStatCard(
@@ -441,14 +471,15 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                       icon: Icons.schedule,
                       iconColor: Colors.orange,
                       onTap: () {
-                            Navigator.push(
-                              context,
+                        Navigator.push(
+                          context,
                           MaterialPageRoute(
-                            builder: (context) => const AppointmentsMedecins(
-                              initialFilter: 'pending',
-                            ),
+                            builder:
+                                (context) => const AppointmentsMedecins(
+                                  initialFilter: 'pending',
+                                ),
                           ),
-                            );
+                        );
                       },
                     ),
                     DashboardStatCard(
@@ -457,19 +488,20 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                       icon: Icons.check_circle,
                       iconColor: Colors.green,
                       onTap: () {
-                            Navigator.push(
-                              context,
+                        Navigator.push(
+                          context,
                           MaterialPageRoute(
-                            builder: (context) => const AppointmentsMedecins(
-                              initialFilter: 'completed',
-                            ),
+                            builder:
+                                (context) => const AppointmentsMedecins(
+                                  initialFilter: 'completed',
+                                ),
                           ),
                         );
                       },
                     ),
                   ],
                 ),
-                
+
                 SizedBox(height: 24.h),
 
                 // Quick actions
@@ -482,7 +514,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   ),
                 ),
                 SizedBox(height: 12.h),
-                
+
                 Row(
                   children: [
                     Expanded(
@@ -493,7 +525,9 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                         AppColors.primaryColor,
                         () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const AppointmentsMedecins()),
+                          MaterialPageRoute(
+                            builder: (context) => const AppointmentsMedecins(),
+                          ),
                         ),
                       ),
                     ),
@@ -514,7 +548,9 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                               ),
                               backgroundColor: Colors.red,
                               behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                           );
                         },
@@ -522,7 +558,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                     ),
                   ],
                 ),
-                
+
                 SizedBox(height: 24.h),
 
                 // Upcoming appointments section
@@ -539,10 +575,12 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                     ),
                     TextButton(
                       onPressed: () {
-                            Navigator.push(
-                              context,
-                          MaterialPageRoute(builder: (context) => const AppointmentsMedecins()),
-                            );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AppointmentsMedecins(),
+                          ),
+                        );
                       },
                       child: Text(
                         'Voir tous',
@@ -561,12 +599,16 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 24.h),
-                      child: CircularProgressIndicator(color: AppColors.primaryColor),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryColor,
+                      ),
                     ),
                   )
                 else if (upcomingAppointments.isEmpty)
                   Card(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
                     elevation: 2,
                     child: Padding(
                       padding: EdgeInsets.all(24.w),
@@ -576,7 +618,9 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                             Icon(
                               Icons.event_busy,
                               size: 48.sp,
-                              color: theme.colorScheme.secondary.withOpacity(0.6),
+                              color: theme.colorScheme.secondary.withOpacity(
+                                0.6,
+                              ),
                             ),
                             SizedBox(height: 16.h),
                             Text(
@@ -600,14 +644,23 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                             ElevatedButton.icon(
                               onPressed: () {
                                 if (currentUser?.id != null) {
-                                  _dashboardBloc.add(FetchDoctorDashboardStats(doctorId: currentUser!.id!));
+                                  _dashboardBloc.add(
+                                    FetchDoctorDashboardStats(
+                                      doctorId: currentUser!.id!,
+                                    ),
+                                  );
                                 }
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primaryColor,
                                 foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 20.w,
+                                  vertical: 10.h,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
                               icon: Icon(Icons.refresh, size: 20.sp),
                               label: Text(
@@ -625,33 +678,34 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   )
                 else
                   Card(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
                     elevation: 2,
                     child: Padding(
                       padding: EdgeInsets.all(16.w),
                       child: Column(
-                        children: upcomingAppointments.map((appointment) {
-                          return Column(
-                            children: [
-                              _buildAppointmentCard(appointment),
-                              if (appointment != upcomingAppointments.last)
-                                Divider(height: 16.h),
-                            ],
-                          );
-                        }).toList(),
+                        children:
+                            upcomingAppointments.map((appointment) {
+                              return Column(
+                                children: [
+                                  _buildAppointmentCard(appointment),
+                                  if (appointment != upcomingAppointments.last)
+                                    Divider(height: 16.h),
+                                ],
+                              );
+                            }).toList(),
                       ),
                     ),
                   ),
-                
+
                 SizedBox(height: 24.h),
 
-
-                
-             //   SizedBox(height: 24.h),
+                //   SizedBox(height: 24.h),
               ],
-                  );
-                },
-              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -697,7 +751,8 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
       patientId: appointment.patientId,
       doctorId: currentUser?.id,
       patientName: appointment.patientName,
-      doctorName: currentUser != null ? "Dr. ${currentUser!.lastName}" : "Doctor",
+      doctorName:
+          currentUser != null ? "Dr. ${currentUser!.lastName}" : "Doctor",
       speciality: appointment.appointmentType,
       startTime: appointment.appointmentDate,
       endTime: appointment.appointmentDate.add(const Duration(minutes: 30)),
@@ -708,14 +763,19 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
   Widget _buildAppointmentCard(AppointmentEntity appointment) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     // Format the date in a more readable format
-    final formattedDate = appointment.appointmentDate.day.toString().padLeft(2, '0') + '/' +
-                        appointment.appointmentDate.month.toString().padLeft(2, '0') + '/' +
-                        appointment.appointmentDate.year.toString();
-    final formattedTime = appointment.appointmentDate.hour.toString().padLeft(2, '0') + ':' +
-                        appointment.appointmentDate.minute.toString().padLeft(2, '0');
-    
+    final formattedDate =
+        appointment.appointmentDate.day.toString().padLeft(2, '0') +
+        '/' +
+        appointment.appointmentDate.month.toString().padLeft(2, '0') +
+        '/' +
+        appointment.appointmentDate.year.toString();
+    final formattedTime =
+        appointment.appointmentDate.hour.toString().padLeft(2, '0') +
+        ':' +
+        appointment.appointmentDate.minute.toString().padLeft(2, '0');
+
     // Get an appropriate color for the status badge
     Color statusColor;
     switch (appointment.status) {
@@ -734,20 +794,19 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
       default:
         statusColor = Colors.grey;
     }
-    
+
     return Card(
       elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
       child: InkWell(
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AppointmentDetailsPage(
-                appointment: _convertToRendezVous(appointment),
-              ),
+              builder:
+                  (context) => AppointmentDetailsPage(
+                    appointment: _convertToRendezVous(appointment),
+                  ),
             ),
           );
         },
@@ -765,14 +824,10 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   color: AppColors.primaryColor,
                   borderRadius: BorderRadius.circular(10.r),
                 ),
-                child: Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: 30.sp,
-                ),
+                child: Icon(Icons.person, color: Colors.white, size: 30.sp),
               ),
               SizedBox(width: 16.w),
-              
+
               // Appointment details
               Expanded(
                 child: Column(

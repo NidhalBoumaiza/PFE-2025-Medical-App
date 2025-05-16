@@ -152,7 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   width: 1,
                                 ),
                               ),
-                              hintText: "email".tr,
+                              hintText: "email_placeholder".tr,
                               hintStyle: GoogleFonts.raleway(
                                 color: Colors.grey[400],
                                 fontSize: 15.sp,
@@ -249,7 +249,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   width: 1,
                                 ),
                               ),
-                              hintText: "password".tr,
+                              hintText: "password_placeholder".tr,
                               hintStyle: GoogleFonts.raleway(
                                 color: Colors.grey[400],
                                 fontSize: 15.sp,
@@ -330,11 +330,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           );
                         }
                       } else if (state is LoginError) {
-                        showErrorSnackBar(context, state.message);
+                        showErrorSnackBar(context, state.message.tr);
                       }
                     },
                     builder: (context, state) {
-                      final isLoading = state is LoginLoading;
+                      final isLoading =
+                          state is LoginLoading && state.isEmailPasswordLogin;
                       return Container(
                         width: double.infinity,
                         height: 55.h,
@@ -350,7 +351,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           onPressed:
                               isLoading
-                                  ? () {} // Keep button enabled but do nothing while loading
+                                  ? null
                                   : () {
                                     if (_formKey.currentState!.validate()) {
                                       context.read<LoginBloc>().add(
@@ -455,48 +456,48 @@ class _LoginScreenState extends State<LoginScreen> {
                           );
                         }
                       } else if (state is LoginError) {
-                        showErrorSnackBar(context, "invalid_credentials".tr);
+                        showErrorSnackBar(context, state.message.tr);
                       }
                     },
                     builder: (context, state) {
-                      final isLoading = state is LoginLoading;
+                      final isEmailPasswordLoading =
+                          state is LoginLoading && state.isEmailPasswordLogin;
+                      final isGoogleLoading =
+                          state is LoginLoading && !state.isEmailPasswordLogin;
+
                       return Container(
                         width: double.infinity,
                         height: 55.h,
                         margin: EdgeInsets.only(bottom: 30.h),
                         child: ElevatedButton.icon(
-                          icon:
-                              isLoading
-                                  ? SizedBox(width: 18.sp, height: 18.sp)
-                                  : Icon(
-                                    FontAwesomeIcons.google,
-                                    size: 18.sp,
-                                    color: Colors.white,
-                                  ),
-                          label:
-                              isLoading
-                                  ? CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 3,
-                                  )
-                                  : Text(
-                                    "continue_with_google".tr,
-                                    style: GoogleFonts.raleway(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                          icon: Icon(
+                            FontAwesomeIcons.google,
+                            size: 18.sp,
+                            color: Colors.white,
+                          ),
+                          label: Text(
+                            "continue_with_google".tr,
+                            style: GoogleFonts.raleway(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryColor,
+                            backgroundColor:
+                                isEmailPasswordLoading
+                                    ? Colors.grey
+                                    : (isGoogleLoading
+                                        ? AppColors.primaryColor.withAlpha(178)
+                                        : AppColors.primaryColor),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16.r),
                             ),
-                            elevation: 2,
+                            elevation: isEmailPasswordLoading ? 0 : 2,
                           ),
                           onPressed:
-                              isLoading
-                                  ? () {} // Keep button enabled but do nothing while loading
+                              isEmailPasswordLoading || isGoogleLoading
+                                  ? null
                                   : () {
                                     context.read<LoginBloc>().add(
                                       LoginWithGoogle(),

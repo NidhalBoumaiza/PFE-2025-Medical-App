@@ -26,7 +26,7 @@ class AppointmentsMedecins extends StatefulWidget {
   final bool showAppBar;
 
   const AppointmentsMedecins({
-    Key? key,
+    Key? key, 
     this.initialSelectedDate,
     this.initialFilter,
     this.showAppBar = true,
@@ -41,14 +41,14 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
   UserModel? currentUser;
   List<RendezVousEntity> appointments = [];
   List<RendezVousEntity> filteredAppointments = [];
-
+  
   bool isLoading = true;
   Map<String, bool> updatingAppointments = {};
   DateTime? selectedDate;
   String? statusFilter;
   bool isCalendarVisible = false;
   CalendarFormat _calendarFormat = CalendarFormat.month;
-
+  
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
@@ -56,43 +56,44 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
     super.initState();
     initializeDateFormatting();
     _rendezVousBloc = di.sl<RendezVousBloc>();
-    selectedDate = widget.initialSelectedDate;
-    statusFilter = widget.initialFilter;
+    // Set both filters to null initially regardless of widget parameters
+    selectedDate = null;
+    statusFilter = null;
     _loadUser();
-
+    
     // Debug the initial filter
-    print('Initial status filter: ${widget.initialFilter}');
+    print('Initial filters cleared. No filters applied on startup.');
   }
-
+  
   Future<void> _loadUser() async {
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString('CACHED_USER');
-
+    
     if (userJson != null) {
       try {
         final userMap = jsonDecode(userJson) as Map<String, dynamic>;
-        setState(() {
+    setState(() {
           currentUser = UserModel.fromJson(userMap);
         });
-
+        
         // Fetch appointments using the doctor ID
         if (currentUser != null && currentUser!.id != null) {
           // Check for past appointments that need to be updated to completed
           _rendezVousBloc.add(
             CheckAndUpdatePastAppointments(
-              userId: currentUser!.id!,
-              userRole: 'doctor',
+            userId: currentUser!.id!,
+            userRole: 'doctor',
             ),
           );
-
+          
           // Then fetch the appointments (which will now have updated statuses)
           _rendezVousBloc.add(FetchRendezVous(doctorId: currentUser!.id));
         }
       } catch (e) {
         setState(() {
           isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               "Erreur lors du chargement des données de l'utilisateur",
@@ -116,10 +117,10 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
   // Function to filter appointments by date
   void _applyDateFilter() {
     filteredAppointments = List.from(appointments);
-
+    
     print('Filtering ${appointments.length} appointments...');
     print('Current status filter: $statusFilter');
-
+    
     // Apply date filter if selected
     if (selectedDate != null) {
       filteredAppointments =
@@ -127,24 +128,24 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
             final appointmentDate = DateFormat(
               'yyyy-MM-dd',
             ).format(appointment.startTime);
-            final filterDate = DateFormat('yyyy-MM-dd').format(selectedDate!);
-            return appointmentDate == filterDate;
-          }).toList();
-
+        final filterDate = DateFormat('yyyy-MM-dd').format(selectedDate!);
+        return appointmentDate == filterDate;
+      }).toList();
+      
       print('After date filter: ${filteredAppointments.length} appointments');
     }
-
+    
     // Apply status filter if selected
     if (statusFilter != null && statusFilter!.isNotEmpty) {
       filteredAppointments =
           filteredAppointments.where((appointment) {
-            final matches = appointment.status == statusFilter;
+        final matches = appointment.status == statusFilter;
             print(
               'Checking appointment ${appointment.id}: status=${appointment.status}, filter=$statusFilter, matches=$matches',
             );
-            return matches;
-          }).toList();
-
+        return matches;
+    }).toList();
+      
       print('After status filter: ${filteredAppointments.length} appointments');
     }
   }
@@ -170,30 +171,30 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
     RendezVousEntity appointment,
     String newStatus,
   ) {
-    if (appointment.id == null ||
-        appointment.patientId == null ||
-        appointment.doctorId == null ||
-        appointment.patientName == null ||
-        appointment.doctorName == null ||
+    if (appointment.id == null || 
+        appointment.patientId == null || 
+        appointment.doctorId == null || 
+        appointment.patientName == null || 
+        appointment.doctorName == null || 
         currentUser == null) {
       return;
     }
-
+    
     setState(() {
       updatingAppointments[appointment.id!] = true;
     });
 
     // Debug print to confirm the update is being triggered
     print('Updating appointment ${appointment.id} status to $newStatus');
-
+    
     _rendezVousBloc.add(
       UpdateRendezVousStatus(
-        rendezVousId: appointment.id!,
-        status: newStatus,
-        patientId: appointment.patientId!,
-        doctorId: appointment.doctorId!,
-        patientName: appointment.patientName!,
-        doctorName: appointment.doctorName!,
+      rendezVousId: appointment.id!,
+      status: newStatus,
+      patientId: appointment.patientId!,
+      doctorId: appointment.doctorId!,
+      patientName: appointment.patientName!,
+      doctorName: appointment.doctorName!,
       ),
     );
   }
@@ -201,9 +202,9 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
   // Show time picker to change appointment time
   Future<void> _showTimePicker(RendezVousEntity appointment) async {
     final TimeOfDay initialTime = TimeOfDay.fromDateTime(appointment.startTime);
-
+    
     final TimeOfDay? picked = await showTimePicker(
-      context: context,
+      context: context, 
       initialTime: initialTime,
       builder: (context, child) {
         return Theme(
@@ -219,7 +220,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
         );
       },
     );
-
+    
     if (picked != null) {
       // Create new appointment with updated time
       final DateTime newDateTime = DateTime(
@@ -229,17 +230,17 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
         picked.hour,
         picked.minute,
       );
-
+      
       // Calculate new end time based on doctor's appointment duration
       int appointmentDuration = 30; // Default
       if (currentUser != null && currentUser is MedecinModel) {
         appointmentDuration = (currentUser as MedecinModel).appointmentDuration;
       }
-
+      
       final DateTime newEndTime = newDateTime.add(
         Duration(minutes: appointmentDuration),
       );
-
+      
       // Create new appointment object with updated time
       final updatedAppointment = RendezVousEntity(
         id: appointment.id,
@@ -252,7 +253,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
         endTime: newEndTime,
         status: appointment.status,
       );
-
+      
       // TODO: Add support for updating appointment time
       // For now show a message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -276,7 +277,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
     try {
       final patientDoc =
           await _firestore.collection('patients').doc(patientId).get();
-
+      
       if (patientDoc.exists) {
         Map<String, dynamic> patientData =
             patientDoc.data() as Map<String, dynamic>;
@@ -290,10 +291,10 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
           phoneNumber: patientData['phoneNumber'] ?? '',
           dateOfBirth:
               patientData['dateOfBirth'] != null
-                  ? (patientData['dateOfBirth'] is Timestamp)
-                      ? (patientData['dateOfBirth'] as Timestamp).toDate()
-                      : DateTime.tryParse(patientData['dateOfBirth'])
-                  : null,
+              ? (patientData['dateOfBirth'] is Timestamp)
+                  ? (patientData['dateOfBirth'] as Timestamp).toDate()
+                  : DateTime.tryParse(patientData['dateOfBirth'])
+              : null,
           antecedent: patientData['antecedent'] as String? ?? '',
         );
       }
@@ -330,25 +331,25 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
       builder:
           (context) => const Center(
             child: CircularProgressIndicator(color: AppColors.primaryColor),
-          ),
+      ),
     );
-
+    
     try {
       // Try to fetch patient from Firestore
       PatientEntity? patientEntity = await _fetchPatientInfo(
         appointment.patientId!,
       );
-
+      
       // Dismiss loading indicator
       Navigator.pop(context);
-
+      
       // If fetch failed, create a basic patient entity with available info
       if (patientEntity == null) {
         final nameArray =
             appointment.patientName?.split(' ') ?? ['Patient', 'Inconnu'];
         final firstName = nameArray.isNotEmpty ? nameArray[0] : '';
         final lastName = nameArray.length > 1 ? nameArray[1] : '';
-
+        
         patientEntity = PatientEntity(
           id: appointment.patientId!,
           name: firstName,
@@ -361,7 +362,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
           antecedent: "",
         );
       }
-
+      
       // Navigate to patient profile page
       Navigator.push(
         context,
@@ -394,31 +395,31 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
       appBar:
           widget.showAppBar
               ? AppBar(
-                title: Text(
-                  "Rendez-vous",
-                  style: GoogleFonts.poppins(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                backgroundColor: AppColors.primaryColor,
-                elevation: 2,
-                leading: IconButton(
-                  icon: Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                actions: [
-                  // Calendar button for date selection
-                  IconButton(
-                    icon: Icon(Icons.calendar_today, color: Colors.white),
-                    onPressed: () {
-                      setState(() {
-                        isCalendarVisible = !isCalendarVisible;
-                      });
-                    },
-                  ),
-                ],
+        title: Text(
+          "Rendez-vous",
+          style: GoogleFonts.poppins(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+              color: Colors.white,
+          ),
+        ),
+        backgroundColor: AppColors.primaryColor,
+        elevation: 2,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          // Calendar button for date selection
+          IconButton(
+            icon: Icon(Icons.calendar_today, color: Colors.white),
+            onPressed: () {
+              setState(() {
+                isCalendarVisible = !isCalendarVisible;
+              });
+            },
+          ),
+        ],
               )
               : null,
       body: BlocProvider.value(
@@ -429,26 +430,26 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
 
             if (state is RendezVousLoaded) {
               print('Loaded ${state.rendezVous.length} appointments');
-
+              
               // Debug the appointments statuses
               for (var appt in state.rendezVous) {
                 print('Appointment ${appt.id}: status=${appt.status}');
               }
-
+              
               setState(() {
                 appointments = state.rendezVous;
                 isLoading = false;
-
+                
                 // Apply filters after setting appointments
                 _applyDateFilter();
               });
-
+              
               // Debug information about initial filters
               if (widget.initialFilter != null) {
                 print('Initial filter was set: ${widget.initialFilter}');
                 print('Current status filter: $statusFilter');
               }
-
+              
               print(
                 'Filtered appointments count: ${filteredAppointments.length}',
               );
@@ -459,7 +460,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
 
               setState(() {
                 updatingAppointments.remove(state.id);
-
+              
                 // Update the appointment status in the local list
                 if (appointments.isNotEmpty) {
                   final index = appointments.indexWhere(
@@ -510,7 +511,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                 isLoading = false;
                 updatingAppointments.clear();
               });
-
+              
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(state.message, style: GoogleFonts.raleway()),
@@ -531,8 +532,8 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                   duration: Duration(milliseconds: 300),
                   height: isCalendarVisible ? 350.h : 0,
                   child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
                       children: [
                         if (isCalendarVisible)
                           Container(
@@ -557,8 +558,8 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
+              children: [
+                Text(
                                       "Sélectionner une date",
                                       style: GoogleFonts.raleway(
                                         fontSize: 16.sp,
@@ -597,7 +598,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                     ),
                                   ],
                                 ),
-
+                                
                                 // The Calendar
                                 TableCalendar(
                                   firstDay: DateTime.now().subtract(
@@ -634,12 +635,12 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                               appointment.startTime,
                                               date,
                                             );
-                                          }).toList();
-
+                                      }).toList();
+                                      
                                       if (appointmentsOnDay.isEmpty) {
                                         return null;
                                       }
-
+                                      
                                       return Positioned(
                                         bottom: 1,
                                         right: 1,
@@ -653,10 +654,10 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                           child: Center(
                                             child: Text(
                                               '${appointmentsOnDay.length}',
-                                              style: TextStyle(
+                  style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 10.sp,
-                                                fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                           ),
@@ -680,7 +681,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                     formatButtonTextStyle: GoogleFonts.raleway(
                                       fontSize: 14.sp,
                                       fontWeight: FontWeight.w600,
-                                      color: AppColors.primaryColor,
+                    color: AppColors.primaryColor,
                                     ),
                                     titleTextStyle: GoogleFonts.raleway(
                                       fontSize: 16.sp,
@@ -711,7 +712,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                     ),
                   ),
                 ),
-
+                
                 if (selectedDate != null || statusFilter != null)
                   Container(
                     width: double.infinity,
@@ -723,18 +724,18 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                     child: Row(
                       children: [
                         Icon(
-                          Icons.filter_list_rounded,
+                          Icons.filter_list_rounded, 
                           color: AppColors.primaryColor,
                           size: 20.sp,
                         ),
                         SizedBox(width: 8.w),
                         Expanded(
                           child: Text(
-                            selectedDate != null
-                                ? "Date: ${DateFormat('dd MMMM yyyy').format(selectedDate!)}"
-                                : statusFilter != null
-                                ? "Statut: ${_getStatusText(statusFilter!)}"
-                                : "Filtres",
+                            selectedDate != null 
+                                ? "Date: ${DateFormat('dd MMMM yyyy').format(selectedDate!)}" 
+                                : statusFilter != null 
+                                  ? "Statut: ${_getStatusText(statusFilter!)}" 
+                                  : "Filtres",
                             style: GoogleFonts.raleway(
                               fontSize: 14.sp,
                               fontWeight: FontWeight.w500,
@@ -748,14 +749,14 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                           onTap: _resetFilter,
                           child: Icon(
                             Icons.close,
-                            color: AppColors.primaryColor,
+                    color: AppColors.primaryColor,
                             size: 20.sp,
                           ),
                         ),
                       ],
                     ),
                   ),
-
+                
                 // Status filter chips
                 Container(
                   height: 50.h,
@@ -778,86 +779,86 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                     ],
                   ),
                 ),
-
+                
                 Expanded(
                   child:
                       isLoading
-                          ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CircularProgressIndicator(
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(
                                   color: AppColors.primaryColor,
                                 ),
-                                SizedBox(height: 16.h),
-                                Text(
-                                  "Chargement des rendez-vous...",
-                                  style: GoogleFonts.raleway(
-                                    fontSize: 16.sp,
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                              ],
+                            SizedBox(height: 16.h),
+                            Text(
+                              "Chargement des rendez-vous...",
+                              style: GoogleFonts.raleway(
+                                fontSize: 16.sp,
+                                color: Colors.grey[700],
+                              ),
                             ),
-                          )
-                          : filteredAppointments.isEmpty
-                          ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.all(24.w),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.calendar_today,
-                                    size: 64.sp,
-                                    color: Colors.grey.withOpacity(0.7),
-                                  ),
+                          ],
+                        ),
+                      )
+                    : filteredAppointments.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(24.w),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  shape: BoxShape.circle,
                                 ),
-                                SizedBox(height: 24.h),
-                                Text(
-                                  selectedDate != null
-                                      ? "Aucun rendez-vous trouvé pour cette date"
-                                      : statusFilter != null
-                                      ? "Aucun rendez-vous ${_getStatusText(statusFilter!).toLowerCase()}"
-                                      : "Aucun rendez-vous trouvé",
-                                  style: GoogleFonts.raleway(
-                                    fontSize: 18.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey[700],
-                                  ),
-                                  textAlign: TextAlign.center,
+                                child: Icon(
+                                  Icons.calendar_today,
+                                  size: 64.sp,
+                                  color: Colors.grey.withOpacity(0.7),
                                 ),
-                                SizedBox(height: 8.h),
-                                Text(
-                                  "Essayez de modifier les filtres ou d'actualiser la page",
-                                  style: GoogleFonts.raleway(
-                                    fontSize: 14.sp,
-                                    color: Colors.grey[600],
-                                  ),
-                                  textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: 24.h),
+                              Text(
+                                selectedDate != null
+                                  ? "Aucun rendez-vous trouvé pour cette date"
+                                  : statusFilter != null
+                                    ? "Aucun rendez-vous ${_getStatusText(statusFilter!).toLowerCase()}"
+                                    : "Aucun rendez-vous trouvé",
+                                style: GoogleFonts.raleway(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[700],
                                 ),
-                              ],
-                            ),
-                          )
-                          : RefreshIndicator(
-                            onRefresh: () async {
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: 8.h),
+                              Text(
+                                "Essayez de modifier les filtres ou d'actualiser la page",
+                                style: GoogleFonts.raleway(
+                                  fontSize: 14.sp,
+                                  color: Colors.grey[600],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                          ],
+                        ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: () async {
                               if (currentUser != null &&
                                   currentUser!.id != null) {
                                 _rendezVousBloc.add(
                                   FetchRendezVous(doctorId: currentUser!.id),
                                 );
-                              }
-                            },
-                            color: AppColors.primaryColor,
-                            child: ListView.builder(
-                              padding: EdgeInsets.all(16.w),
-                              itemCount: filteredAppointments.length,
-                              itemBuilder: (context, index) {
-                                final appointment = filteredAppointments[index];
+                            }
+                          },
+                          color: AppColors.primaryColor,
+                          child: ListView.builder(
+                            padding: EdgeInsets.all(16.w),
+                            itemCount: filteredAppointments.length,
+                            itemBuilder: (context, index) {
+                              final appointment = filteredAppointments[index];
                                 final isUpdating =
                                     appointment.id != null &&
                                     updatingAppointments[appointment.id] ==
@@ -868,52 +869,52 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                 final formattedTime = DateFormat(
                                   'HH:mm',
                                 ).format(appointment.startTime);
-
-                                return Card(
-                                  margin: EdgeInsets.only(bottom: 12.h),
-                                  elevation: 2,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12.r),
-                                  ),
-                                  child: InkWell(
+                              
+                              return Card(
+                                margin: EdgeInsets.only(bottom: 12.h),
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                                child: InkWell(
                                     onTap:
                                         appointment.id != null
                                             ? () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
                                                   builder:
                                                       (context) =>
                                                           AppointmentDetailsPage(
                                                             appointment:
                                                                 appointment,
-                                                          ),
-                                                ),
-                                              );
+                                        ),
+                                      ),
+                                    );
                                             }
                                             : null,
-                                    borderRadius: BorderRadius.circular(12.r),
-                                    child: Padding(
-                                      padding: EdgeInsets.all(16.w),
-                                      child: Column(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16.w),
+                                    child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
+                                      children: [
+                                        Row(
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
-                                            children: [
-                                              Container(
-                                                height: 50.h,
-                                                width: 50.w,
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.primaryColor,
+                                          children: [
+                                            Container(
+                                              height: 50.h,
+                                              width: 50.w,
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primaryColor,
                                                   borderRadius:
                                                       BorderRadius.circular(
                                                         10.r,
                                                       ),
-                                                ),
-                                                child: InkWell(
+                                              ),
+                                              child: InkWell(
                                                   onTap:
                                                       () =>
                                                           _navigateToPatientProfile(
@@ -923,68 +924,68 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                                       BorderRadius.circular(
                                                         10.r,
                                                       ),
-                                                  child: Icon(
-                                                    Icons.person,
-                                                    color: Colors.white,
-                                                    size: 30.sp,
-                                                  ),
+                                                child: Icon(
+                                                  Icons.person,
+                                                  color: Colors.white,
+                                                  size: 30.sp,
                                                 ),
                                               ),
-                                              SizedBox(width: 16.w),
-                                              Expanded(
-                                                child: Column(
+                                            ),
+                                            SizedBox(width: 16.w),
+                                            Expanded(
+                                              child: Column(
                                                   crossAxisAlignment:
                                                       CrossAxisAlignment.start,
-                                                  children: [
-                                                    InkWell(
+                                                children: [
+                                                  InkWell(
                                                       onTap:
                                                           () =>
                                                               _navigateToPatientProfile(
                                                                 appointment,
                                                               ),
-                                                      child: Text(
+                                                    child: Text(
                                                         appointment
                                                                 .patientName ??
                                                             "Patient inconnu",
                                                         style:
                                                             GoogleFonts.raleway(
-                                                              fontSize: 16.sp,
+                                                        fontSize: 16.sp,
                                                               fontWeight:
                                                                   FontWeight
                                                                       .bold,
                                                               color:
                                                                   Colors
                                                                       .black87,
-                                                            ),
-                                                        maxLines: 1,
+                                                      ),
+                                                      maxLines: 1,
                                                         overflow:
                                                             TextOverflow
                                                                 .ellipsis,
-                                                      ),
                                                     ),
-                                                    SizedBox(height: 4.h),
-                                                    Text(
-                                                      "$formattedDate à $formattedTime",
+                                                  ),
+                                                  SizedBox(height: 4.h),
+                                                  Text(
+                                                    "$formattedDate à $formattedTime",
                                                       style:
                                                           GoogleFonts.raleway(
-                                                            fontSize: 14.sp,
+                                                      fontSize: 14.sp,
                                                             color:
                                                                 Colors
                                                                     .grey
                                                                     .shade600,
-                                                          ),
                                                     ),
-                                                    SizedBox(height: 8.h),
-                                                    Row(
-                                                      children: [
-                                                        Container(
+                                                  ),
+                                                  SizedBox(height: 8.h),
+                                                  Row(
+                  children: [
+                                                      Container(
                                                           padding:
                                                               EdgeInsets.symmetric(
                                                                 horizontal:
                                                                     10.w,
-                                                                vertical: 4.h,
-                                                              ),
-                                                          decoration: BoxDecoration(
+                                                          vertical: 4.h,
+                                                        ),
+                                                        decoration: BoxDecoration(
                                                             color:
                                                                 _getStatusColor(
                                                                   appointment
@@ -996,14 +997,14 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                                                 BorderRadius.circular(
                                                                   20.r,
                                                                 ),
-                                                          ),
-                                                          child: Text(
+                                                        ),
+                                                        child: Text(
                                                             _getStatusText(
                                                               appointment
                                                                   .status,
                                                             ),
-                                                            style: GoogleFonts.raleway(
-                                                              fontSize: 12.sp,
+                                                          style: GoogleFonts.raleway(
+                                                            fontSize: 12.sp,
                                                               fontWeight:
                                                                   FontWeight
                                                                       .w600,
@@ -1011,27 +1012,27 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                                                   _getStatusColor(
                                                                     appointment
                                                                         .status,
-                                                                  ),
-                                                            ),
                                                           ),
+                                                        ),
+                                                      ),
                                                         ),
                                                         if (appointment
                                                                 .speciality !=
                                                             null)
-                                                          Padding(
+                                                        Padding(
                                                             padding:
                                                                 EdgeInsets.only(
                                                                   left: 8.w,
                                                                 ),
-                                                            child: Container(
+                                                          child: Container(
                                                               padding:
                                                                   EdgeInsets.symmetric(
                                                                     horizontal:
                                                                         10.w,
                                                                     vertical:
                                                                         4.h,
-                                                                  ),
-                                                              decoration: BoxDecoration(
+                                                            ),
+                                                            decoration: BoxDecoration(
                                                                 color: Colors
                                                                     .blue
                                                                     .withOpacity(
@@ -1041,11 +1042,11 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                                                     BorderRadius.circular(
                                                                       20.r,
                                                                     ),
-                                                              ),
-                                                              child: Text(
+                                                            ),
+                                                            child: Text(
                                                                 appointment
                                                                     .speciality!,
-                                                                style: GoogleFonts.raleway(
+                                                              style: GoogleFonts.raleway(
                                                                   fontSize:
                                                                       12.sp,
                                                                   fontWeight:
@@ -1054,28 +1055,28 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                                                   color:
                                                                       Colors
                                                                           .blue,
-                                                                ),
                                                               ),
                                                             ),
-                                                          ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          if (appointment.status == "pending")
-                                            Padding(
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+                                          ],
+                                        ),
+                                        if (appointment.status == "pending")
+                                          Padding(
                                               padding: EdgeInsets.only(
                                                 top: 16.h,
                                               ),
-                                              child: Wrap(
-                                                spacing: 8.w,
-                                                runSpacing: 8.h,
-                                                alignment: WrapAlignment.end,
-                                                children: [
-                                                  OutlinedButton.icon(
+                                            child: Wrap(
+                                              spacing: 8.w,
+                                              runSpacing: 8.h,
+                                              alignment: WrapAlignment.end,
+                                              children: [
+                                                OutlinedButton.icon(
                                                     onPressed:
                                                         isUpdating
                                                             ? null
@@ -1083,20 +1084,20 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                                                 _showTimePicker(
                                                                   appointment,
                                                                 ),
-                                                    icon: Icon(
-                                                      Icons.access_time,
-                                                      size: 18.sp,
-                                                      color: Colors.blue,
-                                                    ),
-                                                    label: Text(
-                                                      "Modifier l'heure",
+                                                  icon: Icon(
+                                                    Icons.access_time,
+                                                    size: 18.sp,
+                                                    color: Colors.blue,
+                                                  ),
+                                                  label: Text(
+                                                    "Modifier l'heure",
                                                       style:
                                                           GoogleFonts.raleway(
-                                                            fontSize: 12.sp,
-                                                            color: Colors.blue,
-                                                          ),
+                                                      fontSize: 12.sp,
+                                                      color: Colors.blue,
                                                     ),
-                                                    style: OutlinedButton.styleFrom(
+                                                  ),
+                                                  style: OutlinedButton.styleFrom(
                                                       side: BorderSide(
                                                         color:
                                                             Colors
@@ -1105,18 +1106,18 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                                       ),
                                                       padding:
                                                           EdgeInsets.symmetric(
-                                                            horizontal: 12.w,
-                                                            vertical: 6.h,
-                                                          ),
-                                                      shape: RoundedRectangleBorder(
+                                                      horizontal: 12.w,
+                                                      vertical: 6.h,
+                                                    ),
+                                                    shape: RoundedRectangleBorder(
                                                         borderRadius:
                                                             BorderRadius.circular(
                                                               8.r,
                                                             ),
-                                                      ),
                                                     ),
                                                   ),
-                                                  ElevatedButton.icon(
+                                                ),
+                                                ElevatedButton.icon(
                                                     onPressed:
                                                         isUpdating
                                                             ? null
@@ -1127,49 +1128,49 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                                                 ),
                                                     icon:
                                                         isUpdating
-                                                            ? SizedBox(
-                                                              height: 16.sp,
-                                                              width: 16.sp,
-                                                              child: CircularProgressIndicator(
+                                                    ? SizedBox(
+                                                        height: 16.sp,
+                                                        width: 16.sp,
+                                                        child: CircularProgressIndicator(
                                                                 color:
                                                                     Colors
                                                                         .white,
                                                                 strokeWidth:
                                                                     2.w,
-                                                              ),
-                                                            )
-                                                            : Icon(
-                                                              Icons.check,
-                                                              size: 18.sp,
+                                                        ),
+                                                      )
+                                                    : Icon(
+                                                        Icons.check,
+                                                        size: 18.sp,
                                                               color:
                                                                   Colors.white,
-                                                            ),
-                                                    label: Text(
-                                                      "Accepter",
+                                                      ),
+                                                  label: Text(
+                                                    "Accepter",
                                                       style:
                                                           GoogleFonts.raleway(
-                                                            fontSize: 12.sp,
-                                                            color: Colors.white,
-                                                          ),
+                                                      fontSize: 12.sp,
+                                                      color: Colors.white,
                                                     ),
-                                                    style: ElevatedButton.styleFrom(
+                                                  ),
+                                                  style: ElevatedButton.styleFrom(
                                                       backgroundColor:
                                                           Colors.green,
                                                       padding:
                                                           EdgeInsets.symmetric(
-                                                            horizontal: 12.w,
-                                                            vertical: 6.h,
-                                                          ),
-                                                      elevation: 0,
-                                                      shape: RoundedRectangleBorder(
+                                                      horizontal: 12.w,
+                                                      vertical: 6.h,
+                                                    ),
+                                                    elevation: 0,
+                                                    shape: RoundedRectangleBorder(
                                                         borderRadius:
                                                             BorderRadius.circular(
                                                               8.r,
                                                             ),
-                                                      ),
                                                     ),
                                                   ),
-                                                  ElevatedButton.icon(
+                                                ),
+                                                ElevatedButton.icon(
                                                     onPressed:
                                                         isUpdating
                                                             ? null
@@ -1178,47 +1179,47 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                                                   appointment,
                                                                   "cancelled",
                                                                 ),
-                                                    icon: Icon(
-                                                      Icons.close,
-                                                      size: 18.sp,
-                                                      color: Colors.white,
-                                                    ),
-                                                    label: Text(
-                                                      "Refuser",
+                                                  icon: Icon(
+                                                    Icons.close,
+                                                    size: 18.sp,
+                                                    color: Colors.white,
+                                                  ),
+                                                  label: Text(
+                                                    "Refuser",
                                                       style:
                                                           GoogleFonts.raleway(
-                                                            fontSize: 12.sp,
-                                                            color: Colors.white,
-                                                          ),
+                                                      fontSize: 12.sp,
+                                                      color: Colors.white,
                                                     ),
-                                                    style: ElevatedButton.styleFrom(
+                                                  ),
+                                                  style: ElevatedButton.styleFrom(
                                                       backgroundColor:
                                                           Colors.red,
                                                       padding:
                                                           EdgeInsets.symmetric(
-                                                            horizontal: 12.w,
-                                                            vertical: 6.h,
-                                                          ),
-                                                      elevation: 0,
-                                                      shape: RoundedRectangleBorder(
+                                                      horizontal: 12.w,
+                                                      vertical: 6.h,
+                                                    ),
+                                                    elevation: 0,
+                                                    shape: RoundedRectangleBorder(
                                                         borderRadius:
                                                             BorderRadius.circular(
                                                               8.r,
                                                             ),
-                                                      ),
                                                     ),
                                                   ),
-                                                ],
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                                                ),
+                                              ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+                                ),
+                              );
+                            },
                           ),
+                        ),
                 ),
               ],
             );
@@ -1227,10 +1228,10 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
       ),
     );
   }
-
+  
   Widget _buildFilterChip(String label, String? status) {
     final isSelected = status == statusFilter;
-
+    
     return GestureDetector(
       onTap: () {
         print('Filter chip tapped: $label, status: $status');
@@ -1253,11 +1254,11 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
           boxShadow:
               isSelected
                   ? [
-                    BoxShadow(
-                      color: AppColors.primaryColor.withOpacity(0.3),
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                    ),
+            BoxShadow(
+              color: AppColors.primaryColor.withOpacity(0.3),
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
                   ]
                   : null,
         ),
@@ -1272,7 +1273,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
       ),
     );
   }
-
+  
   String _getStatusText(String status) {
     switch (status) {
       case 'pending':
