@@ -9,6 +9,7 @@ import 'package:medical_app/core/error/exceptions.dart';
 import 'package:medical_app/features/authentication/data/models/medecin_model.dart';
 import 'package:medical_app/features/authentication/data/models/patient_model.dart';
 import 'package:medical_app/features/authentication/data/models/user_model.dart';
+import 'package:medical_app/constants.dart';
 import 'auth_local_data_source.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,8 +46,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final FirebaseFirestore firestore;
   final GoogleSignIn googleSignIn;
   final AuthLocalDataSource localDataSource;
-  final String emailServiceUrl =
-      'http://192.168.1.18:3000/api/v1/users'; //adresse ip de notre pc
+  final String emailServiceUrl = AppConstants.usersEndpoint;
 
   AuthRemoteDataSourceImpl({
     required this.firebaseAuth,
@@ -151,7 +151,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       print('createAccount: Starting for email=${user.email}');
       final normalizedEmail = user.email.toLowerCase().trim();
-      final collections = ['patients', 'medecins', 'users'];
+
+      // Check only patients and medecins collections for existing email or phone
+      final collections = ['patients', 'medecins'];
       for (var collection in collections) {
         print(
           'createAccount: Checking collection=$collection for email=$normalizedEmail',
@@ -195,12 +197,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         print('createAccount: Firebase user created, UID=${firebaseUser.uid}');
         final randomNumber = generateFourDigitNumber();
         print('createAccount: Generated verificationCode=$randomNumber');
-        final collection =
-            user is PatientModel
-                ? 'patients'
-                : user is MedecinModel
-                ? 'medecins'
-                : 'users';
+
+        // Determine collection based on user type (only patient or medecin)
+        final collection = user is PatientModel ? 'patients' : 'medecins';
         print('createAccount: Using collection=$collection');
 
         // Get FCM token from SharedPreferences if available
@@ -218,7 +217,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             gender: user.gender,
             phoneNumber: user.phoneNumber,
             dateOfBirth: user.dateOfBirth,
-            antecedent: user.antecedent,
+            antecedent: '',
             accountStatus: false,
             verificationCode: randomNumber,
             validationCodeExpiresAt: DateTime.now().add(
@@ -244,20 +243,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             ),
           );
         } else {
-          updatedUser = UserModel(
-            id: firebaseUser.uid,
-            name: user.name,
-            lastName: user.lastName,
-            email: normalizedEmail,
-            role: user.role,
-            gender: user.gender,
-            phoneNumber: user.phoneNumber,
-            dateOfBirth: user.dateOfBirth,
-            verificationCode: randomNumber,
-            validationCodeExpiresAt: DateTime.now().add(
-              const Duration(minutes: 60),
-            ),
-          );
+          // This should never happen as we filter at the repository level
+          throw AuthException('Only patient or doctor accounts can be created');
         }
 
         // Create user document with FCM token if available
@@ -273,7 +260,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             .doc(firebaseUser.uid)
             .set(userData);
 
-        // Also save to users collection for notifications service
+        // Also save minimal data to users collection for notification service
         Map<String, dynamic> userDataForUsers = {
           'id': updatedUser.id,
           'name': updatedUser.name,
@@ -286,16 +273,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           userDataForUsers['fcmToken'] = fcmToken;
         }
 
-        // Save minimal user data to 'users' collection for notification service
-        if (collection != 'users') {
-          await firestore
-              .collection('users')
-              .doc(firebaseUser.uid)
-              .set(userDataForUsers);
-          print(
-            'createAccount: Also saved minimal user data to users collection',
-          );
-        }
+        // Save minimal user data to 'users' collection for notification service only
+        await firestore
+            .collection('users')
+            .doc(firebaseUser.uid)
+            .set(userDataForUsers);
+        print(
+          'createAccount: Saved minimal user data to users collection for notifications',
+        );
 
         print('createAccount: Caching user locally');
         await localDataSource.cacheUser(updatedUser);
@@ -333,11 +318,43 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<UserModel> login(String email, String password) async {
     try {
       print('login: Starting for email=$email');
-      final normalizedEmail = email.toLowerCase().trim();
-      final userCredential = await firebaseAuth.signInWithEmailAndPassword(
-        email: normalizedEmail,
-        password: password,
+
+      // Print detailed debug info
+      print(
+        'login: Debug - Using Firebase Auth instance: ${firebaseAuth.hashCode}',
       );
+      print(
+        'login: Debug - Current user before login: ${firebaseAuth.currentUser?.uid}',
+      );
+
+      // First, sign out to ensure a clean state
+      try {
+        if (firebaseAuth.currentUser != null) {
+          print('login: Debug - Signing out current user first');
+          await firebaseAuth.signOut();
+        }
+      } catch (e) {
+        print('login: Debug - Error during signout: $e');
+      }
+
+      final normalizedEmail = email.toLowerCase().trim();
+      print('login: Debug - Normalized email: $normalizedEmail');
+      print('login: Debug - Password length: ${password.length}');
+
+      // Attempt login with error handling
+      UserCredential? userCredential;
+      try {
+        print('login: Debug - Attempting signInWithEmailAndPassword');
+        userCredential = await firebaseAuth.signInWithEmailAndPassword(
+          email: normalizedEmail,
+          password: password,
+        );
+        print('login: Debug - SignIn successful: ${userCredential.user?.uid}');
+      } catch (signInError) {
+        print('login: Debug - SignIn error: $signInError');
+        rethrow;
+      }
+
       final firebaseUser = userCredential.user;
       if (firebaseUser != null) {
         print('login: Firebase user signed in, UID=${firebaseUser.uid}');
@@ -346,54 +363,198 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         final prefs = await SharedPreferences.getInstance();
         final fcmToken = prefs.getString('FCM_TOKEN');
 
-        UserModel user;
-        String collection = "";
+        // Initialize user and collection variables
+        UserModel? user;
+        String? collection;
 
-        // Check collections in order of priority
-        final patientDoc =
-            await firestore.collection('patients').doc(firebaseUser.uid).get();
-        if (patientDoc.exists) {
-          user = PatientModel.fromJson(patientDoc.data()!);
-          collection = 'patients';
-          print('login: Found user in patients, email=${user.email}');
-        } else {
-          final medecinDoc =
+        // Try to get user from patients collection
+        try {
+          print('login: Debug - Checking patient collection');
+          final patientDoc =
               await firestore
-                  .collection('medecins')
+                  .collection('patients')
                   .doc(firebaseUser.uid)
                   .get();
-          if (medecinDoc.exists) {
-            user = MedecinModel.fromJson(medecinDoc.data()!);
-            collection = 'medecins';
-            print('login: Found user in medecins, email=${user.email}');
-          } else {
-            final userDoc =
-                await firestore.collection('users').doc(firebaseUser.uid).get();
-            if (userDoc.exists) {
-              user = UserModel.fromJson(userDoc.data()!);
-              collection = 'users';
-              print('login: Found user in users, email=${user.email}');
-            } else {
-              print('login: Error - User data not found in Firestore');
-              throw AuthException('User data not found');
+
+          if (patientDoc.exists) {
+            print('login: Debug - Patient document exists');
+            print('login: Debug - Patient data: ${patientDoc.data()}');
+
+            try {
+              user = PatientModel.fromJson(patientDoc.data()!);
+              collection = 'patients';
+              print('login: Found user in patients, email=${user.email}');
+
+              if (user.accountStatus != true) {
+                print('login: Error - Patient account is not activated');
+                throw AuthException(
+                  'Account is not activated. Please verify your email.',
+                );
+              }
+            } catch (e) {
+              print('login: Error parsing patient data: $e');
+
+              // Use the recovery method to create a valid model
+              user = PatientModel.recoverFromCorruptDoc(
+                patientDoc.data(),
+                firebaseUser.uid,
+                normalizedEmail,
+              );
+              collection = 'patients';
+
+              // Update the Firestore document with valid data
+              await firestore
+                  .collection('patients')
+                  .doc(firebaseUser.uid)
+                  .set(user.toJson());
+              print('login: Debug - Patient data recovered and saved');
             }
+          }
+        } catch (e) {
+          print('login: Error checking patient collection: $e');
+        }
+
+        // If user not found in patients, try medecins
+        if (user == null) {
+          try {
+            print('login: Debug - Checking medecin collection');
+            final medecinDoc =
+                await firestore
+                    .collection('medecins')
+                    .doc(firebaseUser.uid)
+                    .get();
+
+            if (medecinDoc.exists) {
+              print('login: Debug - Medecin document exists');
+              print('login: Debug - Medecin data: ${medecinDoc.data()}');
+
+              try {
+                user = MedecinModel.fromJson(medecinDoc.data()!);
+                collection = 'medecins';
+                print('login: Found user in medecins, email=${user.email}');
+
+                if (user.accountStatus != true) {
+                  print('login: Error - Doctor account is not activated');
+                  throw AuthException(
+                    'Account is not activated. Please verify your email.',
+                  );
+                }
+              } catch (e) {
+                print('login: Error parsing medecin data: $e');
+
+                // Use the recovery method to create a valid model
+                user = MedecinModel.recoverFromCorruptDoc(
+                  medecinDoc.data(),
+                  firebaseUser.uid,
+                  normalizedEmail,
+                );
+                collection = 'medecins';
+
+                // Update the Firestore document with valid data
+                await firestore
+                    .collection('medecins')
+                    .doc(firebaseUser.uid)
+                    .set(user.toJson());
+                print('login: Debug - Medecin data recovered and saved');
+              }
+            }
+          } catch (e) {
+            print('login: Error checking medecin collection: $e');
           }
         }
 
-        // Save the FCM token if it's available
+        // If still no user found, try users collection or create new one
+        if (user == null) {
+          try {
+            print(
+              'login: Debug - Checking users collection or creating new user',
+            );
+            final userDoc =
+                await firestore.collection('users').doc(firebaseUser.uid).get();
+
+            if (userDoc.exists) {
+              print('login: Debug - User exists in users collection');
+
+              // Determine role from users collection
+              final role = userDoc.data()?['role'] as String? ?? 'patient';
+
+              if (role == 'medecin') {
+                // Create new medecin record using recovery method
+                user = MedecinModel.recoverFromCorruptDoc(
+                  userDoc.data(),
+                  firebaseUser.uid,
+                  normalizedEmail,
+                );
+                collection = 'medecins';
+              } else {
+                // Create new patient record using recovery method
+                user = PatientModel.recoverFromCorruptDoc(
+                  userDoc.data(),
+                  firebaseUser.uid,
+                  normalizedEmail,
+                );
+                collection = 'patients';
+              }
+
+              // Save to appropriate collection
+              await firestore
+                  .collection(collection!)
+                  .doc(firebaseUser.uid)
+                  .set(user.toJson());
+              print(
+                'login: Debug - Created new $collection record from users collection',
+              );
+            } else {
+              // No record found anywhere, create new patient account
+              print(
+                'login: Debug - No user data found in any collection, creating new patient',
+              );
+              user = PatientModel.recoverFromCorruptDoc(
+                {
+                  'name': firebaseUser.displayName?.split(' ').first,
+                  'lastName': firebaseUser.displayName?.split(' ').last,
+                },
+                firebaseUser.uid,
+                normalizedEmail,
+              );
+              collection = 'patients';
+
+              // Save to patients collection
+              await firestore
+                  .collection('patients')
+                  .doc(firebaseUser.uid)
+                  .set(user.toJson());
+              print('login: Debug - Created new patient record from auth data');
+            }
+          } catch (e) {
+            print('login: Error trying to recover or create user: $e');
+            throw AuthException(
+              'Failed to recover account data. Please contact support.',
+            );
+          }
+        }
+
+        // At this point we must have a valid user and collection
+        if (user == null || collection == null) {
+          throw AuthException(
+            'Failed to establish user identity. Please contact support.',
+          );
+        }
+
+        // Save the FCM token if it's available, but only in the patient or medecin collection
         if (fcmToken != null && fcmToken.isNotEmpty) {
           // Update the FCM token in the appropriate collection
-          await firestore.collection(collection).doc(firebaseUser.uid).update({
-            'fcmToken': fcmToken,
-          });
-
-          // Also update/create in users collection for notification service
           try {
-            await firestore.collection('users').doc(firebaseUser.uid).update({
-              'fcmToken': fcmToken,
-            });
+            await firestore.collection(collection).doc(firebaseUser.uid).update(
+              {'fcmToken': fcmToken},
+            );
+            print('login: Updated FCM token for user: $fcmToken');
           } catch (e) {
-            // If user doesn't exist in 'users' collection, create it
+            print('login: Warning - Failed to update FCM token: $e');
+          }
+
+          // Also keep minimal data in users collection only for notification purposes
+          try {
             await firestore.collection('users').doc(firebaseUser.uid).set({
               'id': user.id,
               'name': user.name,
@@ -401,16 +562,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
               'email': user.email,
               'role': user.role,
               'fcmToken': fcmToken,
-            });
+            }, SetOptions(merge: true));
+            print(
+              'login: Updated minimal user data in users collection for notifications',
+            );
+          } catch (e) {
+            // Log error but continue, as this is not critical for login
+            print(
+              'login: Warning - Failed to update users collection for notifications: $e',
+            );
           }
-
-          print('login: Updated FCM token for user: $fcmToken');
         } else {
           print('login: No FCM token available to update');
         }
 
+        // Cache user data locally
         await localDataSource.cacheUser(user);
         await localDataSource.saveToken(firebaseUser.uid);
+        print('login: Debug - Login successful, returning user model');
         return user;
       } else {
         print('login: Error - Firebase sign-in failed');
@@ -420,14 +589,32 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       print(
         'login: FirebaseAuthException: code=${e.code}, message=${e.message}',
       );
-      if (e.code == 'user-not-found' || e.code == 'wrong-password') {
-        throw UnauthorizedException('Invalid email or password');
+      if (e.code == 'user-not-found') {
+        throw UnauthorizedException(
+          'Account not found. Please check your email.',
+        );
+      } else if (e.code == 'wrong-password') {
+        throw UnauthorizedException('Incorrect password. Please try again.');
+      } else if (e.code == 'user-disabled') {
+        throw AuthException('This account has been disabled.');
+      } else if (e.code == 'too-many-requests') {
+        throw AuthException(
+          'Too many unsuccessful login attempts. Please try again later.',
+        );
+      } else if (e.code == 'invalid-credential') {
+        throw AuthException(
+          'Login failed. Please check your email and password and try again.',
+        );
       } else {
         throw AuthException(e.message ?? 'Login failed');
       }
     } catch (e) {
       print('login: Unexpected error: $e');
-      throw ServerException('Unexpected error: $e');
+      if (e is AuthException) {
+        // Pass through AuthExceptions directly
+        rethrow;
+      }
+      throw ServerException('Unexpected error during login: $e');
     }
   }
 

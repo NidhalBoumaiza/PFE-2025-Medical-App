@@ -42,6 +42,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'features/dashboard/presentation/blocs/dashboard BLoC/dashboard_bloc.dart';
 import 'features/ordonnance/presentation/bloc/prescription_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 // API endpoints for the Express backend
 // This class is now moved to constants.dart
@@ -175,23 +176,30 @@ const AndroidNotificationChannel channel = AndroidNotificationChannel(
   showBadge: true,
 );
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Configure Firebase reCAPTCHA verification (disable for testing)
+  await FirebaseAuth.instance.setSettings(
+    appVerificationDisabledForTesting: true,
+  );
+
+  // For testing purposes, disable App Check
+  await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(false);
 
   // Firebase persistence
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
   );
 
-  // Initialize Firebase App Check
+  // Initialize Firebase App Check (with debug provider only)
   await FirebaseAppCheck.instance.activate(
-    // Use a real provider in production
-    webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
+    // Use debug provider for development
     androidProvider: AndroidProvider.debug,
-    appleProvider: AppleProvider.appAttest,
+    appleProvider: AppleProvider.debug,
   );
 
   // Set up FCM background message handler

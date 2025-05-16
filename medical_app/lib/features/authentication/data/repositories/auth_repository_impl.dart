@@ -72,15 +72,9 @@ class AuthRepositoryImpl implements AuthRepository {
             numLicence: user.numLicence!,
           );
         } else {
-          userModel = UserModel(
-            id: user.id ?? "",
-            name: user.name,
-            lastName: user.lastName,
-            email: user.email,
-            role: user.role,
-            gender: user.gender,
-            phoneNumber: user.phoneNumber,
-            dateOfBirth: user.dateOfBirth,
+          // Reject any account creation that is not a patient or medecin
+          return Left(
+            AuthFailure('Only patient or doctor accounts can be created'),
           );
         }
         await remoteDataSource.createAccount(userModel, password);

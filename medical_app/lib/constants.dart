@@ -9,6 +9,8 @@ class AppConstants {
   static String get saveNotification => '$baseUrl/notifications/save';
   static String get getUserToken => '$baseUrl/notifications/user-token';
   static String get getFcmToken => '$baseUrl/notifications/get-fcm-token';
+  static String get usersEndpoint =>
+      '$baseUrl/users'; // Authentication endpoints
 
   // Firebase Configuration
   static const String firebaseProjectId =

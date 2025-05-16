@@ -38,32 +38,159 @@ class MedecinModel extends UserModel {
        );
 
   factory MedecinModel.fromJson(Map<String, dynamic> json) {
+    // Handle potential null or wrong types for each field
+    final String id = json['id'] is String ? json['id'] as String : '';
+    final String name = json['name'] is String ? json['name'] as String : '';
+    final String lastName =
+        json['lastName'] is String ? json['lastName'] as String : '';
+    final String email = json['email'] is String ? json['email'] as String : '';
+    final String role =
+        json['role'] is String ? json['role'] as String : 'medecin';
+    final String gender =
+        json['gender'] is String ? json['gender'] as String : 'Homme';
+    final String phoneNumber =
+        json['phoneNumber'] is String ? json['phoneNumber'] as String : '';
+    final String speciality =
+        json['speciality'] is String
+            ? json['speciality'] as String
+            : 'Généraliste';
+    final String numLicence =
+        json['numLicence'] is String ? json['numLicence'] as String : '';
+
+    // Handle appointment duration with robust type checking
+    int appointmentDuration = 30; // Default value
+    if (json['appointmentDuration'] is int) {
+      appointmentDuration = json['appointmentDuration'] as int;
+    } else if (json['appointmentDuration'] is String &&
+        (json['appointmentDuration'] as String).isNotEmpty) {
+      try {
+        appointmentDuration = int.parse(json['appointmentDuration'] as String);
+      } catch (_) {
+        // Keep default value if parsing fails
+      }
+    }
+
+    // Handle nullable fields with proper type checking
+    DateTime? dateOfBirth;
+    if (json['dateOfBirth'] is String &&
+        (json['dateOfBirth'] as String).isNotEmpty) {
+      try {
+        dateOfBirth = DateTime.parse(json['dateOfBirth'] as String);
+      } catch (_) {
+        dateOfBirth = null;
+      }
+    }
+
+    bool? accountStatus;
+    if (json['accountStatus'] is bool) {
+      accountStatus = json['accountStatus'] as bool;
+    } else if (json['accountStatus'] is String) {
+      accountStatus = (json['accountStatus'] as String).toLowerCase() == 'true';
+    } else {
+      accountStatus = false;
+    }
+
+    int? verificationCode;
+    if (json['verificationCode'] is int) {
+      verificationCode = json['verificationCode'] as int;
+    } else if (json['verificationCode'] is String &&
+        (json['verificationCode'] as String).isNotEmpty) {
+      try {
+        verificationCode = int.parse(json['verificationCode'] as String);
+      } catch (_) {
+        verificationCode = null;
+      }
+    }
+
+    DateTime? validationCodeExpiresAt;
+    if (json['validationCodeExpiresAt'] is String &&
+        (json['validationCodeExpiresAt'] as String).isNotEmpty) {
+      try {
+        validationCodeExpiresAt = DateTime.parse(
+          json['validationCodeExpiresAt'] as String,
+        );
+      } catch (_) {
+        validationCodeExpiresAt = null;
+      }
+    }
+
+    String? fcmToken;
+    if (json['fcmToken'] is String) {
+      fcmToken = json['fcmToken'] as String;
+    }
+
     return MedecinModel(
-      id: json['id'] as String?,
-      name: json['name'] as String,
-      lastName: json['lastName'] as String,
-      email: json['email'] as String,
-      role: json['role'] as String,
-      gender: json['gender'] as String,
-      phoneNumber: json['phoneNumber'] as String,
-      dateOfBirth:
-          json['dateOfBirth'] != null
-              ? DateTime.parse(json['dateOfBirth'] as String)
-              : null,
-      speciality: json['speciality'] as String,
-      numLicence: json['numLicence'] as String,
-      appointmentDuration:
-          json['appointmentDuration'] != null
-              ? json['appointmentDuration'] as int
-              : 30, // Default 30 minutes
-      accountStatus: json['accountStatus'] as bool?,
-      verificationCode: json['verificationCode'] as int?,
-      validationCodeExpiresAt:
-          json['validationCodeExpiresAt'] != null
-              ? DateTime.parse(json['validationCodeExpiresAt'] as String)
-              : null,
-      fcmToken: json['fcmToken'] as String?,
+      id: id,
+      name: name,
+      lastName: lastName,
+      email: email,
+      role: role,
+      gender: gender,
+      phoneNumber: phoneNumber,
+      dateOfBirth: dateOfBirth,
+      speciality: speciality,
+      numLicence: numLicence,
+      accountStatus: accountStatus,
+      verificationCode: verificationCode,
+      validationCodeExpiresAt: validationCodeExpiresAt,
+      fcmToken: fcmToken,
+      appointmentDuration: appointmentDuration,
     );
+  }
+
+  /// Creates a valid MedecinModel from potentially corrupted document data
+  /// This can help recover accounts when data is malformed
+  static MedecinModel recoverFromCorruptDoc(
+    Map<String, dynamic>? docData,
+    String userId,
+    String userEmail,
+  ) {
+    // Default values for required fields if missing or corrupted
+    final Map<String, dynamic> safeData = {
+      'id': userId,
+      'name': '',
+      'lastName': '',
+      'email': userEmail,
+      'role': 'medecin',
+      'gender': 'Homme',
+      'phoneNumber': '',
+      'speciality': 'Généraliste',
+      'numLicence': '',
+      'appointmentDuration': 30,
+      'accountStatus': true,
+    };
+
+    // Use existing data when available and valid
+    if (docData != null) {
+      if (docData['name'] is String) safeData['name'] = docData['name'];
+      if (docData['lastName'] is String)
+        safeData['lastName'] = docData['lastName'];
+      if (docData['gender'] is String) safeData['gender'] = docData['gender'];
+      if (docData['phoneNumber'] is String)
+        safeData['phoneNumber'] = docData['phoneNumber'];
+      if (docData['fcmToken'] is String)
+        safeData['fcmToken'] = docData['fcmToken'];
+      if (docData['speciality'] is String)
+        safeData['speciality'] = docData['speciality'];
+      if (docData['numLicence'] is String)
+        safeData['numLicence'] = docData['numLicence'];
+
+      // Handle appointment duration safely
+      if (docData['appointmentDuration'] is int) {
+        safeData['appointmentDuration'] = docData['appointmentDuration'];
+      } else if (docData['appointmentDuration'] is String &&
+          (docData['appointmentDuration'] as String).isNotEmpty) {
+        try {
+          safeData['appointmentDuration'] = int.parse(
+            docData['appointmentDuration'] as String,
+          );
+        } catch (_) {
+          // Keep default value if parsing fails
+        }
+      }
+    }
+
+    return MedecinModel.fromJson(safeData);
   }
 
   @override

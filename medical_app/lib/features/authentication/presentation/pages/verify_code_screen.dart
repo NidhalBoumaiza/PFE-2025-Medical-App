@@ -262,7 +262,7 @@ class VerifyCodeScreen extends StatelessWidget {
                                   color: AppColors.primaryColor,
                                 ),
                               ),
-                            ),
+                              ),
                           ],
                         );
                       },

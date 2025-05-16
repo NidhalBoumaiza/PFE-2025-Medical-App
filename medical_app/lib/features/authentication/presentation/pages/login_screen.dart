@@ -6,9 +6,13 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:medical_app/core/utils/custom_snack_bar.dart';
 import 'package:medical_app/core/utils/navigation_with_transition.dart';
+import 'package:medical_app/features/authentication/data/data%20sources/auth_remote_data_source.dart';
 import 'package:medical_app/features/authentication/presentation/pages/forgot_password_screen.dart';
 import 'package:medical_app/features/authentication/presentation/pages/signup_screen.dart';
+import 'package:medical_app/features/authentication/presentation/pages/verify_code_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/widgets/reusable_text_field_widget.dart';
@@ -330,7 +334,48 @@ class _LoginScreenState extends State<LoginScreen> {
                           );
                         }
                       } else if (state is LoginError) {
-                        showErrorSnackBar(context, state.message.tr);
+                        // Check if the error message contains information about account activation
+                        if (state.message.contains(
+                              'Account is not activated',
+                            ) ||
+                            state.message.contains('verify your email')) {
+                          // Show error message with option to navigate to verification screen
+                          showDialog(
+                            context: context,
+                            builder:
+                                (ctx) => AlertDialog(
+                                  title: Text('Account Verification Required'),
+                                  content: Text(
+                                    'Your account has not been activated. Please verify your email to continue.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(ctx).pop();
+                                      },
+                                      child: Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(ctx).pop();
+                                        // Navigate to verification screen with the email
+                                        navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                                          context,
+                                          VerifyCodeScreen(
+                                            email: emailController.text,
+                                            isAccountCreation: true,
+                                          ),
+                                        );
+                                      },
+                                      child: Text('Verify Now'),
+                                    ),
+                                  ],
+                                ),
+                          );
+                        } else {
+                          // Normal error handling
+                          showErrorSnackBar(context, state.message.tr);
+                        }
                       }
                     },
                     builder: (context, state) {
@@ -496,7 +541,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             elevation: isEmailPasswordLoading ? 0 : 2,
                           ),
                           onPressed:
-                              isEmailPasswordLoading || isGoogleLoading
+                              isGoogleLoading || isEmailPasswordLoading
                                   ? null
                                   : () {
                                     context.read<LoginBloc>().add(
@@ -507,6 +552,33 @@ class _LoginScreenState extends State<LoginScreen> {
                       );
                     },
                   ),
+
+                  // Add a debug button to create a test account (only in debug/dev builds)
+                  if (const bool.fromEnvironment('dart.vm.product') == false)
+                    Padding(
+                      padding: EdgeInsets.only(top: 10.h, bottom: 10.h),
+                      child: GestureDetector(
+                        onTap: () => _createTestAccount(context),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.bug_report,
+                              color: Colors.grey,
+                              size: 16.sp,
+                            ),
+                            SizedBox(width: 8.w),
+                            Text(
+                              "Debug: Create test account",
+                              style: GoogleFonts.raleway(
+                                fontSize: 12.sp,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -514,5 +586,119 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  // Function to manually create a test account for debugging
+  void _createTestAccount(BuildContext context) async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (context) => const AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text("Creating test account..."),
+                ],
+              ),
+            ),
+      );
+
+      // Create a test account directly with Firebase
+      final auth = FirebaseAuth.instance;
+      final firestore = FirebaseFirestore.instance;
+
+      // Use a test email with timestamp to ensure uniqueness
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final email = 'test$timestamp@example.com';
+      const password = 'Test123456';
+
+      // Create user in Firebase Auth
+      final userCredential = await auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Create a corresponding Firestore document
+      if (userCredential.user != null) {
+        final uid = userCredential.user!.uid;
+        await firestore.collection('patients').doc(uid).set({
+          'id': uid,
+          'name': 'Test',
+          'lastName': 'User',
+          'email': email,
+          'role': 'patient',
+          'gender': 'Homme',
+          'phoneNumber': '',
+          'dateOfBirth': null,
+          'antecedent': '',
+          'accountStatus': true, // Already activated for testing
+        });
+
+        // Also create an entry in users collection for notifications
+        await firestore.collection('users').doc(uid).set({
+          'id': uid,
+          'name': 'Test',
+          'lastName': 'User',
+          'email': email,
+          'role': 'patient',
+        });
+
+        // Close the dialog
+        if (context.mounted) {
+          Navigator.of(context).pop();
+
+          // Show success dialog with credentials
+          showDialog(
+            context: context,
+            builder:
+                (context) => AlertDialog(
+                  title: const Text("Test Account Created"),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Email: $email"),
+                      const Text("Password: Test123456"),
+                      const SizedBox(height: 16),
+                      const Text("Account is already activated for testing."),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text("OK"),
+                    ),
+                  ],
+                ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close the loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+
+        // Show error dialog
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text("Error"),
+                content: Text("Failed to create test account: $e"),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text("OK"),
+                  ),
+                ],
+              ),
+        );
+      }
+    }
   }
 }

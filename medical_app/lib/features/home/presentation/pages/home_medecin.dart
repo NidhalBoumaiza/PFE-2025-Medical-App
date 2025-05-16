@@ -129,7 +129,7 @@ class _HomeMedecinState extends State<HomeMedecin> {
         );
       },
     );
-
+    
     if (picked != null && picked != selectedAppointmentDate) {
       setState(() {
         selectedAppointmentDate = picked;
@@ -222,7 +222,7 @@ class _HomeMedecinState extends State<HomeMedecin> {
     return ListTile(
       leading: Icon(icon, color: color ?? Colors.white, size: 20),
       title: Text(
-        title,
+                  title,
         style: GoogleFonts.raleway(fontSize: 16, color: color ?? Colors.white),
       ),
       onTap: onTap,
@@ -234,19 +234,19 @@ class _HomeMedecinState extends State<HomeMedecin> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-
+    
     return BlocListener<UpdateUserBloc, UpdateUserState>(
       listener: (_, state) {
-        if (state is UpdateUserSuccess) {
-          setState(() {
-            doctorName = '${state.user.name} ${state.user.lastName}'.trim();
-            email = state.user.email;
-            userId = state.user.id ?? '';
-          });
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(
+          if (state is UpdateUserSuccess) {
+            setState(() {
+              doctorName = '${state.user.name} ${state.user.lastName}'.trim();
+              email = state.user.email;
+              userId = state.user.id ?? '';
+            });
+          }
+        },
+        child: Scaffold(
+          appBar: AppBar(
           automaticallyImplyLeading: false,
           title:
               selectedItem == 0
@@ -279,9 +279,9 @@ class _HomeMedecinState extends State<HomeMedecin> {
                       fontSize: 18.sp,
                       fontWeight: FontWeight.bold,
                     ),
-                  ),
-          actions: [
-            if (selectedItem == 1) ...[
+            ),
+            actions: [
+              if (selectedItem == 1) ...[
               IconButton(
                 icon: const Icon(Icons.calendar_today),
                 onPressed: () => _selectDate(context),
@@ -299,7 +299,7 @@ class _HomeMedecinState extends State<HomeMedecin> {
               iconColor: AppColors.whiteColor,
               iconSize: 24,
             ),
-            IconButton(
+              IconButton(
               icon: const Icon(Icons.menu, color: AppColors.whiteColor),
               onPressed: () {
                 Scaffold.of(context).openDrawer();
@@ -309,24 +309,24 @@ class _HomeMedecinState extends State<HomeMedecin> {
           backgroundColor: AppColors.primaryColor,
           elevation: 0,
           centerTitle: true,
-        ),
-        body: pages[selectedItem],
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
+          ),
+          body: pages[selectedItem],
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
             color:
                 isDarkMode ? theme.colorScheme.surface : AppColors.whiteColor,
-            boxShadow: [
-              BoxShadow(
+              boxShadow: [
+                BoxShadow(
                 color: Colors.black.withOpacity(0.1),
                 spreadRadius: 0,
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: ClipRRect(
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: BottomNavigationBar(
+              child: BottomNavigationBar(
               items: [
                 items[0], // Home
                 items[1], // Appointments
@@ -339,29 +339,29 @@ class _HomeMedecinState extends State<HomeMedecin> {
                 items[3], // Profile
               ],
               currentIndex: selectedItem,
-              selectedItemColor: AppColors.primaryColor,
+                selectedItemColor: AppColors.primaryColor,
               unselectedItemColor:
                   isDarkMode ? Colors.grey.shade400 : const Color(0xFF757575),
-              showUnselectedLabels: true,
-              type: BottomNavigationBarType.fixed,
+                showUnselectedLabels: true,
+                type: BottomNavigationBarType.fixed,
               backgroundColor:
                   isDarkMode ? theme.colorScheme.surface : AppColors.whiteColor,
-              selectedLabelStyle: GoogleFonts.raleway(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.bold,
-              ),
-              unselectedLabelStyle: GoogleFonts.raleway(
+                selectedLabelStyle: GoogleFonts.raleway(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+                unselectedLabelStyle: GoogleFonts.raleway(
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w500,
+                ),
+                onTap: (index) {
+                  setState(() {
+                    selectedItem = index;
+                  });
+                },
               ),
-              onTap: (index) {
-                setState(() {
-                  selectedItem = index;
-                });
-              },
             ),
           ),
-        ),
         drawer: _buildDrawer(isDarkMode, theme),
       ),
     );
@@ -400,7 +400,7 @@ class _HomeMedecinState extends State<HomeMedecin> {
                 top: -5,
                 child: Container(
                   padding: EdgeInsets.all(4.r),
-                  decoration: BoxDecoration(
+            decoration: BoxDecoration(
                     color: Colors.red,
                     shape: BoxShape.circle,
                     border: Border.all(
@@ -454,63 +454,63 @@ class _HomeMedecinState extends State<HomeMedecin> {
                     ),
             borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
           ),
-          child: Column(
-            children: [
+            child: Column(
+              children: [
               Padding(
                 padding: EdgeInsets.only(top: 50.h, bottom: 16.h),
                 child: Column(
-                  children: [
-                    CircleAvatar(
+                    children: [
+                      CircleAvatar(
                       radius: 40.r,
                       backgroundColor: Colors.white.withOpacity(0.9),
-                      child: Icon(
-                        Icons.person,
+                        child: Icon(
+                          Icons.person,
                         size: 40.sp,
                         color: const Color(0xFF2fa7bb),
                       ),
                     ),
                     SizedBox(height: 12.h),
-                    Text(
-                      doctorName,
+                            Text(
+                              doctorName,
                       style: GoogleFonts.poppins(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
                         color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      email,
-                      style: GoogleFonts.raleway(
-                        fontSize: 14.sp,
+                              ),
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              email,
+                              style: GoogleFonts.raleway(
+                                fontSize: 14.sp,
                         color: Colors.white.withOpacity(0.9),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Divider(
+                Divider(
                 color: Colors.white.withOpacity(0.2),
-                thickness: 1,
-                height: 1,
-              ),
+                  thickness: 1,
+                  height: 1,
+                ),
               SizedBox(height: 15),
 
-              Expanded(
-                child: ListView(
+                Expanded(
+                  child: ListView(
                   padding: EdgeInsets.symmetric(vertical: 10),
-                  children: [
-                    _buildDrawerItem(
-                      icon: FontAwesomeIcons.hospital,
-                      title: 'hospitals'.tr,
-                      onTap: () {
-                        Navigator.pop(context);
-                        navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-                          context,
-                          const PharmaciePage(),
-                        );
-                      },
-                    ),
+                    children: [
+                      _buildDrawerItem(
+                        icon: FontAwesomeIcons.hospital,
+                        title: 'hospitals'.tr,
+                        onTap: () {
+                          Navigator.pop(context);
+                          navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                            context,
+                            const PharmaciePage(),
+                          );
+                        },
+                      ),
                     _buildDrawerItem(
                       icon: FontAwesomeIcons.kitMedical,
                       title: 'first_aid'.tr,
@@ -522,19 +522,19 @@ class _HomeMedecinState extends State<HomeMedecin> {
                         );
                       },
                     ),
-                    _buildDrawerItem(
-                      icon: FontAwesomeIcons.gear,
-                      title: 'settings'.tr,
-                      onTap: () {
-                        Navigator.pop(context);
-                        navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-                          context,
-                          const SettingsPage(),
-                        );
-                      },
-                    ),
-                    // Theme toggle
-                    Padding(
+                      _buildDrawerItem(
+                        icon: FontAwesomeIcons.gear,
+                        title: 'settings'.tr,
+                        onTap: () {
+                          Navigator.pop(context);
+                          navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                            context,
+                            const SettingsPage(),
+                          );
+                        },
+                      ),
+                      // Theme toggle
+                      Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
@@ -543,16 +543,16 @@ class _HomeMedecinState extends State<HomeMedecin> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Row(
-                            children: [
-                              Icon(
+                              children: [
+                                Icon(
                                 FontAwesomeIcons.solidMoon,
                                 color: Colors.white,
                                 size: 20,
                               ),
                               const SizedBox(width: 12),
-                              Text(
+                                Text(
                                 'dark_mode'.tr,
-                                style: GoogleFonts.raleway(
+                                  style: GoogleFonts.raleway(
                                   fontSize: 16,
                                   color: Colors.white,
                                 ),
@@ -561,26 +561,26 @@ class _HomeMedecinState extends State<HomeMedecin> {
                           ),
                           ThemeCubitSwitch(color: Colors.white),
                         ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Divider(
+                Divider(
                 color: Colors.white.withOpacity(0.2),
-                thickness: 1,
-                height: 1,
-              ),
-              Padding(
+                  thickness: 1,
+                  height: 1,
+                ),
+                Padding(
                 padding: EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-                child: _buildDrawerItem(
-                  icon: FontAwesomeIcons.rightFromBracket,
+                  child: _buildDrawerItem(
+                    icon: FontAwesomeIcons.rightFromBracket,
                   title: 'logout'.tr,
-                  onTap: _logout,
+                    onTap: _logout,
                   color: Colors.red[50],
                 ),
-              ),
-            ],
+                ),
+              ],
           ),
         ),
       ),
