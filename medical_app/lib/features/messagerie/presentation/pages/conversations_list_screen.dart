@@ -42,6 +42,14 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
     // Refresh conversations when returning to this screen
     if (_userId.isNotEmpty) {
       _refreshConversations();
+
+      // Only mark conversations as read when actually viewing the screen
+      if (mounted && widget.showAppBar == false) {
+        // This means we're in the tab view, not just navigating to this screen
+        context.read<ConversationsBloc>().add(
+          MarkAllConversationsReadEvent(userId: _userId),
+        );
+      }
     }
   }
 

@@ -22,7 +22,10 @@ class SubscribeToConversationsEvent extends ConversationsEvent {
   final String userId;
   final bool isDoctor;
 
-  const SubscribeToConversationsEvent({required this.userId, required this.isDoctor});
+  const SubscribeToConversationsEvent({
+    required this.userId,
+    required this.isDoctor,
+  });
 
   @override
   List<Object> get props => [userId, isDoctor];
@@ -44,4 +47,13 @@ class ConversationsStreamErrorEvent extends ConversationsEvent {
 
   @override
   List<Object> get props => [error];
+}
+
+class MarkAllConversationsReadEvent extends ConversationsEvent {
+  final String userId;
+
+  const MarkAllConversationsReadEvent({required this.userId});
+
+  @override
+  List<Object> get props => [userId];
 }

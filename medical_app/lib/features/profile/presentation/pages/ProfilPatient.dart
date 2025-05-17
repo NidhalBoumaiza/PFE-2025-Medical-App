@@ -8,15 +8,11 @@ import 'package:medical_app/core/utils/app_colors.dart';
 import 'package:medical_app/core/utils/custom_snack_bar.dart';
 import 'package:medical_app/core/utils/navigation_with_transition.dart';
 import 'package:medical_app/core/util/snackbar_message.dart';
-import 'package:medical_app/cubit/theme_cubit/theme_cubit.dart';
 import 'package:medical_app/features/authentication/domain/entities/patient_entity.dart';
-import 'package:medical_app/features/profile/presentation/pages/edit_profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../authentication/presentation/pages/login_screen.dart';
 import 'blocs/BLoC update profile/update_user_bloc.dart';
 import 'package:medical_app/features/dossier_medical/presentation/bloc/dossier_medical_bloc.dart';
-import 'package:medical_app/features/dossier_medical/presentation/bloc/dossier_medical_event.dart';
-import 'package:medical_app/features/dossier_medical/presentation/bloc/dossier_medical_state.dart';
 import 'package:medical_app/features/dossier_medical/presentation/pages/dossier_medical_screen.dart';
 import 'package:medical_app/injection_container.dart' as di;
 import 'package:medical_app/features/settings/presentation/pages/SettingsPage.dart';
@@ -226,7 +222,7 @@ class _ProfilePatientState extends State<ProfilePatient> {
                             ),
                             SizedBox(height: 16.h),
                             Text(
-                              _patient!.name + " " + _patient!.lastName,
+                              '${_patient!.name} ${_patient!.lastName}',
                               style: GoogleFonts.raleway(
                                 fontSize: 20.sp,
                                 fontWeight: FontWeight.bold,
@@ -273,11 +269,11 @@ class _ProfilePatientState extends State<ProfilePatient> {
                                 ?.toIso8601String()
                                 .split('T')
                                 .first ??
-                            'Non spécifiée',
+                            'not_specified'.tr,
                       ),
                       _buildInfoTile(
                         'antecedent'.tr,
-                        _patient!.antecedent ?? 'rien',
+                        _patient!.antecedent ?? 'not_specified'.tr,
                       ),
                       SizedBox(height: 20.h),
                       Padding(
@@ -344,7 +340,7 @@ class _ProfilePatientState extends State<ProfilePatient> {
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16.w),
                         child: Text(
-                          'Dossier Médical',
+                          'medical_records'.tr,
                           style: GoogleFonts.raleway(
                             fontSize: 18.sp,
                             fontWeight: FontWeight.bold,
@@ -368,8 +364,7 @@ class _ProfilePatientState extends State<ProfilePatient> {
                             );
                           } else {
                             SnackBarMessage().showErrorSnackBar(
-                              message:
-                                  "Impossible d'accéder au dossier médical: ID patient manquant",
+                              message: 'medical_record_access_error'.tr,
                               context: context,
                             );
                           }
@@ -397,7 +392,7 @@ class _ProfilePatientState extends State<ProfilePatient> {
                               size: 20.sp,
                             ),
                             title: Text(
-                              'Gérer mon dossier médical',
+                              'manage_medical_records'.tr,
                               style: GoogleFonts.raleway(
                                 fontSize: 14.sp,
                                 fontWeight: FontWeight.w500,

@@ -177,39 +177,32 @@ class _DashboardpatientState extends State<Dashboardpatient> {
                         ),
                         child: InkWell(
                           onTap: () {
-                            switch (searchItems[index]["text"]) {
-                              case 'Doctors':
-                              case 'Médecins':
-                              case 'أطباء':
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (context) => AllSpecialtiesPage(
-                                          specialties: specialtiesWithImages,
-                                        ),
-                                  ),
-                                );
-                                break;
-                              case 'Pharmacies':
-                              case 'صيدليات':
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const PharmaciePage(),
-                                  ),
-                                );
-                                break;
-                              case 'Hospitals':
-                              case 'Hopitaux':
-                              case 'مستشفيات':
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const PharmaciePage(),
-                                  ),
-                                );
-                                break;
+                            final itemText =
+                                searchItems[index]["text"] as String;
+                            if (itemText == 'doctors'.tr) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => AllSpecialtiesPage(
+                                        specialties: getSpecialtiesWithImages(),
+                                      ),
+                                ),
+                              );
+                            } else if (itemText == 'pharmacies'.tr) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const PharmaciePage(),
+                                ),
+                              );
+                            } else if (itemText == 'hospitals'.tr) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const PharmaciePage(),
+                                ),
+                              );
                             }
                           },
                           child: AnimatedContainer(
@@ -268,7 +261,7 @@ class _DashboardpatientState extends State<Dashboardpatient> {
                         MaterialPageRoute(
                           builder:
                               (context) => AllSpecialtiesPage(
-                                specialties: specialtiesWithImages,
+                                specialties: getSpecialtiesWithImages(),
                               ),
                         ),
                       );
@@ -288,7 +281,7 @@ class _DashboardpatientState extends State<Dashboardpatient> {
                 height: 110,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: specialtiesWithImages.length,
+                  itemCount: getSpecialtiesWithImages().length,
                   itemBuilder: (context, index) {
                     return GestureDetector(
                       onTap: () {
@@ -296,7 +289,7 @@ class _DashboardpatientState extends State<Dashboardpatient> {
                           context,
                           RendezVousPatient(
                             selectedSpecialty:
-                                specialtiesWithImages[index]['text'],
+                                getSpecialtiesWithImages()[index]['text'],
                           ),
                         );
                       },
@@ -325,7 +318,7 @@ class _DashboardpatientState extends State<Dashboardpatient> {
                                     BlendMode.srcATop,
                                   ),
                                   child: Image.asset(
-                                    specialtiesWithImages[index]['image']!,
+                                    getSpecialtiesWithImages()[index]['image']!,
                                     width: 50,
                                     height: 50,
                                     fit: BoxFit.contain,
@@ -341,7 +334,7 @@ class _DashboardpatientState extends State<Dashboardpatient> {
                                 const SizedBox(height: 10),
                                 //nom du spécialité
                                 Text(
-                                  specialtiesWithImages[index]['text']!,
+                                  getSpecialtiesWithImages()[index]['text']!,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 12,

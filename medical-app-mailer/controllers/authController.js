@@ -48,6 +48,7 @@ exports.sendMailService = catchAsync(async (req, res, next) => {
       email: req.body.email,
       subject: req.body.subject || "Activation de compte",
       message,
+      code: req.body.code,
     });
     res.status(201).json({
       status: "success",

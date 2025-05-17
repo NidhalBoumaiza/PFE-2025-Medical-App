@@ -45,7 +45,7 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                   // Title
                   Center(
                     child: Text(
-                      "Antécédents médicaux",
+                      "medical_history_label".tr,
                       style: GoogleFonts.raleway(
                         fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
@@ -53,9 +53,9 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: 20.h),
-                  
+
                   // Header image
                   Center(
                     child: Image.asset(
@@ -64,9 +64,9 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                       width: 200.w,
                     ),
                   ),
-                  
+
                   SizedBox(height: 30.h),
-                  
+
                   // Form fields
                   Form(
                     key: _formKey,
@@ -75,16 +75,16 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                       children: [
                         // Antécédents label
                         Text(
-                          "Antécédents médicaux",
+                          "medical_history_label".tr,
                           style: GoogleFonts.raleway(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w600,
                             color: Colors.black87,
                           ),
                         ),
-                        
+
                         SizedBox(height: 10.h),
-                        
+
                         // Antécédents field
                         Container(
                           decoration: BoxDecoration(
@@ -143,7 +143,7 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                                   width: 1,
                                 ),
                               ),
-                              hintText: "Entrez vos antécédents médicaux",
+                              hintText: "medical_history_hint".tr,
                               hintStyle: GoogleFonts.raleway(
                                 color: Colors.grey[400],
                                 fontSize: 15.sp,
@@ -151,7 +151,9 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return "Les antécédents médicaux sont obligatoires";
+                                return "medical_history_label".tr +
+                                    " " +
+                                    "name_required".tr;
                               }
                               return null;
                             },
@@ -160,9 +162,9 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                       ],
                     ),
                   ),
-                  
+
                   SizedBox(height: 30.h),
-                  
+
                   // Submit button
                   Container(
                     width: double.infinity,
@@ -188,11 +190,13 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                             dateOfBirth: widget.patientEntity.dateOfBirth,
                             antecedent: antecedentsController.text,
                           );
-                          Get.to(() => PasswordScreen(entity: updatedPatientEntity));
+                          Get.to(
+                            () => PasswordScreen(entity: updatedPatientEntity),
+                          );
                         }
                       },
                       child: Text(
-                        "Suivant",
+                        "next_button".tr,
                         style: GoogleFonts.raleway(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
@@ -200,9 +204,9 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: 20.h),
-                  
+
                   // Back button
                   Center(
                     child: TextButton(
@@ -210,7 +214,7 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                         Navigator.pop(context);
                       },
                       child: Text(
-                        "Retour",
+                        "cancel".tr,
                         style: GoogleFonts.raleway(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w600,

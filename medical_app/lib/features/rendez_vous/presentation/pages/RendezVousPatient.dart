@@ -49,9 +49,12 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
   void initState() {
     super.initState();
     initializeDateFormatting();
-    if (widget.selectedSpecialty != null &&
-        specialties.contains(widget.selectedSpecialty)) {
-      selectedSpecialty = widget.selectedSpecialty;
+    if (widget.selectedSpecialty != null) {
+      // Check if the selected specialty exists in any language
+      List<String> translatedSpecialties = getTranslatedSpecialties();
+      if (translatedSpecialties.contains(widget.selectedSpecialty)) {
+        selectedSpecialty = widget.selectedSpecialty;
+      }
     }
   }
 
@@ -305,7 +308,7 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                           ),
                           value: selectedSpecialty,
                           items:
-                              specialties
+                              getTranslatedSpecialties()
                                   .map(
                                     (specialty) => DropdownMenuItem(
                                       value: specialty,

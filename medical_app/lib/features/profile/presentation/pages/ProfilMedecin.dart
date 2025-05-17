@@ -7,7 +7,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:medical_app/core/utils/app_colors.dart';
 import 'package:medical_app/core/utils/custom_snack_bar.dart';
 import 'package:medical_app/core/utils/navigation_with_transition.dart';
-import 'package:medical_app/cubit/theme_cubit/theme_cubit.dart';
 import 'package:medical_app/features/authentication/domain/entities/medecin_entity.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../authentication/presentation/pages/login_screen.dart';
@@ -23,21 +22,10 @@ class ProfilMedecin extends StatefulWidget {
 
 class _ProfilMedecinState extends State<ProfilMedecin> {
   MedecinEntity? _medecin;
-  bool _notificationsEnabled = true;
-  String _selectedLanguage = 'Français';
-  final List<String> _languages = ['Français', 'English', 'العربية'];
-  final Map<String, String> _languageCodes = {
-    'Français': 'fr',
-    'English': 'en',
-    'العربية': 'ar',
-  };
 
   @override
   void initState() {
     super.initState();
-    _selectedLanguage = _getLanguageFromLocale(
-      Get.locale?.languageCode ?? 'fr',
-    );
     _loadUserData();
   }
 
@@ -73,25 +61,53 @@ class _ProfilMedecinState extends State<ProfilMedecin> {
     }
   }
 
-  String _getLanguageFromLocale(String localeCode) {
-    switch (localeCode) {
-      case 'fr':
-        return 'Français';
-      case 'en':
-        return 'English';
-      case 'ar':
-        return 'العربية';
-      default:
-        return 'Français';
+  // Translate specialty based on the value from the database
+  String _translateSpecialty(String? specialty) {
+    if (specialty == null || specialty.isEmpty) {
+      return 'not_specified'.tr;
     }
-  }
 
-  void _changeLanguage(String? newValue) {
-    if (newValue != null) {
-      setState(() => _selectedLanguage = newValue);
-      final localeCode = _languageCodes[newValue];
-      if (localeCode != null) Get.updateLocale(Locale(localeCode));
+    // Convert specialty to lowercase for case-insensitive matching
+    final specialtyLower = specialty.toLowerCase();
+
+    // Map of common specialties to their translation keys
+    final Map<String, String> specialtyTranslationKeys = {
+      'cardiology': 'cardiologist',
+      'cardiologie': 'cardiologist',
+      'dermatology': 'dermatologist',
+      'dermatologie': 'dermatologist',
+      'neurology': 'neurologist',
+      'neurologie': 'neurologist',
+      'pediatrics': 'pediatrician',
+      'pédiatrie': 'pediatrician',
+      'orthopedics': 'orthopedic',
+      'orthopédie': 'orthopedic',
+      'general': 'general_practitioner',
+      'généraliste': 'general_practitioner',
+      'psychology': 'psychologist',
+      'psychologie': 'psychologist',
+      'gynecology': 'gynecologist',
+      'gynécologie': 'gynecologist',
+      'ophthalmology': 'ophthalmologist',
+      'ophtalmologie': 'ophthalmologist',
+      'dentistry': 'dentist',
+      'dentisterie': 'dentist',
+      'pulmonology': 'pulmonologist',
+      'pneumologie': 'pulmonologist',
+      'nutrition': 'nutritionist',
+      'esthétique': 'aesthetic_doctor',
+      'aesthetic': 'aesthetic_doctor',
+    };
+
+    // Try to find a matching key in our map
+    for (final entry in specialtyTranslationKeys.entries) {
+      if (specialtyLower.contains(entry.key)) {
+        return entry.value.tr;
+      }
     }
+
+    // If no match is found, return the original specialty
+    return specialty;
   }
 
   void _showLogoutDialog() {
@@ -162,7 +178,7 @@ class _ProfilMedecinState extends State<ProfilMedecin> {
           builder: (context, setState) {
             return AlertDialog(
               title: Text(
-                'Durée de consultation',
+                'consultation_duration_label'.tr,
                 style: GoogleFonts.raleway(
                   fontWeight: FontWeight.bold,
                   fontSize: 20.sp,
@@ -172,7 +188,7 @@ class _ProfilMedecinState extends State<ProfilMedecin> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Choisissez la durée standard de vos consultations:',
+                    'choose_consultation_duration'.tr,
                     style: GoogleFonts.raleway(fontSize: 16.sp),
                   ),
                   SizedBox(height: 24.h),
@@ -180,7 +196,7 @@ class _ProfilMedecinState extends State<ProfilMedecin> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Durée: ',
+                        'duration_label'.tr + ': ',
                         style: GoogleFonts.raleway(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
@@ -193,7 +209,7 @@ class _ProfilMedecinState extends State<ProfilMedecin> {
                               return DropdownMenuItem<int>(
                                 value: value,
                                 child: Text(
-                                  '$value minutes',
+                                  '$value ' + 'minutes'.tr,
                                   style: GoogleFonts.raleway(fontSize: 16.sp),
                                 ),
                               );
@@ -216,7 +232,7 @@ class _ProfilMedecinState extends State<ProfilMedecin> {
                     Navigator.of(context).pop();
                   },
                   child: Text(
-                    'Annuler',
+                    'cancel'.tr,
                     style: GoogleFonts.raleway(
                       color: Colors.grey,
                       fontSize: 16.sp,
@@ -255,21 +271,18 @@ class _ProfilMedecinState extends State<ProfilMedecin> {
                         // Show success message
                         showSuccessSnackBar(
                           context,
-                          'Durée de consultation mise à jour',
+                          'consultation_duration_updated'.tr,
                         );
                       }
                     } catch (e) {
                       // Show error message
-                      showErrorSnackBar(
-                        context,
-                        'Erreur lors de la mise à jour: $e',
-                      );
+                      showErrorSnackBar(context, 'update_error'.tr + ': $e');
                     }
                     // Close dialog
                     Navigator.of(context).pop();
                   },
                   child: Text(
-                    'Confirmer',
+                    'confirm'.tr,
                     style: GoogleFonts.raleway(
                       color: AppColors.primaryColor,
                       fontWeight: FontWeight.bold,
@@ -400,7 +413,7 @@ class _ProfilMedecinState extends State<ProfilMedecin> {
                             ),
                             SizedBox(height: 4.h),
                             Text(
-                              _medecin!.speciality ?? 'Non spécifiée',
+                              _translateSpecialty(_medecin!.speciality),
                               style: GoogleFonts.raleway(
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.w500,
@@ -441,7 +454,7 @@ class _ProfilMedecinState extends State<ProfilMedecin> {
                                 ?.toIso8601String()
                                 .split('T')
                                 .first ??
-                            'Non spécifiée',
+                            'not_specified'.tr,
                       ),
                       SizedBox(height: 20.h),
                       Text(
@@ -454,16 +467,16 @@ class _ProfilMedecinState extends State<ProfilMedecin> {
                       ),
                       SizedBox(height: 12.h),
                       _buildInfoTile(
-                        'speciality'.tr,
-                        _medecin!.speciality ?? 'Non spécifiée',
+                        'specialty_label'.tr,
+                        _translateSpecialty(_medecin!.speciality),
                       ),
                       _buildInfoTile(
-                        'license_number'.tr,
-                        _medecin!.numLicence ?? 'Non spécifié',
+                        'license_number_label'.tr,
+                        _medecin!.numLicence ?? 'not_specified'.tr,
                       ),
                       _buildInfoTile(
-                        'Durée de consultation',
-                        '${_medecin!.appointmentDuration} minutes',
+                        'consultation_duration_label'.tr,
+                        '${_medecin!.appointmentDuration} ' + 'minutes'.tr,
                       ),
 
                       SizedBox(height: 8.h),
@@ -485,7 +498,7 @@ class _ProfilMedecinState extends State<ProfilMedecin> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Modifier la durée de consultation',
+                                  'modify_consultation_duration'.tr,
                                   style: GoogleFonts.raleway(
                                     fontSize: 14.sp,
                                     fontWeight: FontWeight.bold,

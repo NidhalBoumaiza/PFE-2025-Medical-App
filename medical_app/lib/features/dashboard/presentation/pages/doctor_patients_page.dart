@@ -150,7 +150,7 @@ class _DoctorPatientsPageState extends State<DoctorPatientsPage> {
             } else {
               // Patient document doesn't exist, create a minimal record
               final patientName =
-                  data['patientName'] as String? ?? 'Patient inconnu';
+                  data['patientName'] as String? ?? 'unknown_patient'.tr;
               newPatients.add({
                 'id': patientId,
                 'name': patientName.split(' ').first,
@@ -565,7 +565,7 @@ class _DoctorPatientsPageState extends State<DoctorPatientsPage> {
                                           children: [
                                             Text(
                                               fullName.isEmpty
-                                                  ? 'Patient inconnu'
+                                                  ? 'unknown_patient'.tr
                                                   : fullName,
                                               style: GoogleFonts.raleway(
                                                 fontSize: 16.sp,
@@ -577,7 +577,8 @@ class _DoctorPatientsPageState extends State<DoctorPatientsPage> {
                                             ),
                                             SizedBox(height: 4.h),
                                             Text(
-                                              "Dernière consultation: $lastAppointmentDate",
+                                              "last_consultation".tr +
+                                                  ": $lastAppointmentDate",
                                               style: GoogleFonts.raleway(
                                                 fontSize: 14.sp,
                                                 color: Colors.grey.shade600,

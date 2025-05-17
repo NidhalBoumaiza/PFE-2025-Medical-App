@@ -22,6 +22,7 @@ import '../../../rendez_vous/presentation/pages/appointments_patients.dart';
 import 'package:medical_app/features/notifications/presentation/widgets/notification_badge.dart';
 import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_bloc.dart';
 import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_state.dart';
+import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_event.dart';
 
 class HomePatient extends StatefulWidget {
   const HomePatient({super.key});
@@ -124,13 +125,13 @@ class _HomePatientState extends State<HomePatient> {
 
   List<BottomNavigationBarItem> get _navItems => [
     BottomNavigationBarItem(
-      icon: Icon(Icons.home_outlined, size: 24),
-      activeIcon: Icon(Icons.home_filled, size: 24),
+      icon: Icon(Icons.home_outlined, size: 22.sp),
+      activeIcon: Icon(Icons.home_filled, size: 24.sp),
       label: 'home'.tr,
     ),
     BottomNavigationBarItem(
-      icon: Icon(Icons.calendar_today_outlined, size: 24),
-      activeIcon: Icon(Icons.calendar_today, size: 24),
+      icon: Icon(Icons.calendar_today_outlined, size: 22.sp),
+      activeIcon: Icon(Icons.calendar_today, size: 24.sp),
       label: 'appointments'.tr,
     ),
     // Message with badge
@@ -140,8 +141,8 @@ class _HomePatientState extends State<HomePatient> {
       label: 'messages'.tr,
     ),
     BottomNavigationBarItem(
-      icon: Icon(Icons.person_outline, size: 24),
-      activeIcon: Icon(Icons.person, size: 24),
+      icon: Icon(Icons.person_outline, size: 22.sp),
+      activeIcon: Icon(Icons.person, size: 24.sp),
       label: 'profile'.tr,
     ),
   ];
@@ -171,7 +172,7 @@ class _HomePatientState extends State<HomePatient> {
           children: [
             Icon(
               isActive ? Icons.chat_bubble : Icons.chat_bubble_outline,
-              size: isActive ? 24 : 24,
+              size: isActive ? 24.sp : 22.sp,
             ),
             if (unreadCount > 0)
               Positioned(
@@ -217,6 +218,32 @@ class _HomePatientState extends State<HomePatient> {
     setState(() {
       _selectedIndex = index;
     });
+
+    // When messages tab is selected, mark all conversations as read
+    if (index == 2 && userId.isNotEmpty) {
+      // Check if there are any unread messages before dispatching the event
+      final conversationsState = context.read<ConversationsBloc>().state;
+      if (conversationsState is ConversationsLoaded) {
+        final unreadCount =
+            conversationsState.conversations
+                .where(
+                  (conv) =>
+                      !conv.lastMessageRead && conv.lastMessage.isNotEmpty,
+                )
+                .length;
+
+        if (unreadCount > 0) {
+          context.read<ConversationsBloc>().add(
+            MarkAllConversationsReadEvent(userId: userId),
+          );
+        }
+      } else {
+        // If we don't know the state yet, just mark all as read to be safe
+        context.read<ConversationsBloc>().add(
+          MarkAllConversationsReadEvent(userId: userId),
+        );
+      }
+    }
   }
 
   void _logout() {
@@ -355,7 +382,7 @@ class _HomePatientState extends State<HomePatient> {
           backgroundColor: theme.scaffoldBackgroundColor,
           appBar: AppBar(
             title: Text(
-              _selectedIndex == 1 ? 'appointments'.tr : 'MediLink',
+              _selectedIndex == 1 ? 'appointments'.tr : 'medilink'.tr,
               style: GoogleFonts.raleway(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,

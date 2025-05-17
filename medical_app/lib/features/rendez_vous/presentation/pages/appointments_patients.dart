@@ -373,7 +373,8 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
       context,
       MaterialPageRoute(
         builder:
-            (context) => AllSpecialtiesPage(specialties: specialtiesWithImages),
+            (context) =>
+                AllSpecialtiesPage(specialties: getSpecialtiesWithImages()),
       ),
     );
 
@@ -408,7 +409,7 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
             MaterialPageRoute(
               builder:
                   (context) =>
-                      AllSpecialtiesPage(specialties: specialtiesWithImages),
+                      AllSpecialtiesPage(specialties: getSpecialtiesWithImages()),
             ),
           );
         } else {

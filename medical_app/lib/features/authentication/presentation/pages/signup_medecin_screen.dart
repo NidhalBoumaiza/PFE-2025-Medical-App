@@ -47,7 +47,7 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                   // Title
                   Center(
                     child: Text(
-                      "Informations professionnelles",
+                      "professional_information".tr,
                       style: GoogleFonts.raleway(
                         fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
@@ -55,9 +55,9 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: 20.h),
-                  
+
                   // Header image
                   Center(
                     child: Image.asset(
@@ -66,9 +66,9 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                       width: 200.w,
                     ),
                   ),
-                  
+
                   SizedBox(height: 30.h),
-                  
+
                   // Form fields
                   Form(
                     key: _formKey,
@@ -77,16 +77,16 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                       children: [
                         // Spécialité label
                         Text(
-                          "Spécialité",
+                          "specialty_label".tr,
                           style: GoogleFonts.raleway(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w600,
                             color: Colors.black87,
                           ),
                         ),
-                        
+
                         SizedBox(height: 10.h),
-                        
+
                         // Spécialité dropdown
                         Container(
                           decoration: BoxDecoration(
@@ -139,7 +139,7 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                                   width: 1,
                                 ),
                               ),
-                              hintText: "Sélectionnez votre spécialité",
+                              hintText: "specialty_hint".tr,
                               hintStyle: GoogleFonts.raleway(
                                 color: Colors.grey[400],
                                 fontSize: 15.sp,
@@ -150,18 +150,21 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                                 size: 22.sp,
                               ),
                             ),
-                            items: specialties
-                                .map((specialty) => DropdownMenuItem(
-                                      value: specialty,
-                                      child: Text(
-                                        specialty,
-                                        style: GoogleFonts.raleway(
-                                          fontSize: 15.sp,
-                                          color: Colors.black87,
+                            items:
+                                getTranslatedSpecialties()
+                                    .map(
+                                      (specialty) => DropdownMenuItem(
+                                        value: specialty,
+                                        child: Text(
+                                          specialty,
+                                          style: GoogleFonts.raleway(
+                                            fontSize: 15.sp,
+                                            color: Colors.black87,
+                                          ),
                                         ),
                                       ),
-                                    ))
-                                .toList(),
+                                    )
+                                    .toList(),
                             onChanged: (value) {
                               setState(() {
                                 selectedSpecialty = value;
@@ -169,27 +172,27 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                             },
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return "La spécialité est obligatoire";
+                                return "specialty_required".tr;
                               }
                               return null;
                             },
                           ),
                         ),
-                        
+
                         SizedBox(height: 24.h),
-                        
+
                         // Numéro de licence label
                         Text(
-                          "Numéro de licence",
+                          "license_number_label".tr,
                           style: GoogleFonts.raleway(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w600,
                             color: Colors.black87,
                           ),
                         ),
-                        
+
                         SizedBox(height: 10.h),
-                        
+
                         // Numéro de licence field
                         Container(
                           decoration: BoxDecoration(
@@ -246,7 +249,7 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                                   width: 1,
                                 ),
                               ),
-                              hintText: "Entrez votre numéro de licence",
+                              hintText: "license_number_hint".tr,
                               hintStyle: GoogleFonts.raleway(
                                 color: Colors.grey[400],
                                 fontSize: 15.sp,
@@ -259,7 +262,7 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return "Le numéro de licence est obligatoire";
+                                return "license_number_required".tr;
                               }
                               return null;
                             },
@@ -268,9 +271,9 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                       ],
                     ),
                   ),
-                  
+
                   SizedBox(height: 30.h),
-                  
+
                   // Submit button
                   Container(
                     width: double.infinity,
@@ -297,11 +300,13 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                             speciality: selectedSpecialty!,
                             numLicence: numLicenceController.text,
                           );
-                          Get.to(() => PasswordScreen(entity: updatedMedecinEntity));
+                          Get.to(
+                            () => PasswordScreen(entity: updatedMedecinEntity),
+                          );
                         }
                       },
                       child: Text(
-                        "Suivant",
+                        "next_button".tr,
                         style: GoogleFonts.raleway(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
@@ -309,9 +314,9 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: 20.h),
-                  
+
                   // Back button
                   Center(
                     child: TextButton(
@@ -319,7 +324,7 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                         Navigator.pop(context);
                       },
                       child: Text(
-                        "Retour",
+                        "cancel".tr,
                         style: GoogleFonts.raleway(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w600,

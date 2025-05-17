@@ -726,7 +726,7 @@ class _MyAppState extends State<MyApp> {
             builder: (context, child) {
               return GetMaterialApp(
                 debugShowCheckedModeBanner: false,
-                title: 'MediLink',
+                title: 'medilink'.tr,
                 theme: AppThemes.lightTheme,
                 darkTheme: AppThemes.darkTheme,
                 themeMode: themeMode,

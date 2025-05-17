@@ -162,14 +162,14 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
       builder:
           (context) => AlertDialog(
             title: Text(
-              "Confirmer l'annulation",
+              "confirm_cancellation".tr,
               style: GoogleFonts.raleway(
                 fontWeight: FontWeight.bold,
                 fontSize: 16.sp,
               ),
             ),
             content: Text(
-              "Voulez-vous vraiment annuler ce rendez-vous ?",
+              "confirm_cancel_appointment".tr,
               style: GoogleFonts.raleway(fontSize: 14.sp),
             ),
             shape: RoundedRectangleBorder(
@@ -179,7 +179,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text(
-                  "Non",
+                  "no".tr,
                   style: GoogleFonts.raleway(
                     fontSize: 14.sp,
                     color: Colors.grey,
@@ -211,7 +211,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                   Navigator.pop(context);
                 },
                 child: Text(
-                  "Oui",
+                  "yes".tr,
                   style: GoogleFonts.raleway(
                     fontSize: 14.sp,
                     color: Colors.red,
@@ -715,7 +715,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
         child: Scaffold(
           appBar: AppBar(
             title: Text(
-              "Détails du rendez-vous",
+              "appointment_details".tr,
               style: GoogleFonts.raleway(
                 fontWeight: FontWeight.bold,
                 fontSize: 18.sp,
@@ -764,7 +764,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        "Statut:",
+                                        "status".tr + ":",
                                         style: GoogleFonts.raleway(
                                           fontSize: 16.sp,
                                           fontWeight: FontWeight.w600,
@@ -802,7 +802,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
                                   // Doctor info
                                   Text(
-                                    "Médecin:",
+                                    "doctor".tr + ":",
                                     style: GoogleFonts.raleway(
                                       fontSize: 16.sp,
                                       fontWeight: FontWeight.w600,
@@ -894,7 +894,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                                               MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
-                                              "Patient:",
+                                              "patient".tr + ":",
                                               style: GoogleFonts.raleway(
                                                 fontSize: 16.sp,
                                                 fontWeight: FontWeight.w600,
@@ -936,7 +936,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
                                   // Date and time information with better layout
                                   Text(
-                                    "Informations du rendez-vous:",
+                                    "appointment_info".tr + ":",
                                     style: GoogleFonts.raleway(
                                       fontSize: 16.sp,
                                       fontWeight: FontWeight.w600,
@@ -968,7 +968,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  'Date',
+                                                  'date'.tr,
                                                   style: GoogleFonts.raleway(
                                                     fontSize: 14.sp,
                                                     fontWeight: FontWeight.w600,
@@ -1007,7 +1007,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  'Heure',
+                                                  'time'.tr,
                                                   style: GoogleFonts.raleway(
                                                     fontSize: 14.sp,
                                                     fontWeight: FontWeight.w600,
@@ -1028,7 +1028,8 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                                                 ),
                                                 SizedBox(height: 4.h),
                                                 Text(
-                                                  "Durée: ${_getAppointmentDuration()}",
+                                                  "duration".tr +
+                                                      ": ${_getAppointmentDuration()}",
                                                   style: GoogleFonts.raleway(
                                                     fontSize: 14.sp,
                                                     color: Colors.black54,
@@ -1086,8 +1087,8 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                                                   ),
                                           label: Text(
                                             isCancelling
-                                                ? "Annulation en cours..."
-                                                : "Annuler le rendez-vous",
+                                                ? "cancelling".tr
+                                                : "cancel_appointment".tr,
                                             style: GoogleFonts.raleway(
                                               color: Colors.white,
                                               fontSize: 16.sp,

@@ -23,6 +23,7 @@ import '../../../profile/presentation/pages/blocs/BLoC%20update%20profile/update
 import '../../../notifications/presentation/widgets/notification_badge.dart';
 import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_bloc.dart';
 import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_state.dart';
+import '../../../messagerie/presentation/blocs/conversation BLoC/conversations_event.dart';
 import '../../../secours/presentation/pages/secours_screen.dart';
 
 class HomeMedecin extends StatefulWidget {
@@ -75,7 +76,7 @@ class _HomeMedecinState extends State<HomeMedecin> {
     }
   }
 
-  List<BottomNavigationBarItem> items = [
+  List<BottomNavigationBarItem> get items => [
     BottomNavigationBarItem(
       icon: Icon(Icons.home_outlined, size: 22.sp),
       activeIcon: Icon(Icons.home_filled, size: 24.sp),
@@ -87,8 +88,8 @@ class _HomeMedecinState extends State<HomeMedecin> {
       label: 'appointments'.tr,
     ),
     BottomNavigationBarItem(
-      icon: Icon(Icons.chat_bubble_outline, size: 22.sp),
-      activeIcon: Icon(Icons.chat_bubble, size: 24.sp),
+      icon: _buildMessageIcon(false),
+      activeIcon: _buildMessageIcon(true),
       label: 'messages'.tr,
     ),
     BottomNavigationBarItem(
@@ -260,7 +261,7 @@ class _HomeMedecinState extends State<HomeMedecin> {
           title:
               selectedItem == 0
                   ? Text(
-                    'MediLink',
+                    'medilink'.tr,
                     style: GoogleFonts.raleway(
                       fontSize: 18.sp,
                       fontWeight: FontWeight.bold,
@@ -330,17 +331,7 @@ class _HomeMedecinState extends State<HomeMedecin> {
           child: ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             child: BottomNavigationBar(
-              items: [
-                items[0], // Home
-                items[1], // Appointments
-                // Modified message item with badge
-                BottomNavigationBarItem(
-                  icon: _buildMessageIcon(false),
-                  activeIcon: _buildMessageIcon(true),
-                  label: 'messages'.tr,
-                ),
-                items[3], // Profile
-              ],
+              items: items,
               currentIndex: selectedItem,
               selectedItemColor: AppColors.primaryColor,
               unselectedItemColor:
@@ -361,6 +352,34 @@ class _HomeMedecinState extends State<HomeMedecin> {
                 setState(() {
                   selectedItem = index;
                 });
+
+                // When messages tab is selected, mark all conversations as read
+                if (index == 2 && userId.isNotEmpty) {
+                  // Check if there are any unread messages before dispatching the event
+                  final conversationsState =
+                      context.read<ConversationsBloc>().state;
+                  if (conversationsState is ConversationsLoaded) {
+                    final unreadCount =
+                        conversationsState.conversations
+                            .where(
+                              (conv) =>
+                                  !conv.lastMessageRead &&
+                                  conv.lastMessage.isNotEmpty,
+                            )
+                            .length;
+
+                    if (unreadCount > 0) {
+                      context.read<ConversationsBloc>().add(
+                        MarkAllConversationsReadEvent(userId: userId),
+                      );
+                    }
+                  } else {
+                    // If we don't know the state yet, just mark all as read to be safe
+                    context.read<ConversationsBloc>().add(
+                      MarkAllConversationsReadEvent(userId: userId),
+                    );
+                  }
+                }
               },
             ),
           ),
@@ -566,30 +585,40 @@ class _HomeMedecinState extends State<HomeMedecin> {
                         horizontal: 16,
                         vertical: 12,
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
+                      child: BlocBuilder<ThemeCubit, ThemeState>(
+                        builder: (context, state) {
+                          final isDarkModeState =
+                              state is ThemeLoaded
+                                  ? state.themeMode == ThemeMode.dark
+                                  : false;
+                          return Row(
                             children: [
                               Icon(
-                                isDarkMode
-                                    ? FontAwesomeIcons.solidSun
-                                    : FontAwesomeIcons.solidMoon,
+                                isDarkModeState
+                                    ? FontAwesomeIcons.moon
+                                    : FontAwesomeIcons.sun,
                                 color: Colors.white,
-                                size: 20,
+                                size: 18,
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 16),
                               Text(
-                                isDarkMode ? 'light_mode'.tr : 'dark_mode'.tr,
+                                isDarkModeState
+                                    ? 'dark_mode'.tr
+                                    : 'light_mode'.tr,
                                 style: GoogleFonts.raleway(
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   color: Colors.white,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
+                              const Spacer(),
+                              Transform.scale(
+                                scale: 0.8,
+                                child: const ThemeCubitSwitch(compact: true),
+                              ),
                             ],
-                          ),
-                          ThemeCubitSwitch(color: Colors.white),
-                        ],
+                          );
+                        },
                       ),
                     ),
                   ],

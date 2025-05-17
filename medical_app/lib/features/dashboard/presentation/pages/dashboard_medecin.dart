@@ -146,7 +146,7 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'set_consultation_duration_message'.tr,
+                    'set_consultation_duration'.tr,
                     style: GoogleFonts.raleway(fontSize: 16.sp),
                   ),
                   SizedBox(height: 24.h),
