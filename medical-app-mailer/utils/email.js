@@ -145,13 +145,12 @@ const getEmailContent = (options) => {
 const sendEmail = async (options) => {
   try {
     // 1) Create a transporter
-    const transport = nodemailer.createTransport({
-      service: "gmail",
-      host: "smtp.gmail.com",
-      port: process.env.PORTMAILER || 587,
+    const transporter = nodemailer.createTransport({
+      host: process.env.EmailMailer,
+      port: process.env.PORTMAILER,
       auth: {
-        user: process.env.USERMAILER || "",
-        pass: process.env.PASSWORDMAILER || "",
+        user: process.env.USERMAILER,
+        pass: process.env.PASSWORDMAILER,
       },
     });
 
@@ -164,18 +163,18 @@ const sendEmail = async (options) => {
 
     // 2) Define the email options
     const mailOptions = {
-      from: "MediLink <noreply@medilink.com>",
+      from: "Medical App <medical-app@example.com>",
       to: options.email,
       subject: options.subject,
-      text: options.message, // Keep plain text version for email clients that don't support HTML
+      text: options.message,
       html: htmlContent,
       attachments: options.attachments,
     };
 
-    // 3) Send the email
-    const info = await transport.sendMail(mailOptions);
-    console.log(`Email sent: ${info.messageId}`);
-    return info;
+    // 3) Actually send the email
+    await transporter.sendMail(mailOptions);
+    console.log(`Email sent: ${mailOptions.messageId}`);
+    return mailOptions;
   } catch (error) {
     console.error("Error sending email:", error);
     throw error; // Rethrow for proper handling in controller

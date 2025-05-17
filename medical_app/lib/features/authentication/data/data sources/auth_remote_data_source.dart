@@ -193,6 +193,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         password: password,
       );
       final firebaseUser = userCredential.user;
+
       if (firebaseUser != null) {
         print('createAccount: Firebase user created, UID=${firebaseUser.uid}');
         final randomNumber = generateFourDigitNumber();
@@ -284,8 +285,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
         print('createAccount: Caching user locally');
         await localDataSource.cacheUser(updatedUser);
-        print('createAccount: Saving token');
-        await localDataSource.saveToken(firebaseUser.uid);
+        // Don't save token since account needs to be activated first
         print('createAccount: Sending verification code');
         await sendVerificationCode(
           email: normalizedEmail,

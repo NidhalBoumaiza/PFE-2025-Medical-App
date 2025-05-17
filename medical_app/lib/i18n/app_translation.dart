@@ -601,6 +601,8 @@ class AppTranslations extends Translations {
       'medical_record_access_error':
           'Impossible d\'accéder au dossier médical: ID patient manquant',
       'not_specified': 'Non spécifié',
+      'continue': 'Continuer',
+      'sending_verification_code': 'Envoi du code de vérification...',
     },
     'en_US': {
       'title': 'Medical App',
@@ -1103,6 +1105,8 @@ class AppTranslations extends Translations {
       'medical_record_access_error':
           'Unable to access medical records: Patient ID missing',
       'not_specified': 'Not specified',
+      'continue': 'Continue',
+      'sending_verification_code': 'Sending verification code...',
     },
     'ar_AR': {
       'title': 'التطبيق الطبي',
@@ -1594,6 +1598,8 @@ class AppTranslations extends Translations {
       'medical_record_access_error':
           'تعذر الوصول إلى السجل الطبي: معرف المريض مفقود',
       'not_specified': 'غير محدد',
+      'continue': 'متابعة',
+      'sending_verification_code': 'جاري إرسال رمز التحقق...',
     },
   };
 }

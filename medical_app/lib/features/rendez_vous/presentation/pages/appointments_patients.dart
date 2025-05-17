@@ -644,78 +644,120 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
                         AnimatedContainer(
                           duration: Duration(milliseconds: 300),
                           height: _isCalendarVisible ? 350.h : 0,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryColor,
+                            boxShadow:
+                                _isCalendarVisible
+                                    ? [
+                                      BoxShadow(
+                                        color: Colors.black,
+                                        spreadRadius: 2,
+                                        blurRadius: 8,
+                                        offset: Offset(0, 6),
+                                      ),
+                                    ]
+                                    : [],
+                          ),
                           child: SingleChildScrollView(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 if (_isCalendarVisible)
                                   Container(
+                                    margin: EdgeInsets.all(8.h),
                                     padding: EdgeInsets.symmetric(
                                       horizontal: 16.w,
-                                      vertical: 8.h,
+                                      vertical: 12.h,
                                     ),
                                     decoration: BoxDecoration(
                                       color: Colors.white,
+                                      border: Border.all(
+                                        color: Colors.grey.shade300,
+                                        width: 1.5,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.grey.withOpacity(0.3),
-                                          spreadRadius: 1,
-                                          blurRadius: 5,
-                                          offset: Offset(0, 3),
+                                          color: Colors.black.withOpacity(0.3),
+                                          spreadRadius: 2,
+                                          blurRadius: 8,
+                                          offset: Offset(0, 4),
                                         ),
                                       ],
                                     ),
                                     child: Column(
                                       children: [
                                         // Calendar header
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              "select_date".tr,
-                                              style: GoogleFonts.raleway(
-                                                fontSize: 16.sp,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.black87,
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                            vertical: 8.h,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            border: Border(
+                                              bottom: BorderSide(
+                                                color: Colors.grey.shade200,
+                                                width: 1,
                                               ),
                                             ),
-                                            Row(
-                                              children: [
-                                                if (_selectedDay != null)
-                                                  TextButton(
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                "select_date".tr,
+                                                style: GoogleFonts.raleway(
+                                                  fontSize: 16.sp,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.primaryColor,
+                                                ),
+                                              ),
+                                              Row(
+                                                children: [
+                                                  if (_selectedDay != null)
+                                                    TextButton(
+                                                      onPressed: () {
+                                                        setState(() {
+                                                          _selectedDay = null;
+                                                          _isCalendarVisible =
+                                                              false;
+                                                        });
+                                                        _filterAppointmentsByDate(
+                                                          null,
+                                                        );
+                                                      },
+                                                      child: Text(
+                                                        "clear".tr,
+                                                        style:
+                                                            GoogleFonts.raleway(
+                                                              color: Colors.red,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  IconButton(
+                                                    icon: Icon(
+                                                      Icons.close,
+                                                      color:
+                                                          Colors.grey.shade700,
+                                                    ),
                                                     onPressed: () {
                                                       setState(() {
-                                                        _selectedDay = null;
                                                         _isCalendarVisible =
                                                             false;
                                                       });
-                                                      _filterAppointmentsByDate(
-                                                        null,
-                                                      );
                                                     },
-                                                    child: Text(
-                                                      "clear".tr,
-                                                      style:
-                                                          GoogleFonts.raleway(
-                                                            color: Colors.red,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                          ),
-                                                    ),
                                                   ),
-                                                IconButton(
-                                                  icon: Icon(Icons.close),
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      _isCalendarVisible =
-                                                          false;
-                                                    });
-                                                  },
-                                                ),
-                                              ],
-                                            ),
-                                          ],
+                                                ],
+                                              ),
+                                            ],
+                                          ),
                                         ),
 
                                         // Table Calendar
@@ -847,6 +889,21 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
                             ),
                           ),
                         ),
+
+                        // Dark overlay behind calendar when visible
+                        if (_isCalendarVisible)
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _isCalendarVisible = false;
+                                });
+                              },
+                              child: Container(
+                                color: Colors.black.withOpacity(0.7),
+                              ),
+                            ),
+                          ),
 
                         // Date filter indicator and clear button
                         if (_selectedDay != null)
