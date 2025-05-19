@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../constants.dart';
@@ -11,9 +10,9 @@ abstract class DashboardRemoteDataSource {
   /// Fetch upcoming appointments for a doctor
   /// Throws [ServerException] if something goes wrong
   Future<List<AppointmentModel>> getUpcomingAppointments(
-    String doctorId, {
-    int limit = 5,
-  });
+      String doctorId, {
+        int limit = 5,
+      });
 
   /// Count appointments by status for a doctor
   /// Throws [ServerException] if something goes wrong
@@ -29,377 +28,13 @@ abstract class DashboardRemoteDataSource {
 
   /// Method to fetch doctor's patients with pagination
   Future<Map<String, dynamic>> getDoctorPatients(
-    String doctorId, {
-    int limit = 10,
-    String? lastPatientId,
-  });
-}
-
-/// Implementation that uses Firebase Firestore
-class FirebaseDashboardRemoteDataSourceImpl
-    implements DashboardRemoteDataSource {
-  final FirebaseFirestore firestore;
-
-  FirebaseDashboardRemoteDataSourceImpl({required this.firestore});
-
-  @override
-  Future<List<AppointmentModel>> getUpcomingAppointments(
-    String doctorId, {
-    int limit = 5,
-  }) async {
-    try {
-      final now = DateTime.now();
-      print('Fetching upcoming appointments for doctor: $doctorId');
-
-      // Query for all appointments for this doctor, not just pending ones
-      final querySnapshot =
-          await firestore
-              .collection('rendez_vous')
-              .where('doctorId', isEqualTo: doctorId)
-              // Exclude cancelled appointments
-              .where('status', whereNotIn: ['cancelled'])
-              .get();
-
-      print('Found ${querySnapshot.docs.length} total appointments');
-
-      // Filter for future appointments in memory
-      final allAppointments =
-          querySnapshot.docs
-              .map((doc) {
-                final data = doc.data();
-                data['id'] = doc.id;
-
-                // Handle timestamp conversion
-                final timestamp = data['startTime'];
-                DateTime appointmentDate;
-
-                if (timestamp is Timestamp) {
-                  appointmentDate = timestamp.toDate();
-                } else if (timestamp is String) {
-                  appointmentDate = DateTime.parse(timestamp);
-                } else {
-                  // Default to now if we can't determine the date
-                  appointmentDate = DateTime.now();
-                }
-
-                return AppointmentModel(
-                  id: doc.id,
-                  patientId: data['patientId'] ?? '',
-                  patientName: data['patientName'] ?? 'Unknown Patient',
-                  appointmentDate: appointmentDate,
-                  status: data['status'] ?? 'pending',
-                  appointmentType:
-                      data['speciality'] ??
-                      data['appointmentType'] ??
-                      'Consultation',
-                );
-              })
-              .where((appointment) {
-                // Keep only future appointments or today's appointments
-                return appointment.appointmentDate.isAfter(
-                  DateTime(now.year, now.month, now.day),
-                );
-              })
-              .toList();
-
-      // Sort by date (nearest first)
-      allAppointments.sort(
-        (a, b) => a.appointmentDate.compareTo(b.appointmentDate),
-      );
-
-      // Take only the specified limit
-      final limitedAppointments = allAppointments.take(limit).toList();
-      print('Returning ${limitedAppointments.length} upcoming appointments');
-
-      return limitedAppointments;
-    } catch (e) {
-      print('Error getting upcoming appointments: $e');
-      return [];
-    }
-  }
-
-  @override
-  Future<Map<String, int>> getAppointmentsCountByStatus(String doctorId) async {
-    try {
-      final result = {
-        'pending': 0,
-        'accepted': 0,
-        'cancelled': 0,
-        'completed': 0,
-        'total': 0,
-      };
-
-      // Count all appointments
-      final totalQuery =
-          await firestore
-              .collection('rendez_vous')
-              .where('doctorId', isEqualTo: doctorId)
-              .count()
-              .get();
-
-      result['total'] = totalQuery.count ?? 0;
-
-      // Count pending appointments
-      final pendingQuery =
-          await firestore
-              .collection('rendez_vous')
-              .where('doctorId', isEqualTo: doctorId)
-              .where('status', isEqualTo: 'pending')
-              .count()
-              .get();
-
-      result['pending'] = pendingQuery.count ?? 0;
-
-      // Count accepted appointments
-      final acceptedQuery =
-          await firestore
-              .collection('rendez_vous')
-              .where('doctorId', isEqualTo: doctorId)
-              .where('status', isEqualTo: 'accepted')
-              .count()
-              .get();
-
-      result['accepted'] = acceptedQuery.count ?? 0;
-
-      // Count cancelled appointments
-      final cancelledQuery =
-          await firestore
-              .collection('rendez_vous')
-              .where('doctorId', isEqualTo: doctorId)
-              .where('status', isEqualTo: 'cancelled')
-              .count()
-              .get();
-
-      result['cancelled'] = cancelledQuery.count ?? 0;
-
-      // Count completed appointments
-      final completedQuery =
-          await firestore
-              .collection('rendez_vous')
-              .where('doctorId', isEqualTo: doctorId)
-              .where('status', isEqualTo: 'completed')
-              .count()
-              .get();
-
-      result['completed'] = completedQuery.count ?? 0;
-
-      return result;
-    } on FirebaseException catch (e) {
-      throw ServerException(message: e.message ?? 'Firebase error');
-    } catch (e) {
-      throw ServerException(message: 'Unexpected error: $e');
-    }
-  }
-
-  @override
-  Future<int> getTotalPatientsCount(String doctorId) async {
-    try {
-      // Get unique patients who have appointments with this doctor
-      final querySnapshot =
-          await firestore
-              .collection('rendez_vous')
-              .where('doctorId', isEqualTo: doctorId)
-              .get();
-
-      // Extract unique patient IDs
-      final uniquePatientIds =
-          querySnapshot.docs
-              .map((doc) => doc.data()['patientId'] as String?)
-              .where((id) => id != null)
-              .toSet();
-
-      return uniquePatientIds.length;
-    } on FirebaseException catch (e) {
-      throw ServerException(message: e.message ?? 'Firebase error');
-    } catch (e) {
-      throw ServerException(message: 'Unexpected error: $e');
-    }
-  }
-
-  @override
-  Future<DashboardStatsModel> getDoctorDashboardStats(String doctorId) async {
-    try {
-      // Get all required data in parallel for efficiency
-      final appointmentsCountFuture = getAppointmentsCountByStatus(doctorId);
-      final upcomingAppointmentsFuture = getUpcomingAppointments(doctorId);
-      final totalPatientsFuture = getTotalPatientsCount(doctorId);
-
-      // Wait for all operations to complete
-      final results = await Future.wait([
-        appointmentsCountFuture,
-        upcomingAppointmentsFuture,
-        totalPatientsFuture,
-      ]);
-
-      final appointmentsCount = results[0] as Map<String, int>;
-      final upcomingAppointments = results[1] as List<AppointmentModel>;
-      final totalPatients = results[2] as int;
-
-      return DashboardStatsModel.fromFirestore(
-        totalPatients: totalPatients,
-        totalAppointments: appointmentsCount['total'] ?? 0,
-        pendingAppointments: appointmentsCount['pending'] ?? 0,
-        completedAppointments: appointmentsCount['completed'] ?? 0,
-        cancelledAppointments: appointmentsCount['cancelled'] ?? 0,
-        upcomingAppointments: upcomingAppointments,
-      );
-    } on ServerException catch (e) {
-      // Re-throw the original ServerException
-      throw e;
-    } catch (e, stackTrace) {
-      // Detailed error reporting for debugging
-      print('Error in getDoctorDashboardStats: $e');
-      print('Stack trace: $stackTrace');
-      throw ServerException(message: 'Failed to get dashboard stats: $e');
-    }
-  }
-
-  @override
-  Future<Map<String, dynamic>> getDoctorPatients(
-    String doctorId, {
-    int limit = 10,
-    String? lastPatientId,
-  }) async {
-    try {
-      print(
-        'Fetching patients for doctor: $doctorId, limit: $limit, lastPatientId: $lastPatientId',
-      );
-
-      // Create a base query to find all patients who have had appointments with this doctor
-      Query query = firestore
-          .collection('rendez_vous')
-          .where('doctorId', isEqualTo: doctorId);
-
-      // Apply pagination if we have a last patient ID
-      if (lastPatientId != null) {
-        // Get the last document
-        DocumentSnapshot lastDoc =
-            await firestore.collection('rendez_vous').doc(lastPatientId).get();
-
-        if (lastDoc.exists) {
-          query = query.startAfterDocument(lastDoc);
-        }
-      }
-
-      // Execute the query with limit
-      final appointmentsSnapshot = await query.limit(limit).get();
-
-      print('Found ${appointmentsSnapshot.docs.length} appointments');
-
-      // Extract unique patient IDs
-      Set<String> uniquePatientIds = {};
-      List<Map<String, dynamic>> patientsData = [];
-
-      for (var doc in appointmentsSnapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        final patientId = data['patientId'] as String?;
-
-        if (patientId != null && !uniquePatientIds.contains(patientId)) {
-          uniquePatientIds.add(patientId);
-
-          try {
-            // Get patient details from patients collection
-            final patientDoc =
-                await firestore.collection('patients').doc(patientId).get();
-
-            if (patientDoc.exists) {
-              final patientData = patientDoc.data() as Map<String, dynamic>;
-              patientData['id'] = patientId;
-
-              // Get the most recent appointment for this patient
-              final lastAppointmentQuery =
-                  await firestore
-                      .collection('rendez_vous')
-                      .where('patientId', isEqualTo: patientId)
-                      .where('doctorId', isEqualTo: doctorId)
-                      .orderBy('startTime', descending: true)
-                      .limit(1)
-                      .get();
-
-              if (lastAppointmentQuery.docs.isNotEmpty) {
-                final lastAppointmentData =
-                    lastAppointmentQuery.docs.first.data();
-                final timestamp = lastAppointmentData['startTime'];
-
-                DateTime appointmentDate;
-                if (timestamp is Timestamp) {
-                  appointmentDate = timestamp.toDate();
-                } else if (timestamp is String) {
-                  appointmentDate = DateTime.parse(timestamp);
-                } else {
-                  appointmentDate = DateTime.now();
-                }
-
-                patientData['lastAppointment'] =
-                    appointmentDate.toIso8601String();
-                patientData['lastAppointmentStatus'] =
-                    lastAppointmentData['status'];
-              }
-
-              patientsData.add(patientData);
-            } else {
-              // Patient document doesn't exist but we have an appointment for them
-              // Create a minimal patient record based on the appointment data
-              final patientName =
-                  data['patientName'] as String? ?? 'Patient inconnu';
-              patientsData.add({
-                'id': patientId,
-                'name': patientName.split(' ').first,
-                'lastName':
-                    patientName.split(' ').length > 1
-                        ? patientName.split(' ').last
-                        : '',
-                'email': 'patient@example.com',
-                'phoneNumber': '',
-                'lastAppointment':
-                    (data['startTime'] is Timestamp)
-                        ? (data['startTime'] as Timestamp)
-                            .toDate()
-                            .toIso8601String()
-                        : DateTime.now().toIso8601String(),
-                'lastAppointmentStatus': data['status'] ?? 'unknown',
-              });
-            }
-          } catch (e) {
-            print('Error fetching patient $patientId: $e');
-          }
-        }
-      }
-
-      // Sort by most recent appointment
-      patientsData.sort((a, b) {
-        final aDate = a['lastAppointment'] as String?;
-        final bDate = b['lastAppointment'] as String?;
-
-        if (aDate == null && bDate == null) return 0;
-        if (aDate == null) return 1;
-        if (bDate == null) return -1;
-
-        return DateTime.parse(bDate).compareTo(DateTime.parse(aDate));
+      String doctorId, {
+        int limit = 10,
+        String? lastPatientId,
       });
-
-      // Determine if there are more patients to load
-      bool hasMore = appointmentsSnapshot.docs.length >= limit;
-      String? nextPatientId =
-          hasMore && appointmentsSnapshot.docs.isNotEmpty
-              ? appointmentsSnapshot.docs.last.id
-              : null;
-
-      return {
-        'patients': patientsData,
-        'hasMore': hasMore,
-        'nextPatientId': nextPatientId,
-      };
-    } catch (e) {
-      print('Error getting doctor patients: $e');
-      return {'patients': [], 'hasMore': false, 'nextPatientId': null};
-    }
-  }
 }
 
-/// MongoDB implementation that uses HTTP API
-class MongoDBDashboardRemoteDataSourceImpl
-    implements DashboardRemoteDataSource {
+class MongoDBDashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
   final http.Client client;
 
   MongoDBDashboardRemoteDataSourceImpl({required this.client});
@@ -407,49 +42,94 @@ class MongoDBDashboardRemoteDataSourceImpl
   // Helper method to get headers with auth token
   Future<Map<String, String>> _getHeaders() async {
     final headers = {'Content-Type': 'application/json'};
-
     try {
-      // Get token from shared preferences
       final prefs = await SharedPreferences.getInstance();
-      final authToken = prefs.getString('auth_token') ?? '';
-      if (authToken.isNotEmpty) {
+      final authToken = prefs.getString('TOKEN');
+      if (authToken != null && authToken.isNotEmpty) {
         headers['Authorization'] = 'Bearer $authToken';
+        print('Token retrieved: $authToken');
+      } else {
+        print('No auth token found in SharedPreferences');
       }
     } catch (e) {
       print('Error getting auth token: $e');
     }
-
     return headers;
+  }
+
+  // Helper method to refresh token
+  Future<void> _refreshToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final refreshToken = prefs.getString('REFRESH_TOKEN');
+    if (refreshToken == null) {
+      print('No refresh token available');
+      throw ServerException(message: 'No refresh token available');
+    }
+
+    print('Attempting to refresh token');
+    final response = await client.post(
+      Uri.parse('${AppConstants.usersEndpoint}/refreshToken'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'refreshToken': refreshToken}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final newToken = data['accessToken'];
+      final newRefreshToken = data['refreshToken'];
+      await prefs.setString('TOKEN', newToken);
+      await prefs.setString('REFRESH_TOKEN', newRefreshToken);
+      print('Token refreshed successfully');
+    } else {
+      print('Failed to refresh token: ${response.body}');
+      await prefs.remove('TOKEN');
+      await prefs.remove('REFRESH_TOKEN');
+      throw ServerException(message: 'Failed to refresh token: ${response.body}');
+    }
+  }
+
+  // Helper method to make authenticated GET request with retry
+  Future<http.Response> _authenticatedGet(String url, Map<String, String> headers) async {
+    print('Making GET request to: $url');
+    final response = await client.get(Uri.parse(url), headers: headers);
+    if (response.statusCode == 401) {
+      print('Received 401, attempting to refresh token');
+      await _refreshToken();
+      final newHeaders = await _getHeaders();
+      print('Retrying GET request with new token');
+      return client.get(Uri.parse(url), headers: newHeaders);
+    }
+    return response;
   }
 
   @override
   Future<List<AppointmentModel>> getUpcomingAppointments(
-    String doctorId, {
-    int limit = 5,
-  }) async {
+      String doctorId, {
+        int limit = 5,
+      }) async {
     try {
       final headers = await _getHeaders();
-      final response = await client.get(
-        Uri.parse(
-          '${AppConstants.appointmentsEndpoint}/upcoming?medecin=$doctorId&limit=$limit',
-        ),
-        headers: headers,
+      final response = await _authenticatedGet(
+        '${AppConstants.dashboardEndpoint}/upcoming-appointments?limit=$limit',
+        headers,
       );
 
       if (response.statusCode != 200) {
+        print('Failed to fetch upcoming appointments: ${response.body}');
         throw ServerException(
           message: 'Failed to fetch upcoming appointments: ${response.body}',
         );
       }
 
-      final jsonData = json.decode(response.body);
-      final appointmentsData = jsonData['data'] as List<dynamic>;
+      final jsonData = jsonDecode(response.body);
+      final appointmentsData = jsonData['data']['appointments'] as List<dynamic>;
 
       return appointmentsData.map((appointment) {
         return AppointmentModel(
-          id: appointment['_id'],
-          patientId: appointment['patient'],
-          patientName: appointment['patientName'] ?? 'Unknown Patient',
+          id: appointment['_id'] ?? '',
+          patientId: appointment['patient']['_id'] ?? '',
+          patientName:
+          '${appointment['patient']['name']} ${appointment['patient']['lastName']}',
           appointmentDate: DateTime.parse(appointment['startDate']),
           status: appointment['status'] ?? 'pending',
           appointmentType: appointment['serviceName'] ?? 'Consultation',
@@ -458,9 +138,7 @@ class MongoDBDashboardRemoteDataSourceImpl
     } catch (e) {
       print('Error getting upcoming appointments: $e');
       if (e is ServerException) rethrow;
-      throw ServerException(
-        message: 'Failed to fetch upcoming appointments: $e',
-      );
+      throw ServerException(message: 'Failed to fetch upcoming appointments: $e');
     }
   }
 
@@ -468,28 +146,27 @@ class MongoDBDashboardRemoteDataSourceImpl
   Future<Map<String, int>> getAppointmentsCountByStatus(String doctorId) async {
     try {
       final headers = await _getHeaders();
-      final response = await client.get(
-        Uri.parse(
-          '${AppConstants.dashboardEndpoint}/stats/appointments?medecin=$doctorId',
-        ),
-        headers: headers,
+      final response = await _authenticatedGet(
+        '${AppConstants.dashboardEndpoint}/appointments-count',
+        headers,
       );
 
       if (response.statusCode != 200) {
+        print('Failed to fetch appointment counts: ${response.body}');
         throw ServerException(
           message: 'Failed to fetch appointment counts: ${response.body}',
         );
       }
 
-      final jsonData = json.decode(response.body);
+      final jsonData = jsonDecode(response.body);
       final statsData = jsonData['data'];
 
       return {
-        'pending': statsData['pendingAppointments'] ?? 0,
-        'accepted': statsData['acceptedAppointments'] ?? 0,
-        'cancelled': statsData['cancelledAppointments'] ?? 0,
-        'completed': statsData['completedAppointments'] ?? 0,
-        'total': statsData['totalAppointments'] ?? 0,
+        'pending': statsData['pending'] ?? 0,
+        'accepted': statsData['accepted'] ?? 0,
+        'cancelled': statsData['cancelled'] ?? 0,
+        'completed': statsData['completed'] ?? 0,
+        'total': statsData['total'] ?? 0,
       };
     } catch (e) {
       print('Error getting appointment counts: $e');
@@ -502,27 +179,24 @@ class MongoDBDashboardRemoteDataSourceImpl
   Future<int> getTotalPatientsCount(String doctorId) async {
     try {
       final headers = await _getHeaders();
-      final response = await client.get(
-        Uri.parse(
-          '${AppConstants.dashboardEndpoint}/stats/patients?medecin=$doctorId',
-        ),
-        headers: headers,
+      final response = await _authenticatedGet(
+        '${AppConstants.dashboardEndpoint}/total-patients',
+        headers,
       );
 
       if (response.statusCode != 200) {
+        print('Failed to fetch patient count: ${response.body}');
         throw ServerException(
           message: 'Failed to fetch patient count: ${response.body}',
         );
       }
 
-      final jsonData = json.decode(response.body);
+      final jsonData = jsonDecode(response.body);
       return jsonData['data']['totalPatients'] ?? 0;
     } catch (e) {
       print('Error getting total patients count: $e');
       if (e is ServerException) rethrow;
-      throw ServerException(
-        message: 'Failed to fetch total patients count: $e',
-      );
+      throw ServerException(message: 'Failed to fetch total patients count: $e');
     }
   }
 
@@ -530,25 +204,22 @@ class MongoDBDashboardRemoteDataSourceImpl
   Future<DashboardStatsModel> getDoctorDashboardStats(String doctorId) async {
     try {
       final headers = await _getHeaders();
-      final response = await client.get(
-        Uri.parse('${AppConstants.dashboardEndpoint}/doctor/$doctorId'),
-        headers: headers,
+      final response = await _authenticatedGet(
+        '${AppConstants.dashboardEndpoint}/stats',
+        headers,
       );
 
       if (response.statusCode != 200) {
+        print('Failed to fetch dashboard stats: ${response.body}');
         throw ServerException(
           message: 'Failed to fetch dashboard stats: ${response.body}',
         );
       }
 
-      final jsonData = json.decode(response.body);
+      final jsonData = jsonDecode(response.body);
       final statsData = jsonData['data'];
 
-      // Get upcoming appointments separately as they need to be parsed into models
-      final upcomingAppointmentsFuture = getUpcomingAppointments(doctorId);
-
-      // Wait for the upcoming appointments to be fetched
-      final upcomingAppointments = await upcomingAppointmentsFuture;
+      final upcomingAppointments = await getUpcomingAppointments(doctorId);
 
       return DashboardStatsModel.fromJson(
         statsData,
@@ -563,45 +234,41 @@ class MongoDBDashboardRemoteDataSourceImpl
 
   @override
   Future<Map<String, dynamic>> getDoctorPatients(
-    String doctorId, {
-    int limit = 10,
-    String? lastPatientId,
-  }) async {
+      String doctorId, {
+        int limit = 10,
+        String? lastPatientId,
+      }) async {
     try {
       final headers = await _getHeaders();
-      String url =
-          '${AppConstants.dashboardEndpoint}/patients?medecin=$doctorId&limit=$limit';
-
+      String url = '${AppConstants.dashboardEndpoint}/patients?limit=$limit';
       if (lastPatientId != null) {
-        url += '&lastId=$lastPatientId';
+        url += '&lastPatientId=$lastPatientId';
       }
 
-      final response = await client.get(Uri.parse(url), headers: headers);
+      final response = await _authenticatedGet(url, headers);
 
       if (response.statusCode != 200) {
+        print('Failed to fetch doctor patients: ${response.body}');
         throw ServerException(
           message: 'Failed to fetch doctor patients: ${response.body}',
         );
       }
 
-      final jsonData = json.decode(response.body);
+      final jsonData = jsonDecode(response.body);
       final patientsData = jsonData['data']['patients'] as List<dynamic>;
 
-      List<Map<String, dynamic>> formattedPatients =
-          patientsData.map((patient) {
-            return {
-              'id': patient['_id'],
-              'name': patient['name'] ?? '',
-              'lastName': patient['lastName'] ?? '',
-              'email': patient['email'] ?? '',
-              'phoneNumber': patient['phoneNumber'] ?? '',
-              'lastAppointment':
-                  patient['lastAppointment'] ??
-                  DateTime.now().toIso8601String(),
-              'lastAppointmentStatus':
-                  patient['lastAppointmentStatus'] ?? 'unknown',
-            };
-          }).toList();
+      List<Map<String, dynamic>> formattedPatients = patientsData.map((patient) {
+        return {
+          'id': patient['id'] ?? '',
+          'name': patient['name'] ?? '',
+          'lastName': patient['lastName'] ?? '',
+          'email': patient['email'] ?? '',
+          'phoneNumber': patient['phoneNumber'] ?? '',
+          'lastAppointment':
+          patient['lastAppointment'] ?? DateTime.now().toIso8601String(),
+          'lastAppointmentStatus': patient['lastAppointmentStatus'] ?? 'unknown',
+        };
+      }).toList();
 
       return {
         'patients': formattedPatients,
@@ -611,7 +278,7 @@ class MongoDBDashboardRemoteDataSourceImpl
     } catch (e) {
       print('Error getting doctor patients: $e');
       if (e is ServerException) rethrow;
-      return {'patients': [], 'hasMore': false, 'nextPatientId': null};
+      throw ServerException(message: 'Failed to fetch doctor patients: $e');
     }
   }
 }

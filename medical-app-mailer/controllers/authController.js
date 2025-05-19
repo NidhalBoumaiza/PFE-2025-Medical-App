@@ -6,43 +6,55 @@ const Medecin = require("../models/medecinModel");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const sendEmail = require("../utils/email");
-const admin = require("firebase-admin");
-//-----------------------------------------
-
-//-----------------------------------------
-
-//----------- Sign Up ---------------------
+const crypto = require("crypto");
 
 // Helper function to sign JWT token
 const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  if (!id)
+    throw new Error("User ID is required for token generation");
+  return jwt.sign({ id: id.toString() }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE_IN,
   });
 };
 
 // Helper function to generate refresh token
 const generateRefreshToken = (userId) => {
-  const refreshToken = jwt.sign(
-    { id: userId },
+  if (!userId)
+    throw new Error(
+      "User ID is required for refresh token generation"
+    );
+  return jwt.sign(
+    { id: userId.toString() },
     process.env.REFRESH_TOKEN_SECRET,
     {
       expiresIn: process.env.REFRESH_TOKEN_EXPIRE_IN,
     }
   );
-  return refreshToken;
 };
 
 // Helper function to create and send tokens
-const createSendToken = (user, statusCode, res) => {
+const createSendToken = async (user, statusCode, res) => {
+  if (!user || !user._id) {
+    console.error("Invalid user or missing _id:", user);
+    throw new AppError("Utilisateur invalide ou ID manquant", 500);
+  }
+
+  console.log("User:", user);
+  console.log("User ID:", user._id);
+
   const token = signToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
 
-  // Save refresh token to user
+  // Save refresh token
   user.refreshToken = refreshToken;
-  user.save({ validateBeforeSave: false });
+  await user.save({ validateBeforeSave: false });
+  console.log("Refresh token saved:", refreshToken);
 
-  // Remove password from output
+  // Remove sensitive fields
   user.password = undefined;
+  user.verificationCode = undefined;
+  user.passwordResetCode = undefined;
+  user.refreshToken = undefined;
 
   res.status(statusCode).json({
     status: "success",
@@ -54,16 +66,38 @@ const createSendToken = (user, statusCode, res) => {
 
 // Sign up controller
 exports.signUp = catchAsync(async (req, res, next) => {
+  const {
+    email,
+    password,
+    passwordConfirm,
+    name,
+    lastName,
+    phoneNumber,
+    gender,
+    dateOfBirth,
+    role,
+    antecedent,
+    speciality,
+    numLicence,
+    appointmentDuration,
+    bloodType,
+    height,
+    weight,
+    allergies,
+    chronicDiseases,
+    emergencyContact,
+  } = req.body;
+
   // Check required fields
   if (
-    !req.body.email ||
-    !req.body.password ||
-    !req.body.passwordConfirm ||
-    !req.body.name ||
-    !req.body.lastName ||
-    !req.body.phoneNumber ||
-    !req.body.gender ||
-    !req.body.role
+    !email ||
+    !password ||
+    !passwordConfirm ||
+    !name ||
+    !lastName ||
+    !phoneNumber ||
+    !gender ||
+    !role
   ) {
     return next(
       new AppError(
@@ -73,17 +107,36 @@ exports.signUp = catchAsync(async (req, res, next) => {
     );
   }
 
-  // Check if email already exists
-  const existingUser = await User.findOne({ email: req.body.email });
+  // Check if email or phone number already exists
+  const existingUser = await User.findOne({
+    $or: [{ email }, { phoneNumber }],
+  });
   if (existingUser) {
-    return next(new AppError("Cet e-mail est déjà utilisé !", 400));
+    return next(
+      new AppError(
+        existingUser.email === email
+          ? "Cet e-mail est déjà utilisé !"
+          : "Ce numéro de téléphone est déjà utilisé !",
+        400
+      )
+    );
   }
 
-  let newUser;
+  // Prepare user data
+  let userData = {
+    name,
+    lastName,
+    email,
+    password,
+    passwordConfirm,
+    phoneNumber,
+    gender,
+    dateOfBirth,
+    role,
+  };
 
-  // Create user based on role
-  if (req.body.role === "patient") {
-    if (!req.body.antecedent) {
+  if (role === "patient") {
+    if (!antecedent) {
       return next(
         new AppError(
           "Veuillez fournir vos antécédents médicaux !",
@@ -91,42 +144,45 @@ exports.signUp = catchAsync(async (req, res, next) => {
         )
       );
     }
-
-    newUser = await Patient.create({
-      name: req.body.name,
-      lastName: req.body.lastName,
-      email: req.body.email,
-      password: req.body.password,
-      passwordConfirm: req.body.passwordConfirm,
-      phoneNumber: req.body.phoneNumber,
-      gender: req.body.gender,
-      dateOfBirth: req.body.dateOfBirth,
-      role: req.body.role,
-      antecedent: req.body.antecedent,
-    });
-  } else if (req.body.role === "medecin") {
-    if (!req.body.speciality) {
+    userData = {
+      ...userData,
+      antecedent,
+      bloodType: bloodType || "Unknown",
+      height,
+      weight,
+      allergies: allergies || [],
+      chronicDiseases: chronicDiseases || [],
+      emergencyContact,
+    };
+  } else if (role === "medecin") {
+    if (!speciality) {
       return next(
         new AppError("Veuillez fournir votre spécialité !", 400)
       );
     }
-
-    newUser = await Medecin.create({
-      name: req.body.name,
-      lastName: req.body.lastName,
-      email: req.body.email,
-      password: req.body.password,
-      passwordConfirm: req.body.passwordConfirm,
-      phoneNumber: req.body.phoneNumber,
-      gender: req.body.gender,
-      dateOfBirth: req.body.dateOfBirth,
-      role: req.body.role,
-      speciality: req.body.speciality,
-      numLicence: req.body.numLicence,
-      appointmentDuration: req.body.appointmentDuration || 30,
-    });
+    userData = {
+      ...userData,
+      speciality,
+      numLicence: numLicence || "",
+      appointmentDuration: appointmentDuration || 30,
+    };
   } else {
     return next(new AppError("Rôle non valide !", 400));
+  }
+
+  // Create user
+  let newUser;
+  try {
+    newUser = await (role === "patient" ? Patient : Medecin).create(
+      userData
+    );
+  } catch (err) {
+    return next(
+      new AppError(
+        `Erreur lors de la création de l'utilisateur: ${err.message}`,
+        400
+      )
+    );
   }
 
   // Generate verification code
@@ -144,6 +200,7 @@ exports.signUp = catchAsync(async (req, res, next) => {
       email: newUser.email,
       subject: "Activation de compte",
       message,
+      code: verificationCode,
     });
 
     res.status(201).json({
@@ -151,7 +208,7 @@ exports.signUp = catchAsync(async (req, res, next) => {
       message: "Votre code d'activation a été envoyé avec succès",
     });
   } catch (err) {
-    console.log(err);
+    await User.deleteOne({ _id: newUser._id });
     return next(
       new AppError(
         "Une erreur s'est produite lors de l'envoi de l'e-mail ! Merci d'essayer plus tard.",
@@ -174,11 +231,15 @@ exports.verifyAccount = catchAsync(async (req, res, next) => {
     );
   }
 
+  const hashedCode = crypto
+    .createHash("sha256")
+    .update(verificationCode)
+    .digest("hex");
   const user = await User.findOne({
     email,
-    verificationCode,
+    verificationCode: hashedCode,
     validationCodeExpiresAt: { $gt: Date.now() },
-  });
+  }).select("+verificationCode +validationCodeExpiresAt");
 
   if (!user) {
     return next(
@@ -191,12 +252,14 @@ exports.verifyAccount = catchAsync(async (req, res, next) => {
   user.validationCodeExpiresAt = undefined;
   await user.save({ validateBeforeSave: false });
 
-  createSendToken(user, 200, res);
+  await createSendToken(user, 200, res);
 });
 
 // Login controller
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
+
+  console.log("Login attempt for email:", email);
 
   // Check if email and password exist
   if (!email || !password) {
@@ -210,11 +273,19 @@ exports.login = catchAsync(async (req, res, next) => {
 
   // Check if user exists and password is correct
   const user = await User.findOne({ email }).select("+password");
+  console.log("User found:", user ? user._id : "null");
 
-  if (
-    !user ||
-    !(await user.correctPassword(password, user.password))
-  ) {
+  if (!user) {
+    return next(new AppError("Email ou mot de passe incorrect", 401));
+  }
+
+  const isPasswordCorrect = await user.correctPassword(
+    password,
+    user.password
+  );
+  console.log("Password correct:", isPasswordCorrect);
+
+  if (!isPasswordCorrect) {
     return next(new AppError("Email ou mot de passe incorrect", 401));
   }
 
@@ -228,13 +299,12 @@ exports.login = catchAsync(async (req, res, next) => {
     );
   }
 
-  // If everything is ok, send token to client
-  createSendToken(user, 200, res);
+  console.log("Generating token for user:", user._id);
+  await createSendToken(user, 200, res);
 });
 
 // Protect routes middleware
 exports.protect = catchAsync(async (req, res, next) => {
-  // Get token and check if it exists
   let token;
   if (
     req.headers.authorization &&
@@ -252,19 +322,15 @@ exports.protect = catchAsync(async (req, res, next) => {
     );
   }
 
-  // Verify token
   const decoded = await promisify(jwt.verify)(
     token,
     process.env.JWT_SECRET
   );
-
-  // Check if user still exists
   const currentUser = await User.findById(decoded.id);
   if (!currentUser) {
     return next(new AppError("L'utilisateur n'existe plus !", 401));
   }
 
-  // Grant access to protected route
   req.user = currentUser;
   next();
 });
@@ -286,7 +352,6 @@ exports.restrictTo = (...roles) => {
 
 // Forgot password
 exports.forgotPassword = catchAsync(async (req, res, next) => {
-  // Get user based on email
   const user = await User.findOne({ email: req.body.email });
   if (!user) {
     return next(
@@ -297,11 +362,9 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     );
   }
 
-  // Generate reset code
   const resetCode = user.createPasswordResetCode();
   await user.save({ validateBeforeSave: false });
 
-  // Send reset code email
   try {
     const message = `Bonjour,\n
     Vous avez oublié votre mot de passe ?\n
@@ -313,6 +376,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
       subject:
         "Code de réinitialisation de mot de passe (Valable 30 minutes)",
       message,
+      code: resetCode,
     });
 
     res.status(200).json({
@@ -324,7 +388,6 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     user.passwordResetCode = undefined;
     user.passwordResetExpires = undefined;
     await user.save({ validateBeforeSave: false });
-
     return next(
       new AppError(
         "Une erreur s'est produite lors de l'envoi de l'e-mail ! Merci d'essayer plus tard.",
@@ -347,11 +410,15 @@ exports.verifyResetCode = catchAsync(async (req, res, next) => {
     );
   }
 
+  const hashedCode = crypto
+    .createHash("sha256")
+    .update(resetCode)
+    .digest("hex");
   const user = await User.findOne({
     email,
-    passwordResetCode: resetCode,
+    passwordResetCode: hashedCode,
     passwordResetExpires: { $gt: Date.now() },
-  });
+  }).select("+passwordResetCode +passwordResetExpires");
 
   if (!user) {
     return next(
@@ -378,11 +445,15 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     );
   }
 
+  const hashedCode = crypto
+    .createHash("sha256")
+    .update(resetCode)
+    .digest("hex");
   const user = await User.findOne({
     email,
-    passwordResetCode: resetCode,
+    passwordResetCode: hashedCode,
     passwordResetExpires: { $gt: Date.now() },
-  });
+  }).select("+passwordResetCode +passwordResetExpires");
 
   if (!user) {
     return next(
@@ -396,15 +467,13 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   user.passwordResetExpires = undefined;
   await user.save();
 
-  createSendToken(user, 200, res);
+  await createSendToken(user, 200, res);
 });
 
 // Update password
 exports.updatePassword = catchAsync(async (req, res, next) => {
-  // Get user from collection
   const user = await User.findById(req.user.id).select("+password");
 
-  // Check if current password is correct
   if (
     !(await user.correctPassword(
       req.body.currentPassword,
@@ -416,13 +485,11 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
     );
   }
 
-  // Update password
   user.password = req.body.password;
   user.passwordConfirm = req.body.passwordConfirm;
   await user.save();
 
-  // Log user in, send JWT
-  createSendToken(user, 200, res);
+  await createSendToken(user, 200, res);
 });
 
 // Refresh token
@@ -440,7 +507,9 @@ exports.refreshToken = catchAsync(async (req, res, next) => {
       refreshToken,
       process.env.REFRESH_TOKEN_SECRET
     );
-    const user = await User.findById(decoded.id);
+    const user = await User.findById(decoded.id).select(
+      "+refreshToken"
+    );
 
     if (!user || user.refreshToken !== refreshToken) {
       return next(
@@ -465,144 +534,6 @@ exports.refreshToken = catchAsync(async (req, res, next) => {
         "Jeton de rafraîchissement invalide ou expiré",
         401
       )
-    );
-  }
-});
-
-// Direct password reset using Firebase Admin
-exports.resetPasswordDirect = catchAsync(async (req, res, next) => {
-  const { email, newPassword, verificationCode } = req.body;
-
-  if (!email || !newPassword || !verificationCode) {
-    return next(
-      new AppError(
-        "L'email, le nouveau mot de passe et le code de vérification sont requis",
-        400
-      )
-    );
-  }
-
-  try {
-    console.log(`Password reset request for email: ${email}`);
-
-    // 1. Verify the verification code in Firestore
-    const normalizedEmail = email.toLowerCase().trim();
-    const collections = ["patients", "medecins", "users"];
-
-    let userData = null;
-    let collectionName = null;
-    let userId = null;
-
-    // Search for the user in all collections
-    for (const collection of collections) {
-      console.log(
-        `Searching in ${collection} collection for email: ${normalizedEmail}`
-      );
-
-      const snapshot = await admin
-        .firestore()
-        .collection(collection)
-        .where("email", "==", normalizedEmail)
-        .get();
-
-      if (!snapshot.empty) {
-        collectionName = collection;
-        userId = snapshot.docs[0].id;
-        userData = snapshot.docs[0].data();
-        console.log(`User found in ${collection} with ID: ${userId}`);
-        break;
-      }
-    }
-
-    if (!userData) {
-      console.log(`User not found for email: ${normalizedEmail}`);
-      return next(new AppError("Utilisateur non trouvé", 404));
-    }
-
-    // 2. Verify the code
-    if (userData.verificationCode !== verificationCode) {
-      console.log(
-        `Invalid verification code. Expected: ${userData.verificationCode}, Received: ${verificationCode}`
-      );
-      return next(new AppError("Code de vérification invalide", 400));
-    }
-
-    // 3. Check if code is expired
-    const validationExpiry =
-      userData.validationCodeExpiresAt?.toDate();
-    if (!validationExpiry || validationExpiry < new Date()) {
-      console.log(
-        `Verification code expired. Expiry: ${validationExpiry}, Current: ${new Date()}`
-      );
-      return next(
-        new AppError("Le code de vérification a expiré", 400)
-      );
-    }
-
-    // 4. Check code type
-    const codeType = userData.codeType;
-    if (
-      codeType !== "motDePasseOublie" &&
-      codeType !== "changerMotDePasse"
-    ) {
-      console.log(`Invalid code type: ${codeType}`);
-      return next(
-        new AppError(
-          "Type de code invalide pour la réinitialisation du mot de passe",
-          400
-        )
-      );
-    }
-
-    // 5. Update the password using Firebase Auth Admin
-    try {
-      console.log(
-        `Resetting password for user with email: ${normalizedEmail}`
-      );
-
-      // Get user by email and update password
-      const userRecord = await admin
-        .auth()
-        .getUserByEmail(normalizedEmail);
-      await admin.auth().updateUser(userRecord.uid, {
-        password: newPassword,
-      });
-
-      console.log(
-        `Password successfully reset for user: ${userRecord.uid}`
-      );
-
-      // 6. Clear verification code in Firestore
-      await admin
-        .firestore()
-        .collection(collectionName)
-        .doc(userId)
-        .update({
-          verificationCode: null,
-          validationCodeExpiresAt: null,
-          codeType: null,
-        });
-
-      console.log(`Verification code cleared for user: ${userId}`);
-
-      // 7. Return success response
-      res.status(200).json({
-        status: "success",
-        message: "Mot de passe réinitialisé avec succès",
-      });
-    } catch (error) {
-      console.error(`Error updating password: ${error.message}`);
-      return next(
-        new AppError(
-          `Erreur lors de la réinitialisation du mot de passe: ${error.message}`,
-          500
-        )
-      );
-    }
-  } catch (error) {
-    console.error(`Unexpected error: ${error.message}`);
-    return next(
-      new AppError("Une erreur inattendue s'est produite", 500)
     );
   }
 });

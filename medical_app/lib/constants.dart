@@ -1,7 +1,7 @@
 /// Global application constants
 class AppConstants {
   // API Base URL (use 10.0.2.2 for emulator, or your server IP for physical devices)
-  static const String baseUrl = 'http://192.168.1.18:3000/api/v1';
+  static const String baseUrl = 'http://192.168.1.18:3001/api/v1';
 
   // API Endpoints
   // User and Authentication endpoints

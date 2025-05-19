@@ -144,26 +144,47 @@ const getEmailContent = (options) => {
 
 const sendEmail = async (options) => {
   try {
+    // Log email configuration for debugging
+    console.log("Email Configuration:");
+    console.log("Host:", process.env.EmailMailer);
+    console.log("Port:", process.env.PORTMAILER);
+    console.log("User:", process.env.USERMAILER);
+
     // 1) Create a transporter
     const transporter = nodemailer.createTransport({
-      host: process.env.EmailMailer,
+      service: "gmail",
+      host: "smtp.gmail.com",
       port: process.env.PORTMAILER,
       auth: {
         user: process.env.USERMAILER,
         pass: process.env.PASSWORDMAILER,
       },
+      debug: true, // show debug output
+      logger: true, // log information in console
     });
+
+    // Extract verification code from message if present
+    let code = options.code;
+    if (!code && options.message) {
+      // Try to extract code from message using regex
+      const codeMatch =
+        options.message.match(/code de vérification: (\d+)/i) ||
+        options.message.match(/code de réinitialisation : (\d+)/i);
+      if (codeMatch && codeMatch[1]) {
+        code = codeMatch[1];
+      }
+    }
 
     // Generate HTML content
     const htmlContent = generateEmailTemplate({
       subject: options.subject,
       message: options.message,
-      code: options.code,
+      code: code,
     });
 
     // 2) Define the email options
     const mailOptions = {
-      from: "Medical App <medical-app@example.com>",
+      from: `"MediLink App" <${process.env.USERMAILER}>`,
       to: options.email,
       subject: options.subject,
       text: options.message,
@@ -171,9 +192,14 @@ const sendEmail = async (options) => {
       attachments: options.attachments,
     };
 
+    console.log(`Attempting to send email to: ${options.email}`);
+
     // 3) Actually send the email
-    await transporter.sendMail(mailOptions);
-    console.log(`Email sent: ${mailOptions.messageId}`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Email sent to: ${options.email}`);
+    console.log(`Message ID: ${info.messageId}`);
+    console.log(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
+
     return mailOptions;
   } catch (error) {
     console.error("Error sending email:", error);

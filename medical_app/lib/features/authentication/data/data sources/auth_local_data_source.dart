@@ -1,9 +1,7 @@
 import 'dart:convert';
-
 import 'package:dartz/dartz.dart';
 import 'package:medical_app/core/error/exceptions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../models/user_model.dart';
 import '../models/patient_model.dart';
 import '../models/medecin_model.dart';
@@ -23,6 +21,9 @@ abstract class AuthLocalDataSource {
 
   /// Retrieves the authentication token.
   Future<String?> getToken();
+
+  /// Saves the refresh token.
+  Future<Unit> saveRefreshToken(String refreshToken);
 }
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
@@ -32,6 +33,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   static const String USER_KEY = 'CACHED_USER';
   static const String TOKEN_KEY = 'TOKEN';
+  static const String REFRESH_TOKEN_KEY = 'REFRESH_TOKEN';
 
   @override
   Future<Unit> cacheUser(UserModel user) async {
@@ -48,16 +50,13 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
         final userMap = jsonDecode(userJson) as Map<String, dynamic>;
         if (userMap.containsKey('antecedent')) {
           return PatientModel.fromJson(userMap);
-        } else if (userMap.containsKey('speciality') &&
-            userMap.containsKey('numLicence')) {
+        } else if (userMap.containsKey('speciality') && userMap.containsKey('numLicence')) {
           return MedecinModel.fromJson(userMap);
         } else {
           return UserModel.fromJson(userMap);
         }
       } catch (e) {
-        throw EmptyCacheException(
-          message: 'Failed to parse cached user data: $e',
-        );
+        throw EmptyCacheException(message: 'Failed to parse cached user data: $e');
       }
     } else {
       throw EmptyCacheException(message: 'No cached user data found');
@@ -68,6 +67,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   Future<Unit> signOut() async {
     await sharedPreferences.remove(USER_KEY);
     await sharedPreferences.remove(TOKEN_KEY);
+    await sharedPreferences.remove(REFRESH_TOKEN_KEY);
     return unit;
   }
 
@@ -80,5 +80,11 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<String?> getToken() async {
     return sharedPreferences.getString(TOKEN_KEY);
+  }
+
+  @override
+  Future<Unit> saveRefreshToken(String refreshToken) async {
+    await sharedPreferences.setString(REFRESH_TOKEN_KEY, refreshToken);
+    return unit;
   }
 }

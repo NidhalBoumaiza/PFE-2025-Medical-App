@@ -8,10 +8,12 @@ const userSchema = mongoose.Schema(
     name: {
       type: String,
       required: [true, "Veuillez fournir votre prénom !"],
+      trim: true,
     },
     lastName: {
       type: String,
       required: [true, "Veuillez fournir votre nom de famille !"],
+      trim: true,
     },
     email: {
       type: String,
@@ -46,7 +48,7 @@ const userSchema = mongoose.Schema(
     },
     gender: {
       type: String,
-      enum: ["homme", "femme"],
+      enum: ["Homme", "Femme"],
       required: [true, "Veuillez fournir votre genre !"],
     },
     phoneNumber: {
@@ -74,7 +76,7 @@ const userSchema = mongoose.Schema(
         default: "Point",
       },
       coordinates: {
-        type: [Number], // [longitude, latitude]
+        type: [Number],
         default: [0, 0],
       },
     },
@@ -97,13 +99,25 @@ const userSchema = mongoose.Schema(
     oneSignalPlayerId: {
       type: String,
     },
-    verificationCode: Number,
-    validationCodeExpiresAt: Date,
-    passwordResetCode: String,
-    passwordResetExpires: Date,
+    verificationCode: {
+      type: String,
+      select: false,
+    },
+    validationCodeExpiresAt: {
+      type: Date,
+      select: false,
+    },
+    passwordResetCode: {
+      type: String,
+      select: false,
+    },
+    passwordResetExpires: {
+      type: Date,
+      select: false,
+    },
     refreshToken: {
       type: String,
-      default: null,
+      select: false,
     },
   },
   {
@@ -117,36 +131,38 @@ const userSchema = mongoose.Schema(
 // Index for geospatial queries
 userSchema.index({ location: "2dsphere" });
 
-//--------------- MIDDLEWARES -----------------------
+// Middlewares
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-
   this.password = await bcrypt.hash(this.password, 12);
   this.passwordConfirm = undefined;
   next();
 });
 
-//----------- METHODS -----------
-// 1) correctPassword
+// Methods
 userSchema.methods.correctPassword = async function (
-  userpassword,
-  password
+  candidatePassword,
+  userPassword
 ) {
-  return await bcrypt.compare(userpassword, password);
+  return await bcrypt.compare(candidatePassword, userPassword);
 };
 
-// 2) createPasswordResetCode
 userSchema.methods.createPasswordResetCode = function () {
-  const code = Math.floor(1000 + Math.random() * 9000);
-  this.passwordResetCode = code.toString();
+  const code = Math.floor(1000 + Math.random() * 9000).toString();
+  this.passwordResetCode = crypto
+    .createHash("sha256")
+    .update(code)
+    .digest("hex");
   this.passwordResetExpires = Date.now() + 30 * 60 * 1000;
-  return code.toString();
+  return code;
 };
 
-// 3) createVerificationCode
 userSchema.methods.createVerificationCode = function () {
-  const code = Math.floor(1000 + Math.random() * 9000);
-  this.verificationCode = code;
+  const code = Math.floor(1000 + Math.random() * 9000).toString();
+  this.verificationCode = crypto
+    .createHash("sha256")
+    .update(code)
+    .digest("hex");
   this.validationCodeExpiresAt = Date.now() + 30 * 60 * 1000;
   return code;
 };

@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:convert';
 import 'package:dartz/dartz.dart';
 import 'package:http/http.dart' as http;
@@ -8,7 +7,6 @@ import 'package:medical_app/features/authentication/data/models/patient_model.da
 import 'package:medical_app/features/authentication/data/models/user_model.dart';
 import 'package:medical_app/constants.dart';
 import 'auth_local_data_source.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 enum VerificationCodeType {
   compteActive,
@@ -45,76 +43,9 @@ abstract class AuthRemoteDataSource {
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final AuthLocalDataSource localDataSource;
+  final http.Client client; // Added client for HTTP requests
 
-  AuthRemoteDataSourceImpl({required this.localDataSource});
-
-  int generateFourDigitNumber() {
-    final random = Random();
-    return 1000 + random.nextInt(9000);
-  }
-
-  String getSubjectForCodeType(VerificationCodeType codeType) {
-    switch (codeType) {
-      case VerificationCodeType.compteActive:
-        return 'Compte Activé';
-      case VerificationCodeType.activationDeCompte:
-        return 'Activation de compte';
-      case VerificationCodeType.motDePasseOublie:
-        return 'Mot de passe oublié';
-      case VerificationCodeType.changerMotDePasse:
-        return 'Changer mot de passe';
-    }
-  }
-
-  Future<void> sendVerificationEmail({
-    required String email,
-    required String subject,
-    required int code,
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${AppConstants.usersEndpoint}/sendMailService'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'subject': subject, 'code': code}),
-      );
-      if (response.statusCode != 201) {
-        throw ServerException(
-          message: 'Failed to send verification email: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      throw ServerException(message: 'Unexpected error sending email: $e');
-    }
-  }
-
-  // Updated method to clear verification code using Express backend
-  Future<void> clearVerificationCode({required String email}) async {
-    try {
-      final token = await localDataSource.getToken();
-      if (token == null) {
-        throw AuthException(message: 'User not authenticated');
-      }
-
-      final response = await http.patch(
-        Uri.parse('${AppConstants.usersEndpoint}/clearVerificationCode'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode({'email': email.toLowerCase().trim()}),
-      );
-
-      if (response.statusCode != 200) {
-        throw ServerException(
-          message: 'Failed to clear verification code: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      throw ServerException(
-        message: 'Unexpected error clearing verification code: $e',
-      );
-    }
-  }
+  AuthRemoteDataSourceImpl({required this.localDataSource, required this.client});
 
   // Helper method to handle HTTP errors
   void _handleHttpError(http.Response response) {
@@ -123,7 +54,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } else if (response.statusCode == 404) {
       throw AuthException(message: 'Utilisateur non trouvé');
     } else if (response.statusCode == 400) {
-      final responseBody = json.decode(response.body);
+      final responseBody = jsonDecode(response.body);
       throw AuthException(
         message: responseBody['message'] ?? 'Bad request error',
       );
@@ -134,18 +65,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> signInWithGoogle() async {
-    // This method would need to be implemented differently for Express backend
-    // For now, throw an exception as Google Sign-In might need to be handled differently
-    throw UnimplementedError(
-      'Google Sign-In not implemented for Express backend',
-    );
+    throw UnimplementedError('Google Sign-In not implemented for Express backend');
   }
 
   @override
   Future<Unit> createAccount(UserModel user, String password) async {
     try {
       print('createAccount: Starting for email=${user.email}');
-
       final Map<String, dynamic> body = {
         'name': user.name,
         'lastName': user.lastName,
@@ -161,20 +87,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         body['dateOfBirth'] = user.dateOfBirth!.toIso8601String();
       }
 
-      // Add specific fields based on user type
-        if (user is PatientModel) {
+      if (user is PatientModel) {
         body['antecedent'] = user.antecedent;
-        } else if (user is MedecinModel) {
+      } else if (user is MedecinModel) {
         body['speciality'] = user.speciality;
         body['numLicence'] = user.numLicence;
         body['appointmentDuration'] = user.appointmentDuration;
       }
 
       print('createAccount: Sending request to ${AppConstants.signupEndpoint}');
-      final response = await http.post(
+      final response = await client.post(
         Uri.parse(AppConstants.signupEndpoint),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode(body),
+        body: jsonEncode(body),
       );
 
       print('createAccount: Response status code: ${response.statusCode}');
@@ -188,9 +113,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
     } catch (e) {
       print('createAccount: Exception: $e');
-      if (e is UnauthorizedException || e is AuthException) {
-        rethrow;
-      }
+      if (e is UnauthorizedException || e is AuthException) rethrow;
       throw ServerException(message: 'Unexpected error: $e');
     }
   }
@@ -199,10 +122,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<UserModel> login(String email, String password) async {
     try {
       print('login: Starting for email=$email');
-      final response = await http.post(
+      final response = await client.post(
         Uri.parse(AppConstants.loginEndpoint),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
+        body: jsonEncode({
           'email': email.toLowerCase().trim(),
           'password': password,
         }),
@@ -210,15 +133,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       print('login: Response status code: ${response.statusCode}');
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
+        final responseData = jsonDecode(response.body);
 
         // Save token for future authenticated requests
         await localDataSource.saveToken(responseData['token']);
-        print('login: Token saved');
+        print('login: Token saved: ${responseData['token'].substring(0, 10)}...');
 
         // Save refresh token if available
         if (responseData['refreshToken'] != null) {
-          await _saveRefreshToken(responseData['refreshToken']);
+          await localDataSource.saveRefreshToken(responseData['refreshToken']);
           print('login: Refresh token saved');
         }
 
@@ -247,9 +170,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
     } catch (e) {
       print('login: Exception: $e');
-      if (e is UnauthorizedException || e is AuthException) {
-        rethrow;
-      }
+      if (e is UnauthorizedException || e is AuthException) rethrow;
       throw ServerException(message: 'Unexpected error during login: $e');
     }
   }
@@ -262,18 +183,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw AuthException(message: 'User not authenticated');
       }
 
-      final response = await http.patch(
+      final response = await client.patch(
         Uri.parse(AppConstants.updateProfileEndpoint),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode(user.toJson()),
+        body: jsonEncode(user.toJson()),
       );
 
       if (response.statusCode == 200) {
-        // Update cached user data
-        final responseData = json.decode(response.body);
+        final responseData = jsonDecode(response.body);
         final updatedUserData = responseData['data']['user'];
 
         UserModel updatedUser;
@@ -285,16 +205,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           updatedUser = UserModel.fromJson(updatedUserData);
         }
 
-      await localDataSource.cacheUser(updatedUser);
-      return unit;
+        await localDataSource.cacheUser(updatedUser);
+        return unit;
       } else {
         _handleHttpError(response);
         throw ServerException(message: 'Failed to update user');
       }
     } catch (e) {
-      if (e is UnauthorizedException || e is AuthException) {
-        rethrow;
-      }
+      if (e is UnauthorizedException || e is AuthException) rethrow;
       throw ServerException(message: 'Unexpected error: $e');
     }
   }
@@ -305,27 +223,28 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required VerificationCodeType codeType,
   }) async {
     try {
-      final endpoint =
-          codeType == VerificationCodeType.motDePasseOublie
-              ? AppConstants.forgotPasswordEndpoint
-              : '${AppConstants.usersEndpoint}/sendVerificationCode'; // Adjust based on your API
+      final endpoint = codeType == VerificationCodeType.motDePasseOublie
+          ? AppConstants.forgotPasswordEndpoint
+          : AppConstants.verifyAccountEndpoint; // Use verifyAccount for activation
 
-      final response = await http.post(
+      print('sendVerificationCode: Sending to $endpoint for $email');
+      final response = await client.post(
         Uri.parse(endpoint),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email.toLowerCase().trim()}),
+        body: jsonEncode({'email': email.toLowerCase().trim()}),
       );
 
-      if (response.statusCode == 200) {
+      print('sendVerificationCode: Response status code: ${response.statusCode}');
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return unit;
-        } else {
+      } else {
+        print('sendVerificationCode: Error response: ${response.body}');
         _handleHttpError(response);
         throw ServerException(message: 'Failed to send verification code');
       }
     } catch (e) {
-      if (e is UnauthorizedException || e is AuthException) {
-        rethrow;
-      }
+      print('sendVerificationCode: Exception: $e');
+      if (e is UnauthorizedException || e is AuthException) rethrow;
       throw ServerException(message: 'Unexpected error: $e');
     }
   }
@@ -337,35 +256,35 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required VerificationCodeType codeType,
   }) async {
     try {
-      final endpoint =
-          codeType == VerificationCodeType.motDePasseOublie
-              ? AppConstants.verifyResetCodeEndpoint
-              : AppConstants.verifyAccountEndpoint;
+      final endpoint = codeType == VerificationCodeType.motDePasseOublie
+          ? AppConstants.verifyResetCodeEndpoint
+          : AppConstants.verifyAccountEndpoint;
 
-      final response = await http.post(
+      print('verifyCode: Sending to $endpoint for $email');
+      final response = await client.post(
         Uri.parse(endpoint),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
+        body: jsonEncode({
           'email': email.toLowerCase().trim(),
-          'resetCode': verificationCode.toString(), // For password reset
-          'verificationCode': verificationCode, // For account verification
+          'resetCode': verificationCode.toString(),
+          'verificationCode': verificationCode,
         }),
       );
 
+      print('verifyCode: Response status code: ${response.statusCode}');
       if (response.statusCode == 200) {
-        // If this is account verification, we might get back a token
         if (codeType == VerificationCodeType.activationDeCompte) {
-          final responseData = json.decode(response.body);
+          final responseData = jsonDecode(response.body);
           if (responseData['token'] != null) {
             await localDataSource.saveToken(responseData['token']);
+            print('verifyCode: Token saved');
           }
           if (responseData['refreshToken'] != null) {
-            await _saveRefreshToken(responseData['refreshToken']);
+            await localDataSource.saveRefreshToken(responseData['refreshToken']);
+            print('verifyCode: Refresh token saved');
           }
-          if (responseData['data'] != null &&
-              responseData['data']['user'] != null) {
+          if (responseData['data'] != null && responseData['data']['user'] != null) {
             final userData = responseData['data']['user'];
-
             UserModel user;
             if (userData['role'] == 'patient') {
               user = PatientModel.fromJson(userData);
@@ -374,19 +293,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             } else {
               user = UserModel.fromJson(userData);
             }
-
             await localDataSource.cacheUser(user);
+            print('verifyCode: User data cached');
           }
         }
         return unit;
       } else {
+        print('verifyCode: Error response: ${response.body}');
         _handleHttpError(response);
         throw ServerException(message: 'Failed to verify code');
       }
     } catch (e) {
-      if (e is UnauthorizedException || e is AuthException) {
-        rethrow;
-      }
+      print('verifyCode: Exception: $e');
+      if (e is UnauthorizedException || e is AuthException) rethrow;
       throw ServerException(message: 'Unexpected error: $e');
     }
   }
@@ -398,10 +317,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required int verificationCode,
   }) async {
     try {
-      final response = await http.patch(
+      print('changePassword: Sending to ${AppConstants.resetPasswordEndpoint}');
+      final response = await client.patch(
         Uri.parse(AppConstants.resetPasswordEndpoint),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
+        body: jsonEncode({
           'email': email.toLowerCase().trim(),
           'resetCode': verificationCode.toString(),
           'password': newPassword,
@@ -409,19 +329,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         }),
       );
 
+      print('changePassword: Response status code: ${response.statusCode}');
       if (response.statusCode == 200) {
-        // Handle successful password change
-        final responseData = json.decode(response.body);
+        final responseData = jsonDecode(response.body);
         if (responseData['token'] != null) {
           await localDataSource.saveToken(responseData['token']);
+          print('changePassword: Token saved');
         }
         if (responseData['refreshToken'] != null) {
-          await _saveRefreshToken(responseData['refreshToken']);
+          await localDataSource.saveRefreshToken(responseData['refreshToken']);
+          print('changePassword: Refresh token saved');
         }
-        if (responseData['data'] != null &&
-            responseData['data']['user'] != null) {
+        if (responseData['data'] != null && responseData['data']['user'] != null) {
           final userData = responseData['data']['user'];
-
           UserModel user;
           if (userData['role'] == 'patient') {
             user = PatientModel.fromJson(userData);
@@ -430,18 +350,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           } else {
             user = UserModel.fromJson(userData);
           }
-
           await localDataSource.cacheUser(user);
+          print('changePassword: User data cached');
         }
         return unit;
       } else {
+        print('changePassword: Error response: ${response.body}');
         _handleHttpError(response);
         throw ServerException(message: 'Failed to change password');
       }
     } catch (e) {
-      if (e is UnauthorizedException || e is AuthException) {
-        rethrow;
-      }
+      print('changePassword: Exception: $e');
+      if (e is UnauthorizedException || e is AuthException) rethrow;
       throw ServerException(message: 'Unexpected error: $e');
     }
   }
@@ -458,44 +378,41 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw AuthException(message: 'User not authenticated');
       }
 
-      final response = await http.patch(
+      print('updatePasswordDirect: Sending to ${AppConstants.updatePasswordEndpoint}');
+      final response = await client.patch(
         Uri.parse(AppConstants.updatePasswordEndpoint),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode({
+        body: jsonEncode({
           'currentPassword': currentPassword,
           'password': newPassword,
           'passwordConfirm': newPassword,
         }),
       );
 
+      print('updatePasswordDirect: Response status code: ${response.statusCode}');
       if (response.statusCode == 200) {
-        // Handle successful password update
-        final responseData = json.decode(response.body);
+        final responseData = jsonDecode(response.body);
         if (responseData['token'] != null) {
           await localDataSource.saveToken(responseData['token']);
+          print('updatePasswordDirect: Token saved');
         }
         if (responseData['refreshToken'] != null) {
-          await _saveRefreshToken(responseData['refreshToken']);
+          await localDataSource.saveRefreshToken(responseData['refreshToken']);
+          print('updatePasswordDirect: Refresh token saved');
         }
         return unit;
       } else {
+        print('updatePasswordDirect: Error response: ${response.body}');
         _handleHttpError(response);
         throw ServerException(message: 'Failed to update password');
       }
     } catch (e) {
-      if (e is UnauthorizedException || e is AuthException) {
-        rethrow;
-      }
+      print('updatePasswordDirect: Exception: $e');
+      if (e is UnauthorizedException || e is AuthException) rethrow;
       throw ServerException(message: 'Unexpected error: $e');
     }
-  }
-
-  // Helper method to save refresh token
-  Future<void> _saveRefreshToken(String refreshToken) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('REFRESH_TOKEN', refreshToken);
   }
 }
