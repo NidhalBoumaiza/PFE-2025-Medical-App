@@ -262,6 +262,12 @@ exports.storeMessage = catchAsync(async (req, res, next) => {
     return next(new AppError("Conversation non trouvée", 404));
   }
 
+  // Determine recipient ID
+  const recipientId =
+    conversation.patientId.toString() === senderId
+      ? conversation.doctorId.toString()
+      : conversation.patientId.toString();
+
   // Check if user is part of the conversation
   if (
     conversation.patientId.toString() !== senderId &&
@@ -326,6 +332,7 @@ exports.storeMessage = catchAsync(async (req, res, next) => {
     status: "success",
     data: {
       message,
+      recipientId,
     },
   });
 });
@@ -388,3 +395,61 @@ exports.markAsRead = catchAsync(async (req, res, next) => {
     message: "Messages marqués comme lus",
   });
 });
+
+// Helper method for marking messages as read via Socket.IO
+exports.markMessagesAsRead = async (userId, conversationId) => {
+  try {
+    // Check if conversation exists
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      console.error("Conversation not found:", conversationId);
+      return false;
+    }
+
+    // Check if user is part of the conversation
+    if (
+      conversation.patientId.toString() !== userId &&
+      conversation.doctorId.toString() !== userId
+    ) {
+      console.error(
+        "User not authorized for this conversation:",
+        userId
+      );
+      return false;
+    }
+
+    // Update all unread messages sent by the other user
+    const otherUserId =
+      conversation.patientId.toString() === userId
+        ? conversation.doctorId
+        : conversation.patientId;
+
+    await Message.updateMany(
+      {
+        conversation: conversationId,
+        sender: otherUserId,
+        readBy: { $ne: userId },
+      },
+      {
+        $addToSet: { readBy: userId },
+        status: "read",
+      }
+    );
+
+    // Update conversation's last message read status if needed
+    if (
+      conversation.lastMessageSenderId &&
+      conversation.lastMessageSenderId.toString() ===
+        otherUserId.toString()
+    ) {
+      await Conversation.findByIdAndUpdate(conversationId, {
+        $addToSet: { lastMessageReadBy: userId },
+      });
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error marking messages as read:", error);
+    return false;
+  }
+};

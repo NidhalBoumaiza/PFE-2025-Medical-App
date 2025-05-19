@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/utils/app_colors.dart';
@@ -29,88 +28,30 @@ class DoctorProfilePage extends StatefulWidget {
 }
 
 class _DoctorProfilePageState extends State<DoctorProfilePage> {
+  late RatingBloc _ratingBloc;
   double _averageRating = 0.0;
   int _ratingCount = 0;
   bool _isLoading = true;
   List<DoctorRatingEntity> _ratings = [];
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
+    _ratingBloc = BlocProvider.of<RatingBloc>(context);
     if (widget.doctor.id != null) {
-      _loadDoctorRatingsDirectly();
+      _loadDoctorRatings();
     }
   }
 
-  Future<void> _loadDoctorRatingsDirectly() async {
+  void _loadDoctorRatings() {
     if (widget.doctor.id == null) return;
 
     setState(() {
       _isLoading = true;
     });
 
-    try {
-      // 1. Get ratings count and calculate average
-      final QuerySnapshot ratingSnapshot =
-          await _firestore
-              .collection('doctor_ratings')
-              .where('doctorId', isEqualTo: widget.doctor.id)
-              .get();
-
-      // Calculate total rating and count
-      double totalRating = 0.0;
-      final docs = ratingSnapshot.docs;
-
-      for (var doc in docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        if (data.containsKey('rating')) {
-          totalRating += (data['rating'] as num).toDouble();
-        }
-      }
-
-      // 2. Get the actual rating documents for display
-      final List<DoctorRatingEntity> ratings = [];
-      for (var doc in docs) {
-        final data = doc.data() as Map<String, dynamic>;
-
-        // Convert Timestamp to DateTime
-        DateTime createdAt;
-        if (data['createdAt'] is Timestamp) {
-          createdAt = (data['createdAt'] as Timestamp).toDate();
-        } else {
-          createdAt = DateTime.now(); // Fallback if createdAt is missing
-        }
-
-        ratings.add(
-          DoctorRatingEntity(
-            id: doc.id,
-            doctorId: data['doctorId'],
-            patientId: data['patientId'],
-            patientName: data['patientName'],
-            rating: (data['rating'] as num).toDouble(),
-            comment: data['comment'],
-            createdAt: createdAt,
-            rendezVousId: data['rendezVousId'],
-          ),
-        );
-      }
-
-      // Sort ratings by date (newest first)
-      ratings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-      setState(() {
-        _ratingCount = docs.length;
-        _averageRating = _ratingCount > 0 ? totalRating / _ratingCount : 0.0;
-        _ratings = ratings;
-        _isLoading = false;
-      });
-    } catch (e) {
-      print('Error loading doctor ratings: $e');
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    _ratingBloc.add(GetDoctorRatings(widget.doctor.id!));
+    _ratingBloc.add(GetDoctorAverageRating(widget.doctor.id!));
   }
 
   @override
@@ -136,87 +77,109 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Doctor header card with basic info
-            _buildDoctorHeaderCard(),
+      body: BlocListener<RatingBloc, RatingState>(
+        listener: (context, state) {
+          if (state is DoctorRatingState) {
+            setState(() {
+              _ratings = state.ratings;
+              _averageRating = state.averageRating;
+              _ratingCount = state.ratings.length;
+              _isLoading = false;
+            });
+          } else if (state is RatingError) {
+            setState(() {
+              _isLoading = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Doctor header card with basic info
+              _buildDoctorHeaderCard(),
 
-            // Ratings section
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              child: Text(
-                "reviews".tr,
-                style: GoogleFonts.raleway(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: theme.textTheme.titleLarge?.color,
+              // Ratings section
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                child: Text(
+                  "reviews".tr,
+                  style: GoogleFonts.raleway(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: theme.textTheme.titleLarge?.color,
+                  ),
                 ),
               ),
-            ),
 
-            // Rating summary
-            _isLoading
-                ? Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16.h),
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryColor,
-                    ),
-                  ),
-                )
-                : _buildRatingSummary(_averageRating, _ratingCount),
-
-            // Patient comments
-            Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
-              child: Text(
-                "Commentaires",
-                style: GoogleFonts.raleway(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: theme.textTheme.titleLarge?.color,
-                ),
-              ),
-            ),
-
-            // Comments list
-            _isLoading
-                ? Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16.h),
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryColor,
-                    ),
-                  ),
-                )
-                : _ratings.isEmpty
-                ? Padding(
-                  padding: EdgeInsets.all(16.w),
-                  child: Center(
-                    child: Text(
-                      "no_reviews_available".tr,
-                      style: GoogleFonts.raleway(
-                        fontSize: 16.sp,
-                        color: Colors.grey,
-                        fontStyle: FontStyle.italic,
+              // Rating summary
+              _isLoading
+                  ? Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryColor,
                       ),
                     ),
-                  ),
-                )
-                : ListView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  itemCount: _ratings.length,
-                  itemBuilder: (context, index) {
-                    return _buildRatingItem(_ratings[index]);
-                  },
-                ),
+                  )
+                  : _buildRatingSummary(_averageRating, _ratingCount),
 
-            SizedBox(height: 100.h), // Extra space at bottom for FAB
-          ],
+              // Patient comments
+              Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
+                child: Text(
+                  "Commentaires",
+                  style: GoogleFonts.raleway(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: theme.textTheme.titleLarge?.color,
+                  ),
+                ),
+              ),
+
+              // Comments list
+              _isLoading
+                  ? Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
+                  )
+                  : _ratings.isEmpty
+                  ? Padding(
+                    padding: EdgeInsets.all(16.w),
+                    child: Center(
+                      child: Text(
+                        "no_reviews_available".tr,
+                        style: GoogleFonts.raleway(
+                          fontSize: 16.sp,
+                          color: Colors.grey,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  )
+                  : ListView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
+                    itemCount: _ratings.length,
+                    itemBuilder: (context, index) {
+                      return _buildRatingItem(_ratings[index]);
+                    },
+                  ),
+
+              SizedBox(height: 100.h), // Extra space at bottom for FAB
+            ],
+          ),
         ),
       ),
       floatingActionButton:
@@ -294,7 +257,23 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
               Icons.mail,
               widget.doctor.email ?? "not_specified".tr,
             ),
-            _buildInfoRow(Icons.location_on, "address_not_specified".tr),
+            _buildInfoRow(
+              Icons.location_on,
+              widget.doctor.address != null
+                  ? "${widget.doctor.address!['street']}, ${widget.doctor.address!['city']}"
+                  : "address_not_specified".tr,
+            ),
+
+            // New fields
+            _buildInfoRow(
+              Icons.timer,
+              "${widget.doctor.appointmentDuration} ${"minutes".tr}",
+            ),
+            if (widget.doctor.consultationFee != null)
+              _buildInfoRow(
+                Icons.attach_money,
+                "${widget.doctor.consultationFee} ${"consultation_fee_label".tr}",
+              ),
           ],
         ),
       ),

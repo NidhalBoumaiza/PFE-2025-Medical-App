@@ -11,7 +11,7 @@ import 'package:get/get.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../authentication/data/models/user_model.dart';
 import '../../../authentication/domain/entities/patient_entity.dart';
-import '../../../rendez_vous/presentation/pages/patient_profile_page.dart';
+import '../../../profile/presentation/pages/patient_profile_page.dart';
 
 class DoctorPatientsPage extends StatefulWidget {
   const DoctorPatientsPage({Key? key}) : super(key: key);

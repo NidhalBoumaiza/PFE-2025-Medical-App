@@ -17,7 +17,8 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
 
   @override
   Future<Either<Failure, PrescriptionEntity>> createPrescription(
-      PrescriptionEntity prescription) async {
+    PrescriptionEntity prescription,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
         final result = await remoteDataSource.createPrescription(prescription);
@@ -34,7 +35,8 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
 
   @override
   Future<Either<Failure, PrescriptionEntity>> editPrescription(
-      PrescriptionEntity prescription) async {
+    PrescriptionEntity prescription,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
         final result = await remoteDataSource.editPrescription(prescription);
@@ -51,10 +53,13 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
 
   @override
   Future<Either<Failure, List<PrescriptionEntity>>> getPatientPrescriptions(
-      String patientId) async {
+    String patientId,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
-        final result = await remoteDataSource.getPatientPrescriptions(patientId);
+        final result = await remoteDataSource.getPatientPrescriptions(
+          patientId,
+        );
         return Right(result);
       } on ServerException catch (e) {
         return Left(ServerMessageFailure(e.message));
@@ -68,7 +73,8 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
 
   @override
   Future<Either<Failure, List<PrescriptionEntity>>> getDoctorPrescriptions(
-      String doctorId) async {
+    String doctorId,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
         final result = await remoteDataSource.getDoctorPrescriptions(doctorId);
@@ -85,10 +91,13 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
 
   @override
   Future<Either<Failure, PrescriptionEntity>> getPrescriptionById(
-      String prescriptionId) async {
+    String prescriptionId,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
-        final result = await remoteDataSource.getPrescriptionById(prescriptionId);
+        final result = await remoteDataSource.getPrescriptionById(
+          prescriptionId,
+        );
         return Right(result);
       } on ServerException catch (e) {
         return Left(ServerMessageFailure(e.message));
@@ -102,10 +111,13 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
 
   @override
   Future<Either<Failure, PrescriptionEntity?>> getPrescriptionByAppointmentId(
-      String appointmentId) async {
+    String appointmentId,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
-        final result = await remoteDataSource.getPrescriptionByAppointmentId(appointmentId);
+        final result = await remoteDataSource.getPrescriptionByAppointmentId(
+          appointmentId,
+        );
         return Right(result);
       } on ServerException catch (e) {
         return Left(ServerMessageFailure(e.message));
@@ -118,10 +130,13 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
   }
 
   @override
-  Future<Either<Failure, Unit>> updatePrescription(PrescriptionEntity prescription) async {
+  Future<Either<Failure, Unit>> updatePrescriptionStatus(
+    String prescriptionId,
+    String status,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
-        await remoteDataSource.updatePrescription(prescription);
+        await remoteDataSource.updatePrescriptionStatus(prescriptionId, status);
         return const Right(unit);
       } on ServerException catch (e) {
         return Left(ServerMessageFailure(e.message));
@@ -132,4 +147,4 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
       return Left(OfflineFailure());
     }
   }
-} 
+}

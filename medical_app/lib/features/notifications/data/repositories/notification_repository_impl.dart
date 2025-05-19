@@ -16,13 +16,13 @@ class NotificationRepositoryImpl implements NotificationRepository {
   });
 
   @override
-  Future<Either<Failure, List<NotificationEntity>>> getNotifications(String userId) async {
+  Future<Either<Failure, List<NotificationEntity>>> getNotifications() async {
     if (await networkInfo.isConnected) {
       try {
-        final notifications = await remoteDataSource.getNotifications(userId);
+        final notifications = await remoteDataSource.getNotifications();
         return Right(notifications);
       } on ServerException catch (e) {
-        return Left(ServerFailure());
+        return Left(ServerFailure(message: e.message));
       }
     } else {
       return Left(OfflineFailure());
@@ -38,7 +38,6 @@ class NotificationRepositoryImpl implements NotificationRepository {
     required NotificationType type,
     String? appointmentId,
     String? prescriptionId,
-    String? ratingId,
     Map<String, dynamic>? data,
   }) async {
     if (await networkInfo.isConnected) {
@@ -51,12 +50,11 @@ class NotificationRepositoryImpl implements NotificationRepository {
           type: type,
           appointmentId: appointmentId,
           prescriptionId: prescriptionId,
-          ratingId: ratingId,
           data: data,
         );
         return const Right(unit);
       } on ServerException catch (e) {
-        return Left(ServerFailure());
+        return Left(ServerFailure(message: e.message));
       }
     } else {
       return Left(OfflineFailure());
@@ -64,13 +62,15 @@ class NotificationRepositoryImpl implements NotificationRepository {
   }
 
   @override
-  Future<Either<Failure, Unit>> markNotificationAsRead(String notificationId) async {
+  Future<Either<Failure, Unit>> markNotificationAsRead(
+    String notificationId,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
         await remoteDataSource.markNotificationAsRead(notificationId);
         return const Right(unit);
       } on ServerException catch (e) {
-        return Left(ServerFailure());
+        return Left(ServerFailure(message: e.message));
       }
     } else {
       return Left(OfflineFailure());
@@ -78,13 +78,13 @@ class NotificationRepositoryImpl implements NotificationRepository {
   }
 
   @override
-  Future<Either<Failure, Unit>> markAllNotificationsAsRead(String userId) async {
+  Future<Either<Failure, Unit>> markAllNotificationsAsRead() async {
     if (await networkInfo.isConnected) {
       try {
-        await remoteDataSource.markAllNotificationsAsRead(userId);
+        await remoteDataSource.markAllNotificationsAsRead();
         return const Right(unit);
       } on ServerException catch (e) {
-        return Left(ServerFailure());
+        return Left(ServerFailure(message: e.message));
       }
     } else {
       return Left(OfflineFailure());
@@ -92,13 +92,15 @@ class NotificationRepositoryImpl implements NotificationRepository {
   }
 
   @override
-  Future<Either<Failure, Unit>> deleteNotification(String notificationId) async {
+  Future<Either<Failure, Unit>> deleteNotification(
+    String notificationId,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
         await remoteDataSource.deleteNotification(notificationId);
         return const Right(unit);
       } on ServerException catch (e) {
-        return Left(ServerFailure());
+        return Left(ServerFailure(message: e.message));
       }
     } else {
       return Left(OfflineFailure());
@@ -106,13 +108,13 @@ class NotificationRepositoryImpl implements NotificationRepository {
   }
 
   @override
-  Future<Either<Failure, int>> getUnreadNotificationsCount(String userId) async {
+  Future<Either<Failure, int>> getUnreadNotificationsCount() async {
     if (await networkInfo.isConnected) {
       try {
-        final count = await remoteDataSource.getUnreadNotificationsCount(userId);
+        final count = await remoteDataSource.getUnreadNotificationsCount();
         return Right(count);
       } on ServerException catch (e) {
-        return Left(ServerFailure());
+        return Left(ServerFailure(message: e.message));
       }
     } else {
       return Left(OfflineFailure());
@@ -120,27 +122,49 @@ class NotificationRepositoryImpl implements NotificationRepository {
   }
 
   @override
-  Future<Either<Failure, String?>> setupFCM() async {
-    if (await networkInfo.isConnected) {
-      try {
-        final token = await remoteDataSource.setupFCM();
-        return Right(token);
-      } on ServerException catch (e) {
-        return Left(ServerFailure());
-      }
-    } else {
-      return Left(OfflineFailure());
+  Future<Either<Failure, Unit>> initializeOneSignal() async {
+    try {
+      await remoteDataSource.initializeOneSignal();
+      return const Right(unit);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, Unit>> saveFCMToken(String userId, String token) async {
+  Future<Either<Failure, Unit>> setExternalUserId(String userId) async {
+    try {
+      await remoteDataSource.setExternalUserId(userId);
+      return const Right(unit);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String?>> getOneSignalPlayerId() async {
+    try {
+      final playerId = await remoteDataSource.getOneSignalPlayerId();
+      return Right(playerId);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> saveOneSignalPlayerId(String userId) async {
     if (await networkInfo.isConnected) {
       try {
-        await remoteDataSource.saveFCMToken(userId, token);
+        await remoteDataSource.saveOneSignalPlayerId(userId);
         return const Right(unit);
       } on ServerException catch (e) {
-        return Left(ServerFailure());
+        return Left(ServerFailure(message: e.message));
       }
     } else {
       return Left(OfflineFailure());
@@ -148,7 +172,14 @@ class NotificationRepositoryImpl implements NotificationRepository {
   }
 
   @override
-  Stream<List<NotificationEntity>> notificationsStream(String userId) {
-    return remoteDataSource.notificationsStream(userId);
+  Future<Either<Failure, Unit>> logout() async {
+    try {
+      await remoteDataSource.logout();
+      return const Right(unit);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
   }
-} 
+}

@@ -6,6 +6,7 @@ import '../../../../core/utils/app_colors.dart';
 import '../../../../core/widgets/reusable_text_field_widget.dart';
 import '../../domain/entities/patient_entity.dart';
 import 'password_screen.dart';
+import 'package:medical_app/core/utils/navigation_with_transition.dart';
 
 class SignupPatientScreen extends StatefulWidget {
   final PatientEntity patientEntity;
@@ -19,10 +20,39 @@ class SignupPatientScreen extends StatefulWidget {
 class _SignupPatientScreenState extends State<SignupPatientScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController antecedentsController = TextEditingController();
+  final TextEditingController heightController = TextEditingController();
+  final TextEditingController weightController = TextEditingController();
+  final TextEditingController allergiesController = TextEditingController();
+  final TextEditingController emergencyNameController = TextEditingController();
+  final TextEditingController emergencyRelationController =
+      TextEditingController();
+  final TextEditingController emergencyPhoneController =
+      TextEditingController();
+
+  String? selectedBloodType;
+
+  // List of blood types
+  final List<String> bloodTypes = [
+    'A+',
+    'A-',
+    'B+',
+    'B-',
+    'AB+',
+    'AB-',
+    'O+',
+    'O-',
+    'Unknown',
+  ];
 
   @override
   void dispose() {
     antecedentsController.dispose();
+    heightController.dispose();
+    weightController.dispose();
+    allergiesController.dispose();
+    emergencyNameController.dispose();
+    emergencyRelationController.dispose();
+    emergencyPhoneController.dispose();
     super.dispose();
   }
 
@@ -60,12 +90,12 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                   Center(
                     child: Image.asset(
                       'assets/images/patient.png',
-                      height: 200.h,
-                      width: 200.w,
+                      height: 150.h,
+                      width: 150.w,
                     ),
                   ),
 
-                  SizedBox(height: 30.h),
+                  SizedBox(height: 20.h),
 
                   // Form fields
                   Form(
@@ -82,10 +112,33 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                             color: Colors.black87,
                           ),
                         ),
-
                         SizedBox(height: 10.h),
+                        buildTextFormField(
+                          controller: antecedentsController,
+                          hintText: "medical_history_hint".tr,
+                          maxLines: 4,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return "medical_history_label".tr +
+                                  " " +
+                                  "name_required".tr;
+                            }
+                            return null;
+                          },
+                        ),
 
-                        // Antécédents field
+                        SizedBox(height: 16.h),
+
+                        // Blood Type
+                        Text(
+                          "blood_type".tr,
+                          style: GoogleFonts.raleway(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
                         Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16.r),
@@ -99,14 +152,8 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                               ),
                             ],
                           ),
-                          child: TextFormField(
-                            controller: antecedentsController,
-                            style: GoogleFonts.raleway(
-                              fontSize: 15.sp,
-                              color: Colors.black87,
-                            ),
-                            maxLines: 5,
-                            minLines: 5,
+                          child: DropdownButtonFormField<String>(
+                            value: selectedBloodType,
                             decoration: InputDecoration(
                               filled: true,
                               fillColor: Colors.white,
@@ -129,35 +176,168 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                                   width: 1,
                                 ),
                               ),
-                              errorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16.r),
-                                borderSide: const BorderSide(
-                                  color: Colors.red,
-                                  width: 1,
-                                ),
-                              ),
-                              focusedErrorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16.r),
-                                borderSide: const BorderSide(
-                                  color: Colors.red,
-                                  width: 1,
-                                ),
-                              ),
-                              hintText: "medical_history_hint".tr,
-                              hintStyle: GoogleFonts.raleway(
+                            ),
+                            hint: Text(
+                              "select_blood_type".tr,
+                              style: GoogleFonts.raleway(
                                 color: Colors.grey[400],
                                 fontSize: 15.sp,
                               ),
                             ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return "medical_history_label".tr +
-                                    " " +
-                                    "name_required".tr;
-                              }
-                              return null;
+                            isExpanded: true,
+                            items:
+                                bloodTypes.map((String type) {
+                                  return DropdownMenuItem<String>(
+                                    value: type,
+                                    child: Text(
+                                      type,
+                                      style: GoogleFonts.raleway(
+                                        fontSize: 15.sp,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                            onChanged: (newValue) {
+                              setState(() {
+                                selectedBloodType = newValue;
+                              });
                             },
                           ),
+                        ),
+
+                        SizedBox(height: 16.h),
+
+                        // Height and Weight in a row
+                        Row(
+                          children: [
+                            // Height field
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "height".tr,
+                                    style: GoogleFonts.raleway(
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  SizedBox(height: 10.h),
+                                  buildTextFormField(
+                                    controller: heightController,
+                                    hintText: "enter_height".tr,
+                                    keyboardType: TextInputType.number,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(width: 16.w),
+                            // Weight field
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "weight".tr,
+                                    style: GoogleFonts.raleway(
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  SizedBox(height: 10.h),
+                                  buildTextFormField(
+                                    controller: weightController,
+                                    hintText: "enter_weight".tr,
+                                    keyboardType: TextInputType.number,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: 16.h),
+
+                        // Allergies field
+                        Text(
+                          "allergies".tr,
+                          style: GoogleFonts.raleway(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
+                        buildTextFormField(
+                          controller: allergiesController,
+                          hintText: "enter_allergies".tr,
+                          maxLines: 2,
+                        ),
+
+                        SizedBox(height: 16.h),
+
+                        // Emergency Contact Section
+                        Text(
+                          "emergency_contact".tr,
+                          style: GoogleFonts.raleway(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryColor,
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
+
+                        // Emergency Contact Name
+                        Text(
+                          "emergency_contact_name".tr,
+                          style: GoogleFonts.raleway(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
+                        buildTextFormField(
+                          controller: emergencyNameController,
+                          hintText: "enter_emergency_name".tr,
+                        ),
+
+                        SizedBox(height: 16.h),
+
+                        // Emergency Contact Relationship
+                        Text(
+                          "emergency_relationship".tr,
+                          style: GoogleFonts.raleway(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
+                        buildTextFormField(
+                          controller: emergencyRelationController,
+                          hintText: "enter_emergency_relationship".tr,
+                        ),
+
+                        SizedBox(height: 16.h),
+
+                        // Emergency Contact Phone
+                        Text(
+                          "emergency_phone".tr,
+                          style: GoogleFonts.raleway(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
+                        buildTextFormField(
+                          controller: emergencyPhoneController,
+                          hintText: "enter_emergency_phone".tr,
+                          keyboardType: TextInputType.phone,
                         ),
                       ],
                     ),
@@ -180,6 +360,50 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                       ),
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
+                          // Parse height and weight to double if provided
+                          double? height;
+                          double? weight;
+
+                          if (heightController.text.isNotEmpty) {
+                            height = double.tryParse(heightController.text);
+                          }
+
+                          if (weightController.text.isNotEmpty) {
+                            weight = double.tryParse(weightController.text);
+                          }
+
+                          // Parse allergies into a list
+                          List<String>? allergies;
+                          if (allergiesController.text.isNotEmpty) {
+                            allergies =
+                                allergiesController.text
+                                    .split(',')
+                                    .map((e) => e.trim())
+                                    .where((e) => e.isNotEmpty)
+                                    .toList();
+                          }
+
+                          // Create emergency contact map if any field is filled
+                          Map<String, String?>? emergencyContact;
+                          if (emergencyNameController.text.isNotEmpty ||
+                              emergencyRelationController.text.isNotEmpty ||
+                              emergencyPhoneController.text.isNotEmpty) {
+                            emergencyContact = {
+                              'name':
+                                  emergencyNameController.text.isEmpty
+                                      ? null
+                                      : emergencyNameController.text,
+                              'relationship':
+                                  emergencyRelationController.text.isEmpty
+                                      ? null
+                                      : emergencyRelationController.text,
+                              'phoneNumber':
+                                  emergencyPhoneController.text.isEmpty
+                                      ? null
+                                      : emergencyPhoneController.text,
+                            };
+                          }
+
                           final updatedPatientEntity = PatientEntity(
                             name: widget.patientEntity.name,
                             lastName: widget.patientEntity.lastName,
@@ -189,9 +413,15 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
                             phoneNumber: widget.patientEntity.phoneNumber,
                             dateOfBirth: widget.patientEntity.dateOfBirth,
                             antecedent: antecedentsController.text,
+                            bloodType: selectedBloodType,
+                            height: height,
+                            weight: weight,
+                            allergies: allergies,
+                            emergencyContact: emergencyContact,
                           );
-                          Get.to(
-                            () => PasswordScreen(entity: updatedPatientEntity),
+                          navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                            context,
+                            PasswordScreen(entity: updatedPatientEntity),
                           );
                         }
                       },
@@ -228,6 +458,69 @@ class _SignupPatientScreenState extends State<SignupPatientScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget buildTextFormField({
+    required TextEditingController controller,
+    required String hintText,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16.r),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        style: GoogleFonts.raleway(fontSize: 15.sp, color: Colors.black87),
+        maxLines: maxLines,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 20.w,
+            vertical: 16.h,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide(color: AppColors.primaryColor, width: 1),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: const BorderSide(color: Colors.red, width: 1),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: const BorderSide(color: Colors.red, width: 1),
+          ),
+          hintText: hintText,
+          hintStyle: GoogleFonts.raleway(
+            color: Colors.grey[400],
+            fontSize: 15.sp,
+          ),
+        ),
+        validator: validator,
       ),
     );
   }

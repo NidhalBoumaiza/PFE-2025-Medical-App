@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:medical_app/constants.dart';
 import 'package:medical_app/core/error/exceptions.dart';
+import 'package:medical_app/core/services/api_service.dart';
 import 'package:medical_app/features/rendez_vous/data/data%20sources/rdv_local_data_source.dart';
 import 'package:medical_app/features/authentication/domain/entities/medecin_entity.dart';
 import 'package:medical_app/features/authentication/data/models/medecin_model.dart';
@@ -11,37 +13,36 @@ abstract class RendezVousRemoteDataSource {
     String? doctorId,
   });
 
-  Future<void> updateRendezVousStatus(
-      String rendezVousId,
-      String status,
-      String patientId,
-      String doctorId,
-      String patientName,
-      String doctorName,
-      );
+  Future<void> updateRendezVousStatus(String rendezVousId, String status);
 
   Future<void> createRendezVous(RendezVousModel rendezVous);
 
   Future<List<MedecinEntity>> getDoctorsBySpecialty(
-      String specialty,
-      DateTime startTime,
-      );
+    String specialty, {
+    DateTime? startDate,
+    DateTime? endDate,
+  });
 
-  Future<void> assignDoctorToRendezVous(
-      String rendezVousId,
-      String doctorId,
-      String doctorName,
-      );
+  Future<RendezVousModel> getRendezVousDetails(String rendezVousId);
+
+  Future<void> cancelAppointment(String rendezVousId);
+
+  Future<void> rateDoctor(String appointmentId, double rating);
+
+  Future<List<RendezVousModel>> getDoctorAppointmentsForDay(
+    String doctorId,
+    DateTime date,
+  );
+
+  Future<void> acceptAppointment(String rendezVousId);
+
+  Future<void> refuseAppointment(String rendezVousId);
 }
 
 class RendezVousRemoteDataSourceImpl implements RendezVousRemoteDataSource {
-  final FirebaseFirestore firestore;
   final RendezVousLocalDataSource localDataSource;
 
-  RendezVousRemoteDataSourceImpl({
-    required this.firestore,
-    required this.localDataSource,
-  });
+  RendezVousRemoteDataSourceImpl({required this.localDataSource});
 
   @override
   Future<List<RendezVousModel>> getRendezVous({
@@ -49,253 +50,206 @@ class RendezVousRemoteDataSourceImpl implements RendezVousRemoteDataSource {
     String? doctorId,
   }) async {
     if (patientId == null && doctorId == null) {
-      throw ServerException('Either patientId or doctorId must be provided');
+      throw ServerException(
+        message: 'Either patientId or doctorId must be provided',
+      );
     }
+
     try {
-      print('RendezVousRemoteDataSource: Fetching appointments for patientId=$patientId, doctorId=$doctorId');
-      
-      Query<Map<String, dynamic>> query = firestore.collection('rendez_vous');
+      String url;
       if (patientId != null) {
-        query = query.where('patientId', isEqualTo: patientId);
+        // For patient, use the patient route
+        url = '${AppConstants.appointmentsEndpoint}/myAppointments';
+      } else {
+        // For doctor, use the doctor route
+        url = '${AppConstants.appointmentsEndpoint}/doctorAppointments';
       }
-      if (doctorId != null) {
-        query = query.where('doctorId', isEqualTo: doctorId);
-      }
-      
-      final snapshot = await query.get();
-      print('RendezVousRemoteDataSource: Found ${snapshot.docs.length} appointments');
-      
-      final rendezVous = snapshot.docs
-          .map((doc) {
-            final data = doc.data();
-            data['id'] = doc.id; // Ensure the ID is set correctly
-            print('RendezVousRemoteDataSource: Processing appointment ${doc.id}: status=${data['status']}');
-            return RendezVousModel.fromJson(data);
-          })
-          .toList();
-      
+
+      final response = await ApiService.getRequest(url);
+      final appointmentsData = response['data']['appointments'] as List;
+
+      final rendezVous =
+          appointmentsData
+              .map((appointment) => RendezVousModel.fromJson(appointment))
+              .toList();
+
       await localDataSource.cacheRendezVous(rendezVous);
       return rendezVous;
-    } on FirebaseException catch (e) {
-      print('RendezVousRemoteDataSource: Firestore error: ${e.message}');
-      throw ServerException('Firestore error: ${e.message}');
     } catch (e) {
-      print('RendezVousRemoteDataSource: Unexpected error: $e');
-      throw ServerException('Unexpected error: $e');
+      throw ServerException(message: 'Error fetching appointments: $e');
     }
   }
 
   @override
   Future<void> updateRendezVousStatus(
-      String rendezVousId,
-      String status,
-      String patientId,
-      String doctorId,
-      String patientName,
-      String doctorName,
-      ) async {
+    String rendezVousId,
+    String status,
+  ) async {
     try {
-      // If status is 'accepted', calculate the end time based on doctor's appointment duration
-      if (status == 'accepted') {
-        // First, get the current appointment data to access the startTime
-        final appointmentDoc = await firestore.collection('rendez_vous').doc(rendezVousId).get();
-        if (!appointmentDoc.exists) {
-          throw ServerMessageException('Rendezvous not found');
-        }
-        
-        final appointmentData = appointmentDoc.data() as Map<String, dynamic>;
-        DateTime startTime;
-        
-        // Parse startTime from the document
-        if (appointmentData['startTime'] is Timestamp) {
-          startTime = (appointmentData['startTime'] as Timestamp).toDate();
-        } else if (appointmentData['startTime'] is String) {
-          startTime = DateTime.parse(appointmentData['startTime'] as String);
-        } else {
-          throw ServerException('Invalid startTime format in appointment');
-        }
-        
-        // Get the doctor's appointment duration
-        final appointmentDuration = await fetchDoctorAppointmentDuration(doctorId);
-        
-        // Calculate endTime based on startTime and appointmentDuration
-        final endTime = startTime.add(Duration(minutes: appointmentDuration));
-        
-        // Update the appointment with status and calculated endTime
-        await firestore.collection('rendez_vous').doc(rendezVousId).update({
-          'status': status,
-          'endTime': endTime.toIso8601String(),
-        });
-        
-        // Check if a conversation already exists
-        final existingConversation = await firestore
-            .collection('conversations')
-            .where('patientId', isEqualTo: patientId)
-            .where('doctorId', isEqualTo: doctorId)
-            .get();
+      String endpoint;
+      switch (status) {
+        case 'Accepté':
+          endpoint =
+              '${AppConstants.appointmentsEndpoint}/acceptAppointment/$rendezVousId';
+          break;
+        case 'Refusé':
+          endpoint =
+              '${AppConstants.appointmentsEndpoint}/refuseAppointment/$rendezVousId';
+          break;
+        case 'Annulé':
+          endpoint =
+              '${AppConstants.appointmentsEndpoint}/cancelAppointment/$rendezVousId';
+          break;
+        default:
+          throw ServerException(message: 'Unsupported status: $status');
+      }
 
-        if (existingConversation.docs.isEmpty) {
-          // Create new conversation
-          final docRef = firestore.collection('conversations').doc();
-          await docRef.set({
-            'id': docRef.id,
-            'patientId': patientId,
-            'doctorId': doctorId,
-            'patientName': patientName,
-            'doctorName': doctorName,
-            'lastMessage': 'Conversation started for rendez-vous',
-            'lastMessageType': 'text',
-            'lastMessageTime': DateTime.now().toIso8601String(),
-          });
-        }
-      } else {
-        // For other status updates, just update the status
-        await firestore
-            .collection('rendez_vous')
-            .doc(rendezVousId)
-            .update({'status': status});
-      }
-    } on FirebaseException catch (e) {
-      if (e.code == 'not-found') {
-        throw ServerMessageException('Rendezvous not found');
-      }
-      throw ServerException('Firestore error: ${e.message}');
+      await ApiService.patchRequest(endpoint, {});
     } catch (e) {
-      throw ServerException('Unexpected error: $e');
-    }
-  }
-
-  // New helper method to fetch doctor's appointment duration
-  Future<int> fetchDoctorAppointmentDuration(String? doctorId) async {
-    if (doctorId == null) {
-      return 30; // Default duration if no doctor is assigned yet
-    }
-    
-    try {
-      final doctorDoc = await firestore.collection('medecins').doc(doctorId).get();
-      if (doctorDoc.exists) {
-        final data = doctorDoc.data() as Map<String, dynamic>;
-        return data['appointmentDuration'] as int? ?? 30;
-      }
-      return 30; // Default if doctor not found
-    } catch (e) {
-      print('Error fetching doctor appointment duration: $e');
-      return 30; // Default in case of error
+      throw ServerException(message: 'Error updating appointment status: $e');
     }
   }
 
   @override
   Future<void> createRendezVous(RendezVousModel rendezVous) async {
     try {
-      final docRef = firestore.collection('rendez_vous').doc();
-      
-      // Calculate endTime based on doctor's appointmentDuration
-      DateTime? endTime = rendezVous.endTime;
-      
-      // If endTime is not provided, calculate it based on doctor's appointment duration
-      if (endTime == null && rendezVous.doctorId != null) {
-        final appointmentDuration = await fetchDoctorAppointmentDuration(rendezVous.doctorId);
-        endTime = rendezVous.startTime.add(Duration(minutes: appointmentDuration));
-      }
-      
-      final rendezVousWithId = RendezVousModel(
-        id: docRef.id,
-        patientId: rendezVous.patientId,
-        doctorId: rendezVous.doctorId,
-        patientName: rendezVous.patientName,
-        doctorName: rendezVous.doctorName,
-        speciality: rendezVous.speciality,
-        startTime: rendezVous.startTime,
-        endTime: endTime,
-        status: rendezVous.status,
+      final data = {
+        'startDate': rendezVous.startDate.toIso8601String(),
+        'endDate': rendezVous.endDate.toIso8601String(),
+        'serviceName': rendezVous.serviceName,
+        'medecinId': rendezVous.medecin,
+        'motif': rendezVous.motif,
+        'symptoms': rendezVous.symptoms,
+      };
+
+      await ApiService.postRequest(
+        '${AppConstants.appointmentsEndpoint}/createAppointment',
+        data,
       );
-      await docRef.set(rendezVousWithId.toJson());
-    } on FirebaseException catch (e) {
-      throw ServerException('Firestore error: ${e.message}');
     } catch (e) {
-      throw ServerException('Unexpected error: $e');
+      throw ServerException(message: 'Error creating appointment: $e');
     }
   }
 
   @override
   Future<List<MedecinEntity>> getDoctorsBySpecialty(
-      String specialty,
-      DateTime startTime,
-      ) async {
+    String specialty, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
     try {
-      final doctorSnapshot = await firestore
-          .collection('medecins')
-          .where('speciality', isEqualTo: specialty)
-          .get();
-      final doctors = doctorSnapshot.docs
-          .map((doc) => MedecinModel.fromJson(doc.data()).toEntity())
-          .toList();
+      final data = {'speciality': specialty};
 
-      final availableDoctors = <MedecinEntity>[];
-      for (final doctor in doctors) {
-        final rendezVousSnapshot = await firestore
-            .collection('rendez_vous')
-            .where('doctorId', isEqualTo: doctor.id)
-            .where('startTime', isEqualTo: startTime.toIso8601String())
-            .where('status', isEqualTo: 'accepted')
-            .get();
-        if (rendezVousSnapshot.docs.isEmpty) {
-          availableDoctors.add(doctor);
-        }
+      // Add date range if provided
+      if (startDate != null && endDate != null) {
+        data['startDate'] = startDate.toIso8601String();
+        data['endDate'] = endDate.toIso8601String();
       }
-      return availableDoctors;
-    } on FirebaseException catch (e) {
-      throw ServerException('Firestore error: ${e.message}');
+
+      final response = await ApiService.postRequest(
+        '${AppConstants.appointmentsEndpoint}/getAvailableDoctors',
+        data,
+      );
+
+      final doctorsData = response['data']['doctors'] as List;
+
+      // Create a list of MedecinEntity objects
+      List<MedecinEntity> doctorEntities = [];
+      for (var doctor in doctorsData) {
+        MedecinModel doctorModel = MedecinModel.fromJson(doctor);
+        doctorEntities.add(doctorModel.toEntity());
+      }
+
+      return doctorEntities;
     } catch (e) {
-      throw ServerException('Unexpected error: $e');
+      throw ServerException(message: 'Error fetching doctors by specialty: $e');
     }
   }
 
   @override
-  Future<void> assignDoctorToRendezVous(
-      String rendezVousId,
-      String doctorId,
-      String doctorName,
-      ) async {
+  Future<RendezVousModel> getRendezVousDetails(String rendezVousId) async {
     try {
-      // First, get the current appointment data to access the startTime
-      final appointmentDoc = await firestore.collection('rendez_vous').doc(rendezVousId).get();
-      if (!appointmentDoc.exists) {
-        throw ServerMessageException('Rendezvous not found');
-      }
-      
-      final appointmentData = appointmentDoc.data() as Map<String, dynamic>;
-      DateTime startTime;
-      
-      // Parse startTime from the document
-      if (appointmentData['startTime'] is Timestamp) {
-        startTime = (appointmentData['startTime'] as Timestamp).toDate();
-      } else if (appointmentData['startTime'] is String) {
-        startTime = DateTime.parse(appointmentData['startTime'] as String);
-      } else {
-        throw ServerException('Invalid startTime format in appointment');
-      }
-      
-      // Get the doctor's appointment duration
-      final appointmentDuration = await fetchDoctorAppointmentDuration(doctorId);
-      
-      // Calculate endTime based on startTime and appointmentDuration
-      final endTime = startTime.add(Duration(minutes: appointmentDuration));
-      
-      // Update the appointment with doctor info and calculated endTime
-      await firestore.collection('rendez_vous').doc(rendezVousId).update({
-        'doctorId': doctorId,
-        'doctorName': doctorName,
-        'status': 'pending',
-        'endTime': endTime.toIso8601String(),
-      });
-    } on FirebaseException catch (e) {
-      if (e.code == 'not-found') {
-        throw ServerMessageException('Rendezvous not found');
-      }
-      throw ServerException('Firestore error: ${e.message}');
+      final response = await ApiService.getRequest(
+        '${AppConstants.appointmentsEndpoint}/$rendezVousId',
+      );
+
+      return RendezVousModel.fromJson(response['data']['appointment']);
     } catch (e) {
-      throw ServerException('Unexpected error: $e');
+      throw ServerException(message: 'Error fetching appointment details: $e');
+    }
+  }
+
+  @override
+  Future<void> cancelAppointment(String rendezVousId) async {
+    try {
+      await ApiService.patchRequest(
+        '${AppConstants.appointmentsEndpoint}/cancelAppointment/$rendezVousId',
+        {},
+      );
+    } catch (e) {
+      throw ServerException(message: 'Error canceling appointment: $e');
+    }
+  }
+
+  @override
+  Future<void> rateDoctor(String appointmentId, double rating) async {
+    try {
+      await ApiService.postRequest(
+        '${AppConstants.appointmentsEndpoint}/rateDoctor',
+        {'appointmentId': appointmentId, 'rating': rating},
+      );
+    } catch (e) {
+      throw ServerException(message: 'Error rating doctor: $e');
+    }
+  }
+
+  @override
+  Future<List<RendezVousModel>> getDoctorAppointmentsForDay(
+    String doctorId,
+    DateTime date,
+  ) async {
+    try {
+      final response = await ApiService.postRequest(
+        '${AppConstants.appointmentsEndpoint}/doctorAppointmentsForDay',
+        {'date': date.toIso8601String()},
+      );
+
+      final appointmentsData = response['data']['appointments'] as List;
+
+      final rendezVous =
+          appointmentsData
+              .map((appointment) => RendezVousModel.fromJson(appointment))
+              .toList();
+
+      return rendezVous;
+    } catch (e) {
+      throw ServerException(
+        message: 'Error fetching doctor appointments for day: $e',
+      );
+    }
+  }
+
+  @override
+  Future<void> acceptAppointment(String rendezVousId) async {
+    try {
+      await ApiService.patchRequest(
+        '${AppConstants.appointmentsEndpoint}/acceptAppointment/$rendezVousId',
+        {},
+      );
+    } catch (e) {
+      throw ServerException(message: 'Error accepting appointment: $e');
+    }
+  }
+
+  @override
+  Future<void> refuseAppointment(String rendezVousId) async {
+    try {
+      await ApiService.patchRequest(
+        '${AppConstants.appointmentsEndpoint}/refuseAppointment/$rendezVousId',
+        {},
+      );
+    } catch (e) {
+      throw ServerException(message: 'Error refusing appointment: $e');
     }
   }
 }

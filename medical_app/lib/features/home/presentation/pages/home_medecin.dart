@@ -363,7 +363,7 @@ class _HomeMedecinState extends State<HomeMedecin> {
                         conversationsState.conversations
                             .where(
                               (conv) =>
-                                  !conv.lastMessageRead &&
+                                  !conv.lastMessageReadBy.contains(userId) &&
                                   conv.lastMessage.isNotEmpty,
                             )
                             .length;
@@ -404,7 +404,8 @@ class _HomeMedecinState extends State<HomeMedecin> {
               state.conversations
                   .where(
                     (conv) =>
-                        !conv.lastMessageRead && conv.lastMessage.isNotEmpty,
+                        !conv.lastMessageReadBy.contains(userId) &&
+                        conv.lastMessage.isNotEmpty,
                   )
                   .length;
         }

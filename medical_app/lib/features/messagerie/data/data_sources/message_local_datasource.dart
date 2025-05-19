@@ -1,12 +1,14 @@
 import 'package:dartz/dartz.dart';
 import 'package:medical_app/features/messagerie/data/models/message_model.dart';
-
-import '../models/conversation_mode.dart';
+import 'package:medical_app/features/messagerie/data/models/conversation_model.dart';
 
 abstract class MessagingLocalDataSource {
   Future<Unit> cacheConversations(List<ConversationModel> conversations);
   Future<List<ConversationModel>> getCachedConversations();
-  Future<Unit> cacheMessages(String conversationId, List<MessageModel> messages);
+  Future<Unit> cacheMessages(
+    String conversationId,
+    List<MessageModel> messages,
+  );
   Future<List<MessageModel>> getCachedMessages(String conversationId);
 }
 
@@ -24,7 +26,10 @@ class MessagingLocalDataSourceImpl implements MessagingLocalDataSource {
   }
 
   @override
-  Future<Unit> cacheMessages(String conversationId, List<MessageModel> messages) async {
+  Future<Unit> cacheMessages(
+    String conversationId,
+    List<MessageModel> messages,
+  ) async {
     throw UnimplementedError('Caching not implemented');
   }
 

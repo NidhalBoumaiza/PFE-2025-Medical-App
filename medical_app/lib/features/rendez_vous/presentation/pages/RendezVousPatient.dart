@@ -1,22 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import 'package:medical_app/core/utils/app_colors.dart';
-import 'package:medical_app/core/utils/custom_snack_bar.dart';
 import 'package:medical_app/core/utils/navigation_with_transition.dart';
-import 'package:medical_app/core/widgets/reusable_text_field_widget.dart';
-import 'package:medical_app/injection_container.dart' as sl;
-import 'package:medical_app/widgets/reusable_text_widget.dart';
-import 'package:medical_app/features/authentication/data/data%20sources/auth_local_data_source.dart';
+import 'package:medical_app/injection_container.dart' as di;
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import '../../../../core/specialties.dart';
-import '../blocs/rendez-vous BLoC/rendez_vous_bloc.dart';
 import 'available_doctor_screen.dart';
 
 class RendezVousPatient extends StatefulWidget {
@@ -121,6 +114,19 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
     }
   }
 
+  void selectDoctor(BuildContext context) {
+    if (_formKey.currentState!.validate()) {
+      navigateWithTransition(
+        context,
+        AvailableDoctorScreen(
+          specialty: selectedSpecialty!,
+          selectedDateTime: selectedDateTime!,
+        ),
+        TransitionType.rightToLeft,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -155,7 +161,7 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
                   : null,
           actions: [
             IconButton(
-              icon: Icon(Icons.calendar_today, color: Colors.white),
+              icon: const Icon(Icons.calendar_today, color: Colors.white),
               onPressed: _toggleCalendar,
               tooltip: "select_date".tr,
             ),
@@ -448,73 +454,32 @@ class _RendezVousPatientState extends State<RendezVousPatient> {
 
                       SizedBox(height: 40.h),
 
-                      // Search button
-                      BlocBuilder<RendezVousBloc, RendezVousState>(
-                        builder: (context, state) {
-                          final isLoading = state is RendezVousLoading;
-
-                          return Container(
-                            width: double.infinity,
-                            height: 55.h,
-                            margin: EdgeInsets.only(bottom: 30.h),
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primaryColor,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16.r),
-                                ),
-                                elevation: isDarkMode ? 0 : 2,
-                              ),
-                              onPressed:
-                                  isLoading
-                                      ? null
-                                      : () async {
-                                        if (_formKey.currentState!.validate()) {
-                                          if (selectedDateTime != null) {
-                                            final authLocalDataSource =
-                                                sl.sl<AuthLocalDataSource>();
-                                            final user =
-                                                await authLocalDataSource
-                                                    .getUser();
-                                            final patientName =
-                                                '${user.name} ${user.lastName}'
-                                                    .trim();
-
-                                            navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-                                              context,
-                                              AvailableDoctorsScreen(
-                                                specialty: selectedSpecialty!,
-                                                startTime: selectedDateTime!,
-                                                patientId: user.id!,
-                                                patientName: patientName,
-                                              ),
-                                            );
-                                          } else {
-                                            showErrorSnackBar(
-                                              context,
-                                              "please_select_valid_date_time"
-                                                  .tr,
-                                            );
-                                          }
-                                        }
-                                      },
-                              child:
-                                  isLoading
-                                      ? CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 3,
-                                      )
-                                      : Text(
-                                        "search_doctor".tr,
-                                        style: GoogleFonts.raleway(
-                                          fontSize: 16.sp,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
+                      // Submit button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed:
+                              selectedSpecialty != null &&
+                                      selectedDateTime != null
+                                  ? () => selectDoctor(context)
+                                  : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryColor,
+                            padding: EdgeInsets.symmetric(vertical: 16.h),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16.r),
                             ),
-                          );
-                        },
+                            disabledBackgroundColor: Colors.grey,
+                          ),
+                          child: Text(
+                            "next".tr,
+                            style: GoogleFonts.raleway(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),

@@ -29,6 +29,16 @@ class DoctorsLoaded extends RendezVousState {
   List<Object> get props => [doctors];
 }
 
+class DoctorDailyAppointmentsLoaded extends RendezVousState {
+  final List<RendezVousEntity> appointments;
+  final DateTime date;
+
+  const DoctorDailyAppointmentsLoaded(this.appointments, this.date);
+
+  @override
+  List<Object> get props => [appointments, date];
+}
+
 class RendezVousError extends RendezVousState {
   final String message;
 
@@ -49,8 +59,6 @@ class RendezVousCreated extends RendezVousState {
   @override
   List<Object?> get props => [rendezVousId, patientName];
 }
-
-class RendezVousDoctorAssigned extends RendezVousState {}
 
 class PastAppointmentsChecked extends RendezVousState {
   final int updatedCount;
@@ -84,4 +92,43 @@ class RendezVousErrorState extends RendezVousState {
 
   @override
   List<Object> get props => [message];
+}
+
+class AppointmentCancelled extends RendezVousState {
+  final String appointmentId;
+
+  const AppointmentCancelled(this.appointmentId);
+
+  @override
+  List<Object> get props => [appointmentId];
+}
+
+class RatingDoctorState extends RendezVousState {}
+
+class DoctorRated extends RendezVousState {
+  final String appointmentId;
+  final double rating;
+
+  const DoctorRated(this.appointmentId, this.rating);
+
+  @override
+  List<Object> get props => [appointmentId, rating];
+}
+
+class AppointmentAccepted extends RendezVousState {
+  final String appointmentId;
+
+  const AppointmentAccepted(this.appointmentId);
+
+  @override
+  List<Object> get props => [appointmentId];
+}
+
+class AppointmentRefused extends RendezVousState {
+  final String appointmentId;
+
+  const AppointmentRefused(this.appointmentId);
+
+  @override
+  List<Object> get props => [appointmentId];
 }

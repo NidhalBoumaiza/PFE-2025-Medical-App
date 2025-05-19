@@ -7,7 +7,10 @@ class HasPatientRatedAppointmentUseCase {
 
   HasPatientRatedAppointmentUseCase(this.repository);
 
-  Future<Either<Failure, bool>> call(String patientId, String rendezVousId) async {
+  Future<Either<Failure, bool>> call(
+    String patientId,
+    String rendezVousId,
+  ) async {
     return await repository.hasPatientRatedAppointment(patientId, rendezVousId);
   }
-} 
+}

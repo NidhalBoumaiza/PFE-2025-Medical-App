@@ -84,9 +84,10 @@ exports.getAvailableDoctors = catchAsync(async (req, res, next) => {
 
 // Create a new appointment
 exports.createAppointment = catchAsync(async (req, res, next) => {
-  const { startDate, endDate, serviceName, medecinId } = req.body;
+  const { startDate, serviceName, medecinId, motif, symptoms } =
+    req.body;
 
-  if (!startDate || !endDate || !serviceName || !medecinId) {
+  if (!startDate || !serviceName || !medecinId) {
     return next(
       new AppError(
         "Veuillez fournir toutes les informations nécessaires",
@@ -96,24 +97,14 @@ exports.createAppointment = catchAsync(async (req, res, next) => {
   }
 
   const parsedStartDate = new Date(startDate);
-  const parsedEndDate = new Date(endDate);
 
-  if (isNaN(parsedStartDate) || isNaN(parsedEndDate)) {
+  if (isNaN(parsedStartDate)) {
     return next(new AppError("Format de date invalide", 400));
   }
 
-  if (parsedStartDate < Date.now() || parsedEndDate < Date.now()) {
+  if (parsedStartDate < Date.now()) {
     return next(
       new AppError("Veuillez fournir une date future", 400)
-    );
-  }
-
-  if (parsedStartDate >= parsedEndDate) {
-    return next(
-      new AppError(
-        "La date de début doit être antérieure à la date de fin",
-        400
-      )
     );
   }
 
@@ -122,6 +113,21 @@ exports.createAppointment = catchAsync(async (req, res, next) => {
   if (!doctor) {
     return next(new AppError("Médecin non trouvé", 404));
   }
+
+  // Calculate endDate based on doctor's appointmentDuration
+  // The appointmentDuration is set in the doctor's profile (default is 30 minutes)
+  const parsedEndDate = new Date(parsedStartDate);
+  parsedEndDate.setMinutes(
+    parsedEndDate.getMinutes() + doctor.appointmentDuration
+  );
+
+  // Log for debugging
+  console.log(
+    `Creating appointment with duration: ${doctor.appointmentDuration} minutes`
+  );
+  console.log(
+    `Start time: ${parsedStartDate.toISOString()}, End time: ${parsedEndDate.toISOString()}`
+  );
 
   // Check if doctor is available at the requested time
   const overlappingAppointments = await Appointment.find({
@@ -137,7 +143,7 @@ exports.createAppointment = catchAsync(async (req, res, next) => {
     );
   }
 
-  // Create appointment
+  // Create appointment with calculated endDate
   const newAppointment = await Appointment.create({
     startDate: parsedStartDate,
     endDate: parsedEndDate,
@@ -145,6 +151,8 @@ exports.createAppointment = catchAsync(async (req, res, next) => {
     patient: req.user.id,
     medecin: medecinId,
     status: "En attente",
+    motif,
+    symptoms,
   });
 
   res.status(201).json({

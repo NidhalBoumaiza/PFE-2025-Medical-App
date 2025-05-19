@@ -5,9 +5,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:medical_app/core/utils/app_colors.dart';
 import 'package:medical_app/features/rendez_vous/domain/entities/rendez_vous_entity.dart';
-import 'package:medical_app/features/rendez_vous/domain/entities/status_appointment.dart';
 import 'package:medical_app/features/rendez_vous/presentation/blocs/rendez-vous%20BLoC/rendez_vous_bloc.dart';
-
 
 class AppointmentDetailsPage extends StatefulWidget {
   final String id;
@@ -27,7 +25,9 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
   void _loadAppointmentDetails() {
     // Use FetchRendezVous event with an ID filter
-    context.read<RendezVousBloc>().add(FetchRendezVous(appointmentId: widget.id));
+    context.read<RendezVousBloc>().add(
+      FetchRendezVous(appointmentId: widget.id),
+    );
   }
 
   @override
@@ -58,13 +58,18 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
           } else if (state is RendezVousLoaded) {
             // Find appointment by ID
             final appointment = state.rendezVous.firstWhere(
-              (a) => a.id == widget.id, 
-              orElse: () => RendezVousEntity(
-                startTime: DateTime.now(), 
-                status: 'not_found'
-              )
+              (a) => a.id == widget.id,
+              orElse:
+                  () => RendezVousEntity(
+                    startDate: DateTime.now(),
+                    endDate: DateTime.now().add(const Duration(minutes: 30)),
+                    serviceName: '',
+                    patient: '',
+                    medecin: '',
+                    status: 'not_found',
+                  ),
             );
-            
+
             if (appointment.status == 'not_found') {
               return Center(
                 child: Text(
@@ -73,7 +78,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                 ),
               );
             }
-            
+
             return _buildAppointmentDetailsView(appointment);
           } else if (state is RendezVousError) {
             return Center(
@@ -129,44 +134,50 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
             ),
             Divider(height: 24.h, thickness: 1),
             _buildInfoRow('patient'.tr, appointment.patientName ?? 'Unknown'),
-            _buildInfoRow('doctor'.tr, appointment.doctorName ?? 'Unknown'),
-            _buildInfoRow('date'.tr, appointment.startTime.toString().substring(0, 10)),
-            _buildInfoRow('time'.tr, _formatTime(appointment.startTime)),
-            _buildInfoRow('specialty'.tr, appointment.speciality ?? 'General'),
+            _buildInfoRow('doctor'.tr, appointment.medecinName ?? 'Unknown'),
+            _buildInfoRow(
+              'date'.tr,
+              appointment.startDate.toString().substring(0, 10),
+            ),
+            _buildInfoRow('time'.tr, _formatTime(appointment.startDate)),
+            _buildInfoRow('service'.tr, appointment.serviceName),
+            if (appointment.motif != null && appointment.motif!.isNotEmpty)
+              _buildInfoRow('motif'.tr, appointment.motif!),
+            if (appointment.symptoms != null &&
+                appointment.symptoms!.isNotEmpty)
+              _buildInfoRow('symptoms'.tr, appointment.symptoms!.join(', ')),
           ],
         ),
       ),
     );
   }
-  
+
   String _formatTime(DateTime dateTime) {
     return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
   Widget _buildStatusCard(RendezVousEntity appointment) {
     Color statusColor;
-    String statusText;
+    String statusText = appointment.status;
 
-    switch (appointment.status.toLowerCase()) {
-      case 'pending':
+    switch (appointment.status) {
+      case 'En attente':
         statusColor = Colors.orange;
-        statusText = 'pending'.tr;
         break;
-      case 'accepted':
+      case 'Accepté':
         statusColor = Colors.green;
-        statusText = 'accepted'.tr;
         break;
-      case 'rejected':
+      case 'Refusé':
         statusColor = Colors.red;
-        statusText = 'rejected'.tr;
         break;
-      case 'completed':
+      case 'Annulé':
+        statusColor = Colors.red;
+        break;
+      case 'Terminé':
         statusColor = Colors.blue;
-        statusText = 'completed'.tr;
         break;
       default:
         statusColor = Colors.grey;
-        statusText = 'unknown'.tr;
     }
 
     return Card(
@@ -208,21 +219,14 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
   Widget _buildActionButtons(RendezVousEntity appointment) {
     // Only show accept/reject buttons if the appointment is pending
-    if (appointment.status.toLowerCase() == 'pending') {
+    if (appointment.status == 'En attente') {
       return Row(
         children: [
           Expanded(
             child: ElevatedButton(
               onPressed: () {
                 context.read<RendezVousBloc>().add(
-                  UpdateRendezVousStatus(
-                    rendezVousId: appointment.id!,
-                    status: 'accepted',
-                    patientId: appointment.patientId ?? '',
-                    doctorId: appointment.doctorId ?? '',
-                    patientName: appointment.patientName ?? '',
-                    doctorName: appointment.doctorName ?? '',
-                  ),
+                  AcceptAppointment(appointment.id!),
                 );
                 Navigator.pop(context);
               },
@@ -247,14 +251,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
             child: ElevatedButton(
               onPressed: () {
                 context.read<RendezVousBloc>().add(
-                  UpdateRendezVousStatus(
-                    rendezVousId: appointment.id!,
-                    status: 'rejected',
-                    patientId: appointment.patientId ?? '',
-                    doctorId: appointment.doctorId ?? '',
-                    patientName: appointment.patientName ?? '',
-                    doctorName: appointment.doctorName ?? '',
-                  ),
+                  RefuseAppointment(appointment.id!),
                 );
                 Navigator.pop(context);
               },
@@ -278,37 +275,143 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
       );
     }
 
-    return SizedBox.shrink();
+    // For patients, add cancel button if not yet completed
+    if (appointment.status == 'Accepté') {
+      return ElevatedButton(
+        onPressed: () {
+          context.read<RendezVousBloc>().add(
+            CancelAppointment(appointment.id!),
+          );
+          Navigator.pop(context);
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red,
+          padding: EdgeInsets.symmetric(vertical: 12.h),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          minimumSize: Size(double.infinity, 48.h),
+        ),
+        child: Text(
+          'cancel'.tr,
+          style: GoogleFonts.raleway(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    // For completed appointments, add rating button
+    if (appointment.status == 'Terminé' && !appointment.isRated) {
+      return ElevatedButton(
+        onPressed: () {
+          _showRatingDialog(appointment);
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primaryColor,
+          padding: EdgeInsets.symmetric(vertical: 12.h),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          minimumSize: Size(double.infinity, 48.h),
+        ),
+        child: Text(
+          'rate_doctor'.tr,
+          style: GoogleFonts.raleway(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.h),
+      padding: EdgeInsets.only(bottom: 12.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100.w,
+            width: 110.w,
             child: Text(
               label,
               style: GoogleFonts.raleway(
-                fontSize: 14.sp,
                 fontWeight: FontWeight.bold,
                 color: Colors.grey[700],
               ),
             ),
           ),
-          SizedBox(width: 16.w),
-          Expanded(
-            child: Text(
-              value,
-              style: GoogleFonts.raleway(
-                fontSize: 14.sp,
-              ),
-            ),
-          ),
+          Expanded(child: Text(value, style: GoogleFonts.raleway())),
         ],
       ),
     );
   }
-} 
+
+  void _showRatingDialog(RendezVousEntity appointment) {
+    double selectedRating = 3.0;
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('rate_your_doctor'.tr),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('how_was_your_experience'.tr),
+                SizedBox(height: 20.h),
+                StatefulBuilder(
+                  builder:
+                      (context, setState) => Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          5,
+                          (index) => IconButton(
+                            icon: Icon(
+                              index < selectedRating
+                                  ? Icons.star
+                                  : Icons.star_border,
+                              color: AppColors.primaryColor,
+                              size: 36,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                selectedRating = index + 1.0;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('cancel'.tr),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  context.read<RendezVousBloc>().add(
+                    RateDoctor(
+                      appointmentId: appointment.id!,
+                      rating: selectedRating,
+                    ),
+                  );
+                  Navigator.pop(context);
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryColor,
+                ),
+                child: Text('submit'.tr),
+              ),
+            ],
+          ),
+    );
+  }
+}

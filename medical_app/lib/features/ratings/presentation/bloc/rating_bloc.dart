@@ -35,10 +35,7 @@ class RatingBloc extends Bloc<RatingEvent, RatingState> {
   ) async {
     emit(RatingLoading());
     final result = await submitDoctorRatingUseCase(event.rating);
-    emit(_mapFailureOrSuccessToState(
-      result,
-      (_) => RatingSubmitted(),
-    ));
+    emit(_mapFailureOrSuccessToState(result, (_) => RatingSubmitted()));
   }
 
   Future<void> _onCheckPatientRatedAppointment(
@@ -50,10 +47,12 @@ class RatingBloc extends Bloc<RatingEvent, RatingState> {
       event.patientId,
       event.rendezVousId,
     );
-    emit(_mapFailureOrHasRatedToState(
-      result,
-      (hasRated) => PatientRatingChecked(hasRated: hasRated),
-    ));
+    emit(
+      _mapFailureOrHasRatedToState(
+        result,
+        (hasRated) => PatientRatingChecked(hasRated: hasRated),
+      ),
+    );
   }
 
   Future<void> _onGetDoctorRatings(
@@ -63,26 +62,24 @@ class RatingBloc extends Bloc<RatingEvent, RatingState> {
     if (state is! DoctorRatingsLoaded && state is! DoctorRatingState) {
       emit(RatingLoading());
     }
-    
+
     final result = await getDoctorRatingsUseCase(event.doctorId);
-    
-    result.fold(
-      (failure) => emit(RatingError(_mapFailureToMessage(failure))),
-      (ratings) {
-        if (state is DoctorRatingState) {
-          final currentState = state as DoctorRatingState;
-          emit(DoctorRatingState(
+
+    result.fold((failure) => emit(RatingError(_mapFailureToMessage(failure))), (
+      ratings,
+    ) {
+      if (state is DoctorRatingState) {
+        final currentState = state as DoctorRatingState;
+        emit(
+          DoctorRatingState(
             averageRating: currentState.averageRating,
             ratings: ratings,
-          ));
-        } else {
-          emit(DoctorRatingState(
-            averageRating: 0.0, 
-            ratings: ratings,
-          ));
-        }
-      },
-    );
+          ),
+        );
+      } else {
+        emit(DoctorRatingState(averageRating: 0.0, ratings: ratings));
+      }
+    });
   }
 
   Future<void> _onGetDoctorAverageRating(
@@ -92,26 +89,26 @@ class RatingBloc extends Bloc<RatingEvent, RatingState> {
     if (state is! DoctorAverageRatingLoaded && state is! DoctorRatingState) {
       emit(RatingLoading());
     }
-    
+
     final result = await getDoctorAverageRatingUseCase(event.doctorId);
-    
-    result.fold(
-      (failure) => emit(RatingError(_mapFailureToMessage(failure))),
-      (averageRating) {
-        if (state is DoctorRatingState) {
-          final currentState = state as DoctorRatingState;
-          emit(DoctorRatingState(
+
+    result.fold((failure) => emit(RatingError(_mapFailureToMessage(failure))), (
+      averageRating,
+    ) {
+      if (state is DoctorRatingState) {
+        final currentState = state as DoctorRatingState;
+        emit(
+          DoctorRatingState(
             averageRating: averageRating,
             ratings: currentState.ratings,
-          ));
-        } else {
-          emit(DoctorRatingState(
-            averageRating: averageRating, 
-            ratings: const [],
-          ));
-        }
-      },
-    );
+          ),
+        );
+      } else {
+        emit(
+          DoctorRatingState(averageRating: averageRating, ratings: const []),
+        );
+      }
+    });
   }
 
   RatingState _mapFailureOrSuccessToState(
@@ -166,4 +163,4 @@ class RatingBloc extends Bloc<RatingEvent, RatingState> {
         return 'Une erreur inattendue s\'est produite';
     }
   }
-} 
+}

@@ -380,13 +380,16 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                 .join(' ') // Simplified doctor name
             : conversation.patientName;
 
+    // Check if the message has been read by the current user
+    final bool isRead = conversation.lastMessageReadBy.contains(_userId);
+
     return InkWell(
       onTap: () => _navigateToChat(conversation),
       child: Card(
         margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
         elevation: 1,
         color:
-            conversation.lastMessageRead
+            isRead
                 ? theme.cardColor
                 : isDarkMode
                 ? AppColors.primaryColor.withOpacity(0.15)
@@ -395,7 +398,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
           borderRadius: BorderRadius.circular(12.r),
           side: BorderSide(
             color:
-                conversation.lastMessageRead
+                isRead
                     ? Colors.transparent
                     : AppColors.primaryColor.withOpacity(0.3),
             width: 1,
@@ -502,17 +505,26 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
     print(
       'Navigating to ChatScreen with chatId: ${conversation.id}, userName: ${conversation.doctorName}, recipientId: ${conversation.doctorId}',
     );
+
+    final chatScreen = ChatScreen(
+      chatId: conversation.id!,
+      userName: _isDoctor ? conversation.patientName : conversation.doctorName,
+      recipientId: _isDoctor ? conversation.patientId : conversation.doctorId,
+    );
+
+    // The navigation function returns void, so don't use .then on it directly
     navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
       context,
-      ChatScreen(
-        chatId: conversation.id!,
-        userName:
-            _isDoctor ? conversation.patientName : conversation.doctorName,
-        recipientId: _isDoctor ? conversation.patientId : conversation.doctorId,
-      ),
-    ).then((_) {
-      // Refresh conversations when returning from chat
-      _refreshConversations();
+      chatScreen,
+    );
+
+    // Add a listener for when we return to this screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Check if still mounted before refreshing
+      if (mounted) {
+        // This will run when we return to this screen
+        _refreshConversations();
+      }
     });
   }
 }

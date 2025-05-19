@@ -19,7 +19,7 @@ import '../../../../injection_container.dart' as di;
 import '../../domain/entities/rendez_vous_entity.dart';
 import '../blocs/rendez-vous BLoC/rendez_vous_bloc.dart';
 import 'appointment_details_page.dart';
-import '../../../rendez_vous/presentation/pages/patient_profile_page.dart';
+import '../../../profile/presentation/pages/patient_profile_page.dart';
 
 class AppointmentsMedecins extends StatefulWidget {
   final DateTime? initialSelectedDate;
@@ -128,7 +128,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
           filteredAppointments.where((appointment) {
             final appointmentDate = DateFormat(
               'yyyy-MM-dd',
-            ).format(appointment.startTime);
+            ).format(appointment.startDate);
             final filterDate = DateFormat('yyyy-MM-dd').format(selectedDate!);
             return appointmentDate == filterDate;
           }).toList();
@@ -173,10 +173,10 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
     String newStatus,
   ) {
     if (appointment.id == null ||
-        appointment.patientId == null ||
-        appointment.doctorId == null ||
+        appointment.patient == null ||
+        appointment.medecin == null ||
         appointment.patientName == null ||
-        appointment.doctorName == null ||
+        appointment.medecinName == null ||
         currentUser == null) {
       return;
     }
@@ -189,20 +189,13 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
     print('Updating appointment ${appointment.id} status to $newStatus');
 
     _rendezVousBloc.add(
-      UpdateRendezVousStatus(
-        rendezVousId: appointment.id!,
-        status: newStatus,
-        patientId: appointment.patientId!,
-        doctorId: appointment.doctorId!,
-        patientName: appointment.patientName!,
-        doctorName: appointment.doctorName!,
-      ),
+      UpdateRendezVousStatus(rendezVousId: appointment.id!, status: newStatus),
     );
   }
 
   // Show time picker to change appointment time
   Future<void> _showTimePicker(RendezVousEntity appointment) async {
-    final TimeOfDay initialTime = TimeOfDay.fromDateTime(appointment.startTime);
+    final TimeOfDay initialTime = TimeOfDay.fromDateTime(appointment.startDate);
 
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -225,9 +218,9 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
     if (picked != null) {
       // Create new appointment with updated time
       final DateTime newDateTime = DateTime(
-        appointment.startTime.year,
-        appointment.startTime.month,
-        appointment.startTime.day,
+        appointment.startDate.year,
+        appointment.startDate.month,
+        appointment.startDate.day,
         picked.hour,
         picked.minute,
       );
@@ -245,14 +238,15 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
       // Create new appointment object with updated time
       final updatedAppointment = RendezVousEntity(
         id: appointment.id,
-        patientId: appointment.patientId,
-        doctorId: appointment.doctorId,
-        patientName: appointment.patientName,
-        doctorName: appointment.doctorName,
-        speciality: appointment.speciality,
-        startTime: newDateTime,
-        endTime: newEndTime,
+        startDate: newDateTime,
+        endDate: newEndTime,
+        serviceName: appointment.serviceName,
+        patient: appointment.patient,
+        medecin: appointment.medecin,
         status: appointment.status,
+        patientName: appointment.patientName,
+        medecinName: appointment.medecinName,
+        medecinSpeciality: appointment.medecinSpeciality,
       );
 
       // TODO: Add support for updating appointment time
@@ -308,7 +302,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
 
   // Navigate to patient profile
   void _navigateToPatientProfile(RendezVousEntity appointment) async {
-    if (appointment.patientId == null) {
+    if (appointment.patient == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -338,7 +332,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
     try {
       // Try to fetch patient from Firestore
       PatientEntity? patientEntity = await _fetchPatientInfo(
-        appointment.patientId!,
+        appointment.patient,
       );
 
       // Dismiss loading indicator
@@ -352,7 +346,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
         final lastName = nameArray.length > 1 ? nameArray[1] : '';
 
         patientEntity = PatientEntity(
-          id: appointment.patientId!,
+          id: appointment.patient,
           name: firstName,
           lastName: lastName,
           email: "patient@medical-app.com",
@@ -372,14 +366,12 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
         ),
       );
     } catch (e) {
-      // Handle any errors
-      Navigator.pop(context); // Dismiss loading indicator if error occurs
+      // Dismiss loading indicator
+      Navigator.pop(context);
+      // Show error snackbar
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "error_loading_profile".trParams({'0': e.toString()}),
-            style: GoogleFonts.raleway(),
-          ),
+          content: Text("Error: ${e.toString()}", style: GoogleFonts.raleway()),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -471,13 +463,14 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                     // Create a new updated appointment with the new status
                     final updatedAppointment = RendezVousEntity(
                       id: appointments[index].id,
-                      patientId: appointments[index].patientId,
-                      doctorId: appointments[index].doctorId,
+                      startDate: appointments[index].startDate,
+                      endDate: appointments[index].endDate,
+                      serviceName: appointments[index].serviceName,
+                      patient: appointments[index].patient,
+                      medecin: appointments[index].medecin,
                       patientName: appointments[index].patientName,
-                      doctorName: appointments[index].doctorName,
-                      startTime: appointments[index].startTime,
-                      endTime: appointments[index].endTime,
-                      speciality: appointments[index].speciality,
+                      medecinName: appointments[index].medecinName,
+                      medecinSpeciality: appointments[index].medecinSpeciality,
                       status: state.status,
                     );
 
@@ -633,7 +626,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                       final appointmentsOnDay =
                                           appointments.where((appointment) {
                                             return isSameDay(
-                                              appointment.startTime,
+                                              appointment.startDate,
                                               date,
                                             );
                                           }).toList();
@@ -870,10 +863,10 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                         true;
                                 final formattedDate = DateFormat(
                                   'dd/MM/yyyy',
-                                ).format(appointment.startTime);
+                                ).format(appointment.startDate);
                                 final formattedTime = DateFormat(
                                   'HH:mm',
-                                ).format(appointment.startTime);
+                                ).format(appointment.startDate);
 
                                 return Card(
                                   margin: EdgeInsets.only(bottom: 12.h),
@@ -1022,7 +1015,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                                           ),
                                                         ),
                                                         if (appointment
-                                                                .speciality !=
+                                                                .medecinSpeciality !=
                                                             null)
                                                           Padding(
                                                             padding:
@@ -1050,7 +1043,7 @@ class _AppointmentsMedecinsState extends State<AppointmentsMedecins> {
                                                               ),
                                                               child: Text(
                                                                 appointment
-                                                                    .speciality!,
+                                                                    .medecinSpeciality!,
                                                                 style: GoogleFonts.raleway(
                                                                   fontSize:
                                                                       12.sp,

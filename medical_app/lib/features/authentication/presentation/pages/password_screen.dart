@@ -10,8 +10,7 @@ import 'package:medical_app/core/widgets/reusable_text_field_widget.dart';
 import 'package:medical_app/features/authentication/data/data%20sources/auth_remote_data_source.dart';
 import 'package:medical_app/features/authentication/presentation/blocs/Signup%20BLoC/signup_bloc.dart';
 import 'package:medical_app/features/authentication/presentation/pages/verify_code_screen.dart';
-
-import '../blocs/forget password bloc/forgot_password_bloc.dart';
+import 'package:medical_app/features/authentication/presentation/blocs/forget%20password%20bloc/forgot_password_bloc.dart';
 
 class PasswordScreen extends StatefulWidget {
   final dynamic entity; // Can be PatientEntity or MedecinEntity
@@ -347,14 +346,11 @@ class _PasswordScreenState extends State<PasswordScreen> {
                                   onPressed: () {
                                     Navigator.pop(context); // Close dialog
                                     // Navigate directly to verification screen instead of sending another code
-                                    Navigator.push(
+                                    navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
                                       context,
-                                      MaterialPageRoute(
-                                        builder:
-                                            (context) => VerifyCodeScreen(
-                                              email: widget.entity.email,
-                                              isAccountCreation: true,
-                                            ),
+                                      VerifyCodeScreen(
+                                        email: widget.entity.email,
+                                        isAccountCreation: true,
                                       ),
                                     );
                                   },
@@ -416,14 +412,11 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             Navigator.of(context).pop();
 
                             // Navigate to verification code screen
-                            Navigator.push(
+                            navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
                               context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => VerifyCodeScreen(
-                                      email: widget.entity.email,
-                                      isAccountCreation: true,
-                                    ),
+                              VerifyCodeScreen(
+                                email: widget.entity.email,
+                                isAccountCreation: true,
                               ),
                             );
                           } else if (forgotPasswordState

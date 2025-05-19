@@ -74,8 +74,38 @@ const io = socketIo(server, {
   },
 });
 
+// Socket.IO authentication middleware
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+
+  if (!token) {
+    return next(new Error("Authentication error: Token missing"));
+  }
+
+  try {
+    // Verify token (simplified - in production should use JWT verify)
+    // This is a placeholder for actual token verification
+    // In a real implementation, you would verify the JWT token here
+    // and extract the user ID from it
+
+    // For now, we'll assume the token is valid and the userId is provided in the query
+    const userId = socket.handshake.query.userId;
+
+    if (!userId) {
+      return next(new Error("Authentication error: User ID missing"));
+    }
+
+    socket.user = { id: userId };
+    next();
+  } catch (error) {
+    return next(new Error("Authentication error: Invalid token"));
+  }
+});
+
 // Store connected users
 let connectedUsers = {};
+// Store users who are currently typing
+let typingUsers = {};
 
 // Socket.IO connection handling
 io.on("connection", (socket) => {
@@ -90,32 +120,176 @@ io.on("connection", (socket) => {
   // Handle sending messages
   socket.on("sendMessage", async (data) => {
     try {
-      const { recipientId, message } = data;
+      const {
+        recipientId,
+        message,
+        conversationId,
+        type,
+        fileUrl,
+        fileName,
+        fileSize,
+        fileMimeType,
+      } = data;
       const senderId = socket.handshake.query.userId;
 
-      if (!senderId || !recipientId || !message) {
+      if (!senderId || !recipientId || !conversationId) {
         console.error("Missing data for sending message");
         return;
       }
 
-      // Save message to database
-      await conversationController.storeMessage(
-        senderId,
-        recipientId,
-        message
-      );
+      if (!message && type === "text") {
+        console.error("Text message cannot be empty");
+        return;
+      }
+
+      // Create message data object
+      const messageData = {
+        conversationId,
+        content: message || "",
+        type: type || "text",
+        fileUrl,
+        fileName,
+        fileSize,
+        fileMimeType,
+      };
+
+      // Save message to database using API endpoint
+      try {
+        const response = await fetch(
+          `${
+            process.env.BASE_URL || "http://localhost:" + port
+          }/api/v1/conversations/${conversationId}/store-message`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${socket.handshake.auth.token}`,
+            },
+            body: JSON.stringify(messageData),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to store message: ${response.statusText}`
+          );
+        }
+      } catch (error) {
+        console.error("Error storing message:", error);
+        return;
+      }
 
       // Send message to recipient if they are online
       const recipientSocketId = connectedUsers[recipientId];
       if (recipientSocketId) {
         io.to(recipientSocketId).emit("receiveMessage", {
           senderId,
-          message,
+          ...messageData,
           timestamp: new Date(),
         });
       }
+
+      // Clear typing indicator when message is sent
+      if (
+        typingUsers[senderId] &&
+        typingUsers[senderId][conversationId]
+      ) {
+        delete typingUsers[senderId][conversationId];
+
+        // Notify recipient that sender stopped typing
+        if (recipientSocketId) {
+          io.to(recipientSocketId).emit("userStoppedTyping", {
+            userId: senderId,
+            conversationId,
+          });
+        }
+      }
     } catch (error) {
       console.error("Error sending message:", error);
+    }
+  });
+
+  // Handle typing indicators
+  socket.on("startTyping", (data) => {
+    const { conversationId, recipientId } = data;
+    const userId = socket.handshake.query.userId;
+
+    if (!userId || !conversationId || !recipientId) {
+      console.error("Missing data for typing indicator");
+      return;
+    }
+
+    // Initialize typing status for this user if it doesn't exist
+    if (!typingUsers[userId]) {
+      typingUsers[userId] = {};
+    }
+
+    // Set typing status for this conversation
+    typingUsers[userId][conversationId] = true;
+
+    // Notify recipient that user is typing
+    const recipientSocketId = connectedUsers[recipientId];
+    if (recipientSocketId) {
+      io.to(recipientSocketId).emit("userTyping", {
+        userId,
+        conversationId,
+      });
+    }
+  });
+
+  socket.on("stopTyping", (data) => {
+    const { conversationId, recipientId } = data;
+    const userId = socket.handshake.query.userId;
+
+    if (!userId || !conversationId || !recipientId) {
+      console.error("Missing data for typing indicator");
+      return;
+    }
+
+    // Clear typing status
+    if (typingUsers[userId] && typingUsers[userId][conversationId]) {
+      delete typingUsers[userId][conversationId];
+    }
+
+    // Notify recipient that user stopped typing
+    const recipientSocketId = connectedUsers[recipientId];
+    if (recipientSocketId) {
+      io.to(recipientSocketId).emit("userStoppedTyping", {
+        userId,
+        conversationId,
+      });
+    }
+  });
+
+  // Handle read receipts
+  socket.on("markMessagesAsRead", async (data) => {
+    const { conversationId, senderId } = data;
+    const userId = socket.handshake.query.userId;
+
+    if (!userId || !conversationId) {
+      console.error("Missing data for marking messages as read");
+      return;
+    }
+
+    try {
+      // Update messages in database
+      await conversationController.markMessagesAsRead(
+        userId,
+        conversationId
+      );
+
+      // Notify message sender that their messages were read
+      if (senderId) {
+        const senderSocketId = connectedUsers[senderId];
+        if (senderSocketId) {
+          io.to(senderSocketId).emit("messagesRead", {
+            userId,
+            conversationId,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
     }
   });
 
@@ -127,6 +301,12 @@ io.on("connection", (socket) => {
     for (const userId in connectedUsers) {
       if (connectedUsers[userId] === socket.id) {
         delete connectedUsers[userId];
+
+        // Also clear typing status
+        if (typingUsers[userId]) {
+          delete typingUsers[userId];
+        }
+
         console.log(`User ${userId} disconnected`);
         break;
       }

@@ -29,6 +29,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _specialityController;
   late TextEditingController _numLicenceController;
   late TextEditingController _appointmentDurationController;
+  // New patient fields controllers
+  late TextEditingController _bloodTypeController;
+  late TextEditingController _heightController;
+  late TextEditingController _weightController;
+  late TextEditingController _allergiesController;
+  late TextEditingController _chronicDiseasesController;
+  late TextEditingController _emergencyNameController;
+  late TextEditingController _emergencyRelationshipController;
+  late TextEditingController _emergencyPhoneController;
   bool _hasChanges = false;
 
   @override
@@ -54,8 +63,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _antecedentController = TextEditingController(
         text: patient.antecedent ?? '',
       );
+      // Initialize new patient fields controllers
+      _bloodTypeController = TextEditingController(
+        text: patient.bloodType ?? '',
+      );
+      _heightController = TextEditingController(
+        text: patient.height?.toString() ?? '',
+      );
+      _weightController = TextEditingController(
+        text: patient.weight?.toString() ?? '',
+      );
+      _allergiesController = TextEditingController(
+        text: patient.allergies?.join(', ') ?? '',
+      );
+      _chronicDiseasesController = TextEditingController(
+        text: patient.chronicDiseases?.join(', ') ?? '',
+      );
+      _emergencyNameController = TextEditingController(
+        text: patient.emergencyContact?['name'] ?? '',
+      );
+      _emergencyRelationshipController = TextEditingController(
+        text: patient.emergencyContact?['relationship'] ?? '',
+      );
+      _emergencyPhoneController = TextEditingController(
+        text: patient.emergencyContact?['phoneNumber'] ?? '',
+      );
     } else {
       _antecedentController = TextEditingController();
+      // Initialize empty controllers for patient fields even if not used
+      _bloodTypeController = TextEditingController();
+      _heightController = TextEditingController();
+      _weightController = TextEditingController();
+      _allergiesController = TextEditingController();
+      _chronicDiseasesController = TextEditingController();
+      _emergencyNameController = TextEditingController();
+      _emergencyRelationshipController = TextEditingController();
+      _emergencyPhoneController = TextEditingController();
     }
 
     // Initialize doctor-specific controllers
@@ -86,6 +129,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _specialityController.addListener(_onFieldChanged);
     _numLicenceController.addListener(_onFieldChanged);
     _appointmentDurationController.addListener(_onFieldChanged);
+    // Add listeners for new patient fields
+    _bloodTypeController.addListener(_onFieldChanged);
+    _heightController.addListener(_onFieldChanged);
+    _weightController.addListener(_onFieldChanged);
+    _allergiesController.addListener(_onFieldChanged);
+    _chronicDiseasesController.addListener(_onFieldChanged);
+    _emergencyNameController.addListener(_onFieldChanged);
+    _emergencyRelationshipController.addListener(_onFieldChanged);
+    _emergencyPhoneController.addListener(_onFieldChanged);
   }
 
   void _onFieldChanged() {
@@ -106,6 +158,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _specialityController.dispose();
     _numLicenceController.dispose();
     _appointmentDurationController.dispose();
+    // Dispose new patient fields controllers
+    _bloodTypeController.dispose();
+    _heightController.dispose();
+    _weightController.dispose();
+    _allergiesController.dispose();
+    _chronicDiseasesController.dispose();
+    _emergencyNameController.dispose();
+    _emergencyRelationshipController.dispose();
+    _emergencyPhoneController.dispose();
     super.dispose();
   }
 
@@ -113,6 +174,49 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (_formKey.currentState!.validate()) {
       UserEntity updatedUser;
       if (widget.user is PatientEntity) {
+        // Parse allergies into a list
+        List<String>? allergies;
+        if (_allergiesController.text.isNotEmpty) {
+          allergies =
+              _allergiesController.text
+                  .split(',')
+                  .map((e) => e.trim())
+                  .where((e) => e.isNotEmpty)
+                  .toList();
+        }
+
+        // Parse chronic diseases into a list
+        List<String>? chronicDiseases;
+        if (_chronicDiseasesController.text.isNotEmpty) {
+          chronicDiseases =
+              _chronicDiseasesController.text
+                  .split(',')
+                  .map((e) => e.trim())
+                  .where((e) => e.isNotEmpty)
+                  .toList();
+        }
+
+        // Create emergency contact map if any field is filled
+        Map<String, String?>? emergencyContact;
+        if (_emergencyNameController.text.isNotEmpty ||
+            _emergencyRelationshipController.text.isNotEmpty ||
+            _emergencyPhoneController.text.isNotEmpty) {
+          emergencyContact = {
+            'name':
+                _emergencyNameController.text.isEmpty
+                    ? null
+                    : _emergencyNameController.text,
+            'relationship':
+                _emergencyRelationshipController.text.isEmpty
+                    ? null
+                    : _emergencyRelationshipController.text,
+            'phoneNumber':
+                _emergencyPhoneController.text.isEmpty
+                    ? null
+                    : _emergencyPhoneController.text,
+          };
+        }
+
         updatedUser = PatientEntity(
           id: widget.user.id,
           name: _nameController.text,
@@ -126,6 +230,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ? DateTime.tryParse(_dateOfBirthController.text)
                   : null,
           antecedent: _antecedentController.text,
+          bloodType:
+              _bloodTypeController.text.isEmpty
+                  ? null
+                  : _bloodTypeController.text,
+          height:
+              _heightController.text.isEmpty
+                  ? null
+                  : double.tryParse(_heightController.text),
+          weight:
+              _weightController.text.isEmpty
+                  ? null
+                  : double.tryParse(_weightController.text),
+          allergies: allergies,
+          chronicDiseases: chronicDiseases,
+          emergencyContact: emergencyContact,
         );
       } else {
         updatedUser = MedecinEntity(
@@ -427,6 +546,112 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 icon: Icons.medical_services,
                                 maxLines: 3,
                                 hintText: 'medical_history_hint'.tr,
+                              ),
+                              SizedBox(height: 16.h),
+
+                              // Blood Type
+                              _buildTextField(
+                                controller: _bloodTypeController,
+                                label: 'blood_type'.tr,
+                                icon: Icons.bloodtype,
+                                hintText: 'select_blood_type'.tr,
+                              ),
+                              SizedBox(height: 16.h),
+
+                              // Height and Weight in a row
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildTextField(
+                                      controller: _heightController,
+                                      label: 'height'.tr,
+                                      icon: Icons.height,
+                                      keyboardType: TextInputType.number,
+                                      hintText: 'enter_height'.tr,
+                                      suffix: Text(
+                                        'cm',
+                                        style: GoogleFonts.raleway(
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 16.w),
+                                  Expanded(
+                                    child: _buildTextField(
+                                      controller: _weightController,
+                                      label: 'weight'.tr,
+                                      icon: Icons.fitness_center,
+                                      keyboardType: TextInputType.number,
+                                      hintText: 'enter_weight'.tr,
+                                      suffix: Text(
+                                        'kg',
+                                        style: GoogleFonts.raleway(
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 16.h),
+
+                              // Allergies
+                              _buildTextField(
+                                controller: _allergiesController,
+                                label: 'allergies'.tr,
+                                icon: Icons.warning_amber,
+                                hintText: 'enter_allergies'.tr,
+                                maxLines: 2,
+                              ),
+                              SizedBox(height: 16.h),
+
+                              // Chronic Diseases
+                              _buildTextField(
+                                controller: _chronicDiseasesController,
+                                label: 'chronic_diseases'.tr,
+                                icon: Icons.local_hospital,
+                                hintText: 'enter_chronic_diseases'.tr,
+                                maxLines: 2,
+                              ),
+
+                              // Emergency Contact Section
+                              SizedBox(height: 30.h),
+                              Text(
+                                'emergency_contact'.tr,
+                                style: GoogleFonts.raleway(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryColor,
+                                ),
+                              ),
+                              SizedBox(height: 20.h),
+
+                              // Emergency Contact Name
+                              _buildTextField(
+                                controller: _emergencyNameController,
+                                label: 'emergency_contact_name'.tr,
+                                icon: Icons.person,
+                                hintText: 'enter_emergency_name'.tr,
+                              ),
+                              SizedBox(height: 16.h),
+
+                              // Emergency Contact Relationship
+                              _buildTextField(
+                                controller: _emergencyRelationshipController,
+                                label: 'emergency_relationship'.tr,
+                                icon: Icons.people,
+                                hintText: 'enter_emergency_relationship'.tr,
+                              ),
+                              SizedBox(height: 16.h),
+
+                              // Emergency Contact Phone
+                              _buildTextField(
+                                controller: _emergencyPhoneController,
+                                label: 'emergency_phone'.tr,
+                                icon: Icons.phone,
+                                keyboardType: TextInputType.phone,
+                                hintText: 'enter_emergency_phone'.tr,
                               ),
                             ],
 

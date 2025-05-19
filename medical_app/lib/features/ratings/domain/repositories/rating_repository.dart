@@ -7,11 +7,16 @@ abstract class RatingRepository {
   Future<Either<Failure, Unit>> submitDoctorRating(DoctorRatingEntity rating);
 
   /// Get all ratings for a specific doctor
-  Future<Either<Failure, List<DoctorRatingEntity>>> getDoctorRatings(String doctorId);
+  Future<Either<Failure, List<DoctorRatingEntity>>> getDoctorRatings(
+    String doctorId,
+  );
 
   /// Get average rating for a doctor
   Future<Either<Failure, double>> getDoctorAverageRating(String doctorId);
 
   /// Check if patient has already rated a specific appointment
-  Future<Either<Failure, bool>> hasPatientRatedAppointment(String patientId, String rendezVousId);
-} 
+  Future<Either<Failure, bool>> hasPatientRatedAppointment(
+    String patientId,
+    String rendezVousId,
+  );
+}

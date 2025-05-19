@@ -8,6 +8,14 @@ const messageSchema = new mongoose.Schema(
       ref: "User",
       required: [true, "Un message doit avoir un expéditeur"],
     },
+    conversation: {
+      type: mongoose.Schema.ObjectId,
+      ref: "Conversation",
+      required: [
+        true,
+        "Un message doit appartenir à une conversation",
+      ],
+    },
     content: {
       type: String,
       trim: true,
@@ -50,6 +58,16 @@ const messageSchema = new mongoose.Schema(
     toObject: { virtuals: true },
   }
 );
+
+// Add a virtual property to check if a message is read by a specific user
+messageSchema.virtual("isReadBy").get(function (userId) {
+  return this.readBy.some(
+    (id) => id.toString() === userId.toString()
+  );
+});
+
+// Add index for faster queries
+messageSchema.index({ conversation: 1, timestamp: -1 });
 
 // Schema for conversations
 const conversationSchema = new mongoose.Schema(
@@ -127,6 +145,15 @@ conversationSchema.statics.parseDateTime = function (dateTimeString) {
     return new Date();
   }
 };
+
+// Virtual to check if last message is read by a specific user
+conversationSchema
+  .virtual("isLastMessageReadBy")
+  .get(function (userId) {
+    return this.lastMessageReadBy.some(
+      (id) => id.toString() === userId.toString()
+    );
+  });
 
 // Virtual populate messages
 conversationSchema.virtual("messages", {

@@ -7,6 +7,15 @@ class MedecinModel extends UserModel {
   final String numLicence;
   final int appointmentDuration; // Duration in minutes for each appointment
 
+  // New fields from MongoDB schema
+  final List<Map<String, String>>? education;
+  final List<Map<String, String>>? experience;
+  final Map<String, List<String>>? availability;
+  final double? averageRating;
+  final int? totalRatings;
+  final double? consultationFee;
+  final List<String>? acceptedInsurance;
+
   MedecinModel({
     String? id,
     required String name,
@@ -23,6 +32,22 @@ class MedecinModel extends UserModel {
     this.appointmentDuration = 30, // Default 30 minutes
     DateTime? validationCodeExpiresAt,
     String? fcmToken,
+    Map<String, String?>? address,
+    Map<String, dynamic>? location,
+    String? profilePicture,
+    bool? isOnline,
+    DateTime? lastActive,
+    String? oneSignalPlayerId,
+    String? passwordResetCode,
+    DateTime? passwordResetExpires,
+    String? refreshToken,
+    this.education,
+    this.experience,
+    this.availability,
+    this.averageRating,
+    this.totalRatings,
+    this.consultationFee,
+    this.acceptedInsurance,
   }) : super(
          id: id,
          name: name,
@@ -36,6 +61,15 @@ class MedecinModel extends UserModel {
          verificationCode: verificationCode,
          validationCodeExpiresAt: validationCodeExpiresAt,
          fcmToken: fcmToken,
+         address: address,
+         location: location,
+         profilePicture: profilePicture,
+         isOnline: isOnline,
+         lastActive: lastActive,
+         oneSignalPlayerId: oneSignalPlayerId,
+         passwordResetCode: passwordResetCode,
+         passwordResetExpires: passwordResetExpires,
+         refreshToken: refreshToken,
        );
 
   factory MedecinModel.fromJson(Map<String, dynamic> json) {
@@ -52,24 +86,13 @@ class MedecinModel extends UserModel {
     final String phoneNumber =
         json['phoneNumber'] is String ? json['phoneNumber'] as String : '';
     final String speciality =
-        json['speciality'] is String
-            ? json['speciality'] as String
-            : 'Généraliste';
+        json['speciality'] is String ? json['speciality'] as String : '';
     final String numLicence =
         json['numLicence'] is String ? json['numLicence'] as String : '';
-
-    // Handle appointment duration with robust type checking
-    int appointmentDuration = 30; // Default value
-    if (json['appointmentDuration'] is int) {
-      appointmentDuration = json['appointmentDuration'] as int;
-    } else if (json['appointmentDuration'] is String &&
-        (json['appointmentDuration'] as String).isNotEmpty) {
-      try {
-        appointmentDuration = int.parse(json['appointmentDuration'] as String);
-      } catch (_) {
-        // Keep default value if parsing fails
-      }
-    }
+    final int appointmentDuration =
+        json['appointmentDuration'] is int
+            ? json['appointmentDuration'] as int
+            : 30;
 
     // Handle nullable fields with proper type checking
     DateTime? dateOfBirth;
@@ -85,22 +108,11 @@ class MedecinModel extends UserModel {
     bool? accountStatus;
     if (json['accountStatus'] is bool) {
       accountStatus = json['accountStatus'] as bool;
-    } else if (json['accountStatus'] is String) {
-      accountStatus = (json['accountStatus'] as String).toLowerCase() == 'true';
-    } else {
-      accountStatus = false;
     }
 
     int? verificationCode;
     if (json['verificationCode'] is int) {
       verificationCode = json['verificationCode'] as int;
-    } else if (json['verificationCode'] is String &&
-        (json['verificationCode'] as String).isNotEmpty) {
-      try {
-        verificationCode = int.parse(json['verificationCode'] as String);
-      } catch (_) {
-        verificationCode = null;
-      }
     }
 
     DateTime? validationCodeExpiresAt;
@@ -120,6 +132,111 @@ class MedecinModel extends UserModel {
       fcmToken = json['fcmToken'] as String;
     }
 
+    // Handle new fields
+    Map<String, String?>? address;
+    if (json['address'] is Map) {
+      address = (json['address'] as Map).cast<String, String?>();
+    }
+
+    Map<String, dynamic>? location;
+    if (json['location'] is Map) {
+      location = (json['location'] as Map).cast<String, dynamic>();
+    }
+
+    String? profilePicture;
+    if (json['profilePicture'] is String) {
+      profilePicture = json['profilePicture'] as String;
+    }
+
+    bool? isOnline;
+    if (json['isOnline'] is bool) {
+      isOnline = json['isOnline'] as bool;
+    }
+
+    DateTime? lastActive;
+    if (json['lastActive'] is String &&
+        (json['lastActive'] as String).isNotEmpty) {
+      try {
+        lastActive = DateTime.parse(json['lastActive'] as String);
+      } catch (_) {
+        lastActive = null;
+      }
+    }
+
+    String? oneSignalPlayerId;
+    if (json['oneSignalPlayerId'] is String) {
+      oneSignalPlayerId = json['oneSignalPlayerId'] as String;
+    }
+
+    String? passwordResetCode;
+    if (json['passwordResetCode'] is String) {
+      passwordResetCode = json['passwordResetCode'] as String;
+    }
+
+    DateTime? passwordResetExpires;
+    if (json['passwordResetExpires'] is String &&
+        (json['passwordResetExpires'] as String).isNotEmpty) {
+      try {
+        passwordResetExpires = DateTime.parse(
+          json['passwordResetExpires'] as String,
+        );
+      } catch (_) {
+        passwordResetExpires = null;
+      }
+    }
+
+    String? refreshToken;
+    if (json['refreshToken'] is String) {
+      refreshToken = json['refreshToken'] as String;
+    }
+
+    // Handle doctor-specific fields
+    List<Map<String, String>>? education;
+    if (json['education'] is List) {
+      education =
+          (json['education'] as List)
+              .map((item) => (item as Map).cast<String, String>())
+              .toList();
+    }
+
+    List<Map<String, String>>? experience;
+    if (json['experience'] is List) {
+      experience =
+          (json['experience'] as List)
+              .map((item) => (item as Map).cast<String, String>())
+              .toList();
+    }
+
+    Map<String, List<String>>? availability;
+    if (json['availability'] is Map) {
+      availability = {};
+      (json['availability'] as Map).forEach((key, value) {
+        if (value is List) {
+          availability![key as String] = (value as List).cast<String>();
+        }
+      });
+    }
+
+    double? averageRating;
+    if (json['averageRating'] is num) {
+      averageRating = (json['averageRating'] as num).toDouble();
+    }
+
+    int? totalRatings;
+    if (json['totalRatings'] is int) {
+      totalRatings = json['totalRatings'] as int;
+    }
+
+    double? consultationFee;
+    if (json['consultationFee'] is num) {
+      consultationFee = (json['consultationFee'] as num).toDouble();
+    }
+
+    List<String>? acceptedInsurance;
+    if (json['acceptedInsurance'] is List) {
+      acceptedInsurance = (json['acceptedInsurance'] as List).cast<String>();
+    }
+
     return MedecinModel(
       id: id,
       name: name,
@@ -131,11 +248,27 @@ class MedecinModel extends UserModel {
       dateOfBirth: dateOfBirth,
       speciality: speciality,
       numLicence: numLicence,
+      appointmentDuration: appointmentDuration,
       accountStatus: accountStatus,
       verificationCode: verificationCode,
       validationCodeExpiresAt: validationCodeExpiresAt,
       fcmToken: fcmToken,
-      appointmentDuration: appointmentDuration,
+      address: address,
+      location: location,
+      profilePicture: profilePicture,
+      isOnline: isOnline,
+      lastActive: lastActive,
+      oneSignalPlayerId: oneSignalPlayerId,
+      passwordResetCode: passwordResetCode,
+      passwordResetExpires: passwordResetExpires,
+      refreshToken: refreshToken,
+      education: education,
+      experience: experience,
+      availability: availability,
+      averageRating: averageRating,
+      totalRatings: totalRatings,
+      consultationFee: consultationFee,
+      acceptedInsurance: acceptedInsurance,
     );
   }
 
@@ -221,6 +354,29 @@ class MedecinModel extends UserModel {
     data['numLicence'] = numLicence;
     data['appointmentDuration'] = appointmentDuration;
 
+    // Add new fields
+    if (education != null) {
+      data['education'] = education;
+    }
+    if (experience != null) {
+      data['experience'] = experience;
+    }
+    if (availability != null) {
+      data['availability'] = availability;
+    }
+    if (averageRating != null) {
+      data['averageRating'] = averageRating;
+    }
+    if (totalRatings != null) {
+      data['totalRatings'] = totalRatings;
+    }
+    if (consultationFee != null) {
+      data['consultationFee'] = consultationFee;
+    }
+    if (acceptedInsurance != null) {
+      data['acceptedInsurance'] = acceptedInsurance;
+    }
+
     return data;
   }
 
@@ -240,6 +396,22 @@ class MedecinModel extends UserModel {
       accountStatus: accountStatus,
       verificationCode: verificationCode,
       validationCodeExpiresAt: validationCodeExpiresAt,
+      address: address,
+      location: location,
+      profilePicture: profilePicture,
+      isOnline: isOnline,
+      lastActive: lastActive,
+      oneSignalPlayerId: oneSignalPlayerId,
+      passwordResetCode: passwordResetCode,
+      passwordResetExpires: passwordResetExpires,
+      refreshToken: refreshToken,
+      education: education,
+      experience: experience,
+      availability: availability,
+      averageRating: averageRating,
+      totalRatings: totalRatings,
+      consultationFee: consultationFee,
+      acceptedInsurance: acceptedInsurance,
     );
   }
 
@@ -256,10 +428,26 @@ class MedecinModel extends UserModel {
     bool? accountStatus,
     int? verificationCode,
     DateTime? validationCodeExpiresAt,
+    String? fcmToken,
     String? speciality,
     String? numLicence,
     int? appointmentDuration,
-    String? fcmToken,
+    Map<String, String?>? address,
+    Map<String, dynamic>? location,
+    String? profilePicture,
+    bool? isOnline,
+    DateTime? lastActive,
+    String? oneSignalPlayerId,
+    String? passwordResetCode,
+    DateTime? passwordResetExpires,
+    String? refreshToken,
+    List<Map<String, String>>? education,
+    List<Map<String, String>>? experience,
+    Map<String, List<String>>? availability,
+    double? averageRating,
+    int? totalRatings,
+    double? consultationFee,
+    List<String>? acceptedInsurance,
   }) {
     return MedecinModel(
       id: id ?? this.id,
@@ -274,10 +462,26 @@ class MedecinModel extends UserModel {
       verificationCode: verificationCode ?? this.verificationCode,
       validationCodeExpiresAt:
           validationCodeExpiresAt ?? this.validationCodeExpiresAt,
+      fcmToken: fcmToken ?? this.fcmToken,
       speciality: speciality ?? this.speciality,
       numLicence: numLicence ?? this.numLicence,
       appointmentDuration: appointmentDuration ?? this.appointmentDuration,
-      fcmToken: fcmToken ?? this.fcmToken,
+      address: address ?? this.address,
+      location: location ?? this.location,
+      profilePicture: profilePicture ?? this.profilePicture,
+      isOnline: isOnline ?? this.isOnline,
+      lastActive: lastActive ?? this.lastActive,
+      oneSignalPlayerId: oneSignalPlayerId ?? this.oneSignalPlayerId,
+      passwordResetCode: passwordResetCode ?? this.passwordResetCode,
+      passwordResetExpires: passwordResetExpires ?? this.passwordResetExpires,
+      refreshToken: refreshToken ?? this.refreshToken,
+      education: education ?? this.education,
+      experience: experience ?? this.experience,
+      availability: availability ?? this.availability,
+      averageRating: averageRating ?? this.averageRating,
+      totalRatings: totalRatings ?? this.totalRatings,
+      consultationFee: consultationFee ?? this.consultationFee,
+      acceptedInsurance: acceptedInsurance ?? this.acceptedInsurance,
     );
   }
 }

@@ -1,7 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:medical_app/core/error/exceptions.dart';
 import 'package:medical_app/features/ordonnance/domain/entities/prescription_entity.dart';
 import 'package:medical_app/features/ordonnance/data/models/prescription_model.dart';
+import 'package:medical_app/core/services/api_service.dart';
 
 abstract class PrescriptionRemoteDataSource {
   Future<PrescriptionModel> createPrescription(PrescriptionEntity prescription);
@@ -9,156 +9,205 @@ abstract class PrescriptionRemoteDataSource {
   Future<List<PrescriptionModel>> getPatientPrescriptions(String patientId);
   Future<List<PrescriptionModel>> getDoctorPrescriptions(String doctorId);
   Future<PrescriptionModel> getPrescriptionById(String prescriptionId);
-  Future<PrescriptionModel?> getPrescriptionByAppointmentId(String appointmentId);
-  Future<void> updatePrescription(PrescriptionEntity prescription);
+  Future<PrescriptionModel?> getPrescriptionByAppointmentId(
+    String appointmentId,
+  );
+  Future<void> updatePrescriptionStatus(String prescriptionId, String status);
 }
 
 class PrescriptionRemoteDataSourceImpl implements PrescriptionRemoteDataSource {
-  final FirebaseFirestore firestore;
+  final ApiService apiService;
 
-  PrescriptionRemoteDataSourceImpl({required this.firestore});
-
-  @override
-  Future<PrescriptionModel> createPrescription(PrescriptionEntity prescription) async {
-    try {
-      final prescriptionModel = PrescriptionModel.fromEntity(prescription);
-      await firestore
-          .collection('prescriptions')
-          .doc(prescription.id)
-          .set(prescriptionModel.toJson());
-
-      // Also update the appointment status to completed if needed
-      await firestore.collection('rendez_vous').doc(prescription.appointmentId).update({
-        'status': 'completed',
-      });
-
-      return prescriptionModel;
-    } catch (e) {
-      throw ServerException('Failed to create prescription: $e');
-    }
-  }
+  PrescriptionRemoteDataSourceImpl({required this.apiService});
 
   @override
-  Future<PrescriptionModel> editPrescription(PrescriptionEntity prescription) async {
+  Future<PrescriptionModel> createPrescription(
+    PrescriptionEntity prescription,
+  ) async {
     try {
-      // Check if the prescription can be edited (12-hour window)
-      final doc = await firestore.collection('prescriptions').doc(prescription.id).get();
-      
-      if (!doc.exists) {
-        throw ServerException('Prescription not found');
-      }
-      
-      final existingPrescription = PrescriptionModel.fromJson(doc.data() as Map<String, dynamic>);
-      
-      // Check the edit time window
-      final now = DateTime.now();
-      final difference = now.difference(existingPrescription.date);
-      
-      if (difference.inHours >= 12) {
+      final prescriptionData = {
+        'appointmentId': prescription.appointmentId,
+        'medications':
+            prescription.medications.map((med) => med.toJson()).toList(),
+        'note': prescription.note,
+        'expiresAt': prescription.expiresAt?.toIso8601String(),
+      };
+
+      final response = await ApiService.postRequest(
+        '${ApiService.baseUrl}/prescriptions',
+        prescriptionData,
+      );
+
+      if (response == null ||
+          response['data'] == null ||
+          response['data']['prescription'] == null) {
         throw ServerException(
-          'Cannot edit prescription after 12 hours of creation'
+          message: 'Failed to create prescription: Invalid response format',
         );
       }
-      
-      final prescriptionModel = PrescriptionModel.fromEntity(prescription);
-      await firestore
-          .collection('prescriptions')
-          .doc(prescription.id)
-          .update(prescriptionModel.toJson());
-      
-      return prescriptionModel;
+
+      return PrescriptionModel.fromJson(response['data']['prescription']);
     } catch (e) {
-      if (e is ServerException) {
-        throw e;
+      throw ServerException(message: 'Failed to create prescription: $e');
+    }
+  }
+
+  @override
+  Future<PrescriptionModel> editPrescription(
+    PrescriptionEntity prescription,
+  ) async {
+    try {
+      final prescriptionData = {
+        'medications':
+            prescription.medications.map((med) => med.toJson()).toList(),
+        'note': prescription.note,
+        'expiresAt': prescription.expiresAt?.toIso8601String(),
+      };
+
+      final response = await ApiService.patchRequest(
+        '${ApiService.baseUrl}/prescriptions/${prescription.id}',
+        prescriptionData,
+      );
+
+      if (response == null ||
+          response['data'] == null ||
+          response['data']['prescription'] == null) {
+        throw ServerException(
+          message: 'Failed to edit prescription: Invalid response format',
+        );
       }
-      throw ServerException('Failed to edit prescription: $e');
+
+      return PrescriptionModel.fromJson(response['data']['prescription']);
+    } catch (e) {
+      throw ServerException(message: 'Failed to edit prescription: $e');
     }
   }
 
   @override
-  Future<List<PrescriptionModel>> getPatientPrescriptions(String patientId) async {
+  Future<List<PrescriptionModel>> getPatientPrescriptions(
+    String patientId,
+  ) async {
     try {
-      final querySnapshot = await firestore
-          .collection('prescriptions')
-          .where('patientId', isEqualTo: patientId)
-          .orderBy('date', descending: true)
-          .get();
-      
-      return querySnapshot.docs
-          .map((doc) => PrescriptionModel.fromJson(doc.data()))
+      final response = await ApiService.getRequest(
+        '${ApiService.baseUrl}/prescriptions/patient/$patientId',
+      );
+
+      if (response == null ||
+          response['data'] == null ||
+          response['data']['prescriptions'] == null) {
+        throw ServerException(
+          message:
+              'Failed to fetch patient prescriptions: Invalid response format',
+        );
+      }
+
+      final prescriptionsData = response['data']['prescriptions'] as List;
+      return prescriptionsData
+          .map(
+            (prescriptionData) => PrescriptionModel.fromJson(prescriptionData),
+          )
           .toList();
     } catch (e) {
-      throw ServerException('Failed to fetch patient prescriptions: $e');
+      throw ServerException(
+        message: 'Failed to fetch patient prescriptions: $e',
+      );
     }
   }
 
   @override
-  Future<List<PrescriptionModel>> getDoctorPrescriptions(String doctorId) async {
+  Future<List<PrescriptionModel>> getDoctorPrescriptions(
+    String doctorId,
+  ) async {
     try {
-      final querySnapshot = await firestore
-          .collection('prescriptions')
-          .where('doctorId', isEqualTo: doctorId)
-          .orderBy('date', descending: true)
-          .get();
-      
-      return querySnapshot.docs
-          .map((doc) => PrescriptionModel.fromJson(doc.data()))
+      final response = await ApiService.getRequest(
+        '${ApiService.baseUrl}/prescriptions/doctor/$doctorId',
+      );
+
+      if (response == null ||
+          response['data'] == null ||
+          response['data']['prescriptions'] == null) {
+        throw ServerException(
+          message:
+              'Failed to fetch doctor prescriptions: Invalid response format',
+        );
+      }
+
+      final prescriptionsData = response['data']['prescriptions'] as List;
+      return prescriptionsData
+          .map(
+            (prescriptionData) => PrescriptionModel.fromJson(prescriptionData),
+          )
           .toList();
     } catch (e) {
-      throw ServerException('Failed to fetch doctor prescriptions: $e');
+      throw ServerException(
+        message: 'Failed to fetch doctor prescriptions: $e',
+      );
     }
   }
 
   @override
   Future<PrescriptionModel> getPrescriptionById(String prescriptionId) async {
     try {
-      final docSnapshot = await firestore
-          .collection('prescriptions')
-          .doc(prescriptionId)
-          .get();
-      
-      if (!docSnapshot.exists) {
-        throw ServerException('Prescription not found');
+      final response = await ApiService.getRequest(
+        '${ApiService.baseUrl}/prescriptions/$prescriptionId',
+      );
+
+      if (response == null ||
+          response['data'] == null ||
+          response['data']['prescription'] == null) {
+        throw ServerException(
+          message: 'Failed to fetch prescription: Invalid response format',
+        );
       }
-      
-      return PrescriptionModel.fromJson(docSnapshot.data()!);
+
+      return PrescriptionModel.fromJson(response['data']['prescription']);
     } catch (e) {
-      if (e is ServerException) {
-        throw e;
-      }
-      throw ServerException('Failed to fetch prescription: $e');
+      throw ServerException(message: 'Failed to fetch prescription: $e');
     }
   }
 
   @override
-  Future<PrescriptionModel?> getPrescriptionByAppointmentId(String appointmentId) async {
+  Future<PrescriptionModel?> getPrescriptionByAppointmentId(
+    String appointmentId,
+  ) async {
     try {
-      final querySnapshot = await firestore
-          .collection('prescriptions')
-          .where('appointmentId', isEqualTo: appointmentId)
-          .limit(1)
-          .get();
-      
-      if (querySnapshot.docs.isEmpty) {
+      final response = await ApiService.getRequest(
+        '${ApiService.baseUrl}/prescriptions/appointment/$appointmentId',
+      );
+
+      if (response == null || response['data'] == null) {
+        throw ServerException(
+          message:
+              'Failed to fetch prescription by appointment: Invalid response format',
+        );
+      }
+
+      if (response['data']['prescription'] == null) {
         return null;
       }
-      
-      return PrescriptionModel.fromJson(querySnapshot.docs.first.data());
+
+      return PrescriptionModel.fromJson(response['data']['prescription']);
     } catch (e) {
-      throw ServerException('Failed to fetch prescription by appointment: $e');
+      throw ServerException(
+        message: 'Failed to fetch prescription by appointment: $e',
+      );
     }
   }
-  
+
   @override
-  Future<void> updatePrescription(PrescriptionEntity prescription) async {
+  Future<void> updatePrescriptionStatus(
+    String prescriptionId,
+    String status,
+  ) async {
     try {
-      final prescriptionModel = PrescriptionModel.fromEntity(prescription);
-      await firestore
-          .collection('prescriptions')
-          .doc(prescription.id)
-          .update(prescriptionModel.toJson());
+      await ApiService.patchRequest(
+        '${ApiService.baseUrl}/prescriptions/status/$prescriptionId',
+        {'status': status},
+      );
     } catch (e) {
-      throw ServerException('Failed to update prescription: $e');
+      throw ServerException(
+        message: 'Failed to update prescription status: $e',
+      );
     }
   }
-} 
+}

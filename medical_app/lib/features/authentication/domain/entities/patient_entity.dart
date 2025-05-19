@@ -2,6 +2,13 @@ import 'package:medical_app/features/authentication/domain/entities/user_entity.
 
 class PatientEntity extends UserEntity {
   final String antecedent;
+  // New fields from MongoDB schema
+  final String? bloodType;
+  final double? height;
+  final double? weight;
+  final List<String>? allergies;
+  final List<String>? chronicDiseases;
+  final Map<String, String?>? emergencyContact;
 
   PatientEntity({
     String? id,
@@ -16,20 +23,45 @@ class PatientEntity extends UserEntity {
     bool? accountStatus,
     int? verificationCode,
     DateTime? validationCodeExpiresAt,
+    String? fcmToken,
+    Map<String, String?>? address,
+    Map<String, dynamic>? location,
+    String? profilePicture,
+    bool? isOnline,
+    DateTime? lastActive,
+    String? oneSignalPlayerId,
+    String? passwordResetCode,
+    DateTime? passwordResetExpires,
+    String? refreshToken,
+    this.bloodType,
+    this.height,
+    this.weight,
+    this.allergies,
+    this.chronicDiseases,
+    this.emergencyContact,
   }) : super(
-    id: id,
-    name: name,
-    lastName: lastName,
-    email: email,
-    role: role,
-    gender: gender,
-    phoneNumber: phoneNumber,
-    dateOfBirth: dateOfBirth,
-    accountStatus: accountStatus,
-    verificationCode: verificationCode,
-    validationCodeExpiresAt: validationCodeExpiresAt,
-
-  );
+         id: id,
+         name: name,
+         lastName: lastName,
+         email: email,
+         role: role,
+         gender: gender,
+         phoneNumber: phoneNumber,
+         dateOfBirth: dateOfBirth,
+         accountStatus: accountStatus,
+         verificationCode: verificationCode,
+         validationCodeExpiresAt: validationCodeExpiresAt,
+         fcmToken: fcmToken,
+         address: address,
+         location: location,
+         profilePicture: profilePicture,
+         isOnline: isOnline,
+         lastActive: lastActive,
+         oneSignalPlayerId: oneSignalPlayerId,
+         passwordResetCode: passwordResetCode,
+         passwordResetExpires: passwordResetExpires,
+         refreshToken: refreshToken,
+       );
 
   factory PatientEntity.create({
     String? id,
@@ -44,6 +76,22 @@ class PatientEntity extends UserEntity {
     bool? accountStatus,
     int? verificationCode,
     DateTime? validationCodeExpiresAt,
+    String? fcmToken,
+    Map<String, String?>? address,
+    Map<String, dynamic>? location,
+    String? profilePicture,
+    bool? isOnline,
+    DateTime? lastActive,
+    String? oneSignalPlayerId,
+    String? passwordResetCode,
+    DateTime? passwordResetExpires,
+    String? refreshToken,
+    String? bloodType,
+    double? height,
+    double? weight,
+    List<String>? allergies,
+    List<String>? chronicDiseases,
+    Map<String, String?>? emergencyContact,
   }) {
     return PatientEntity(
       id: id,
@@ -58,6 +106,22 @@ class PatientEntity extends UserEntity {
       accountStatus: accountStatus,
       verificationCode: verificationCode,
       validationCodeExpiresAt: validationCodeExpiresAt,
+      fcmToken: fcmToken,
+      address: address,
+      location: location,
+      profilePicture: profilePicture,
+      isOnline: isOnline,
+      lastActive: lastActive,
+      oneSignalPlayerId: oneSignalPlayerId,
+      passwordResetCode: passwordResetCode,
+      passwordResetExpires: passwordResetExpires,
+      refreshToken: refreshToken,
+      bloodType: bloodType,
+      height: height,
+      weight: weight,
+      allergies: allergies,
+      chronicDiseases: chronicDiseases,
+      emergencyContact: emergencyContact,
     );
   }
 
@@ -65,5 +129,11 @@ class PatientEntity extends UserEntity {
   List<Object?> get props => [
     ...super.props,
     antecedent,
+    bloodType,
+    height,
+    weight,
+    allergies,
+    chronicDiseases,
+    emergencyContact,
   ];
 }

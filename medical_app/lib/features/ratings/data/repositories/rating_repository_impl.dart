@@ -17,7 +17,9 @@ class RatingRepositoryImpl implements RatingRepository {
   });
 
   @override
-  Future<Either<Failure, Unit>> submitDoctorRating(DoctorRatingEntity rating) async {
+  Future<Either<Failure, Unit>> submitDoctorRating(
+    DoctorRatingEntity rating,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
         final ratingModel = DoctorRatingModel(
@@ -45,7 +47,9 @@ class RatingRepositoryImpl implements RatingRepository {
   }
 
   @override
-  Future<Either<Failure, List<DoctorRatingEntity>>> getDoctorRatings(String doctorId) async {
+  Future<Either<Failure, List<DoctorRatingEntity>>> getDoctorRatings(
+    String doctorId,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
         final ratings = await remoteDataSource.getDoctorRatings(doctorId);
@@ -63,10 +67,14 @@ class RatingRepositoryImpl implements RatingRepository {
   }
 
   @override
-  Future<Either<Failure, double>> getDoctorAverageRating(String doctorId) async {
+  Future<Either<Failure, double>> getDoctorAverageRating(
+    String doctorId,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
-        final averageRating = await remoteDataSource.getDoctorAverageRating(doctorId);
+        final averageRating = await remoteDataSource.getDoctorAverageRating(
+          doctorId,
+        );
         return Right(averageRating);
       } on ServerException {
         return Left(ServerFailure());
@@ -81,10 +89,16 @@ class RatingRepositoryImpl implements RatingRepository {
   }
 
   @override
-  Future<Either<Failure, bool>> hasPatientRatedAppointment(String patientId, String rendezVousId) async {
+  Future<Either<Failure, bool>> hasPatientRatedAppointment(
+    String patientId,
+    String rendezVousId,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
-        final hasRated = await remoteDataSource.hasPatientRatedAppointment(patientId, rendezVousId);
+        final hasRated = await remoteDataSource.hasPatientRatedAppointment(
+          patientId,
+          rendezVousId,
+        );
         return Right(hasRated);
       } on ServerException {
         return Left(ServerFailure());
@@ -97,4 +111,4 @@ class RatingRepositoryImpl implements RatingRepository {
       return Left(OfflineFailure());
     }
   }
-} 
+}

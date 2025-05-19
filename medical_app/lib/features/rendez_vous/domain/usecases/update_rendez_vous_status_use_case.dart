@@ -10,18 +10,10 @@ class UpdateRendezVousStatusUseCase {
   Future<Either<Failure, Unit>> call({
     required String rendezVousId,
     required String status,
-    required String patientId,
-    required String doctorId,
-    required String patientName,
-    required String doctorName,
   }) async {
     return await rendezVousRepository.updateRendezVousStatus(
       rendezVousId,
       status,
-      patientId,
-      doctorId,
-      patientName,
-      doctorName,
     );
   }
 }

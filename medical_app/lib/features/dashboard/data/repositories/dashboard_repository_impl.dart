@@ -18,11 +18,13 @@ class DashboardRepositoryImpl implements DashboardRepository {
 
   @override
   Future<Either<Failure, DashboardStatsEntity>> getDoctorDashboardStats(
-      String doctorId) async {
+    String doctorId,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
-        final dashboardStats =
-            await remoteDataSource.getDoctorDashboardStats(doctorId);
+        final dashboardStats = await remoteDataSource.getDoctorDashboardStats(
+          doctorId,
+        );
         return Right(dashboardStats);
       } on ServerException catch (e) {
         return Left(ServerMessageFailure(e.message));
@@ -36,11 +38,12 @@ class DashboardRepositoryImpl implements DashboardRepository {
 
   @override
   Future<Either<Failure, Map<String, int>>> getAppointmentsCountByStatus(
-      String doctorId) async {
+    String doctorId,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
-        final appointmentsCount =
-            await remoteDataSource.getAppointmentsCountByStatus(doctorId);
+        final appointmentsCount = await remoteDataSource
+            .getAppointmentsCountByStatus(doctorId);
         return Right(appointmentsCount);
       } on ServerException catch (e) {
         return Left(ServerMessageFailure(e.message));
@@ -78,10 +81,12 @@ class DashboardRepositoryImpl implements DashboardRepository {
   Future<Either<Failure, int>> getTotalPatientsCount(String doctorId) async {
     if (await networkInfo.isConnected) {
       try {
-        final stats = await remoteDataSource.getDoctorDashboardStats(doctorId);
-        return Right(stats.totalPatients);
+        final count = await remoteDataSource.getTotalPatientsCount(doctorId);
+        return Right(count);
       } on ServerException catch (e) {
         return Left(ServerMessageFailure(e.message));
+      } catch (e) {
+        return Left(ServerMessageFailure(e.toString()));
       }
     } else {
       return Left(OfflineFailure());
@@ -104,9 +109,11 @@ class DashboardRepositoryImpl implements DashboardRepository {
         return Right(result);
       } on ServerException catch (e) {
         return Left(ServerMessageFailure(e.message));
+      } catch (e) {
+        return Left(ServerMessageFailure(e.toString()));
       }
     } else {
       return Left(OfflineFailure());
     }
   }
-} 
+}

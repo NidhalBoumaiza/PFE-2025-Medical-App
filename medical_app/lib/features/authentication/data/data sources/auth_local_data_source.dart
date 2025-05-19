@@ -48,16 +48,19 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
         final userMap = jsonDecode(userJson) as Map<String, dynamic>;
         if (userMap.containsKey('antecedent')) {
           return PatientModel.fromJson(userMap);
-        } else if (userMap.containsKey('speciality') && userMap.containsKey('numLicence')) {
+        } else if (userMap.containsKey('speciality') &&
+            userMap.containsKey('numLicence')) {
           return MedecinModel.fromJson(userMap);
         } else {
           return UserModel.fromJson(userMap);
         }
       } catch (e) {
-        throw EmptyCacheException('Failed to parse cached user data: $e');
+        throw EmptyCacheException(
+          message: 'Failed to parse cached user data: $e',
+        );
       }
     } else {
-      throw EmptyCacheException('No cached user data found');
+      throw EmptyCacheException(message: 'No cached user data found');
     }
   }
 

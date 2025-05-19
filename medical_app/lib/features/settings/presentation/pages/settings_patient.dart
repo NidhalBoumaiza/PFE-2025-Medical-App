@@ -238,6 +238,31 @@ class _SettingsPatientState extends State<SettingsPatient> {
                       userModel is PatientModel
                           ? (userModel as PatientModel).antecedent
                           : '',
+                  // Add new MongoDB schema fields
+                  bloodType:
+                      userModel is PatientModel
+                          ? (userModel as PatientModel).bloodType
+                          : null,
+                  height:
+                      userModel is PatientModel
+                          ? (userModel as PatientModel).height
+                          : null,
+                  weight:
+                      userModel is PatientModel
+                          ? (userModel as PatientModel).weight
+                          : null,
+                  allergies:
+                      userModel is PatientModel
+                          ? (userModel as PatientModel).allergies
+                          : null,
+                  chronicDiseases:
+                      userModel is PatientModel
+                          ? (userModel as PatientModel).chronicDiseases
+                          : null,
+                  emergencyContact:
+                      userModel is PatientModel
+                          ? (userModel as PatientModel).emergencyContact
+                          : null,
                 );
 
                 final updatedUser = await Navigator.push(
@@ -255,18 +280,25 @@ class _SettingsPatientState extends State<SettingsPatient> {
                   );
 
                   // Cache updated user if successful
-                  if (userModel is PatientModel) {
+                  if (userModel is PatientModel &&
+                      updatedUser is PatientEntity) {
+                    final PatientEntity patientUser =
+                        updatedUser as PatientEntity;
                     await authLocalDataSource.cacheUser(
                       (userModel as PatientModel).copyWith(
-                        name: updatedUser.name,
-                        lastName: updatedUser.lastName,
-                        phoneNumber: updatedUser.phoneNumber,
-                        gender: updatedUser.gender,
-                        dateOfBirth: updatedUser.dateOfBirth,
-                        antecedent:
-                            updatedUser is PatientEntity
-                                ? (updatedUser as PatientEntity).antecedent
-                                : '',
+                        name: patientUser.name,
+                        lastName: patientUser.lastName,
+                        phoneNumber: patientUser.phoneNumber,
+                        gender: patientUser.gender,
+                        dateOfBirth: patientUser.dateOfBirth,
+                        antecedent: patientUser.antecedent,
+                        // Update new MongoDB schema fields
+                        bloodType: patientUser.bloodType,
+                        height: patientUser.height,
+                        weight: patientUser.weight,
+                        allergies: patientUser.allergies,
+                        chronicDiseases: patientUser.chronicDiseases,
+                        emergencyContact: patientUser.emergencyContact,
                       ),
                     );
                   }

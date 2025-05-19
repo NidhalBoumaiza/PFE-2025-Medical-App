@@ -4,50 +4,50 @@ class NotificationUtils {
   /// Convert a string to NotificationType enum
   static NotificationType stringToNotificationType(String type) {
     switch (type) {
-      case 'newAppointment':
-        return NotificationType.newAppointment;
-      case 'appointmentAccepted':
-        return NotificationType.appointmentAccepted;
-      case 'appointmentRejected':
-        return NotificationType.appointmentRejected;
-      case 'newRating':
-        return NotificationType.newRating;
-      case 'newPrescription':
-        return NotificationType.newPrescription;
+      case 'general':
+        return NotificationType.general;
+      case 'appointment':
+        return NotificationType.appointment;
+      case 'prescription':
+        return NotificationType.prescription;
+      case 'message':
+        return NotificationType.message;
+      case 'medical_record':
+        return NotificationType.medical_record;
       default:
-        return NotificationType.newAppointment;
+        return NotificationType.general;
     }
   }
 
   /// Convert NotificationType enum to string
   static String notificationTypeToString(NotificationType type) {
     switch (type) {
-      case NotificationType.newAppointment:
-        return 'newAppointment';
-      case NotificationType.appointmentAccepted:
-        return 'appointmentAccepted';
-      case NotificationType.appointmentRejected:
-        return 'appointmentRejected';
-      case NotificationType.newRating:
-        return 'newRating';
-      case NotificationType.newPrescription:
-        return 'newPrescription';
+      case NotificationType.general:
+        return 'general';
+      case NotificationType.appointment:
+        return 'appointment';
+      case NotificationType.prescription:
+        return 'prescription';
+      case NotificationType.message:
+        return 'message';
+      case NotificationType.medical_record:
+        return 'medical_record';
     }
   }
 
   /// Get notification title based on type
   static String getNotificationTitle(NotificationType type) {
     switch (type) {
-      case NotificationType.newAppointment:
-        return 'New Appointment';
-      case NotificationType.appointmentAccepted:
-        return 'Appointment Accepted';
-      case NotificationType.appointmentRejected:
-        return 'Appointment Rejected';
-      case NotificationType.newRating:
-        return 'New Rating';
-      case NotificationType.newPrescription:
-        return 'New Prescription';
+      case NotificationType.general:
+        return 'Notification';
+      case NotificationType.appointment:
+        return 'Appointment';
+      case NotificationType.prescription:
+        return 'Prescription';
+      case NotificationType.message:
+        return 'New Message';
+      case NotificationType.medical_record:
+        return 'Medical Record';
     }
   }
 }

@@ -64,32 +64,35 @@ class _RendezVousMedecinState extends State<RendezVousMedecin> {
       String id,
       String newStatus,
       String patientName,
-      String patientId,
-      String doctorId,
-      String doctorName,
       ) async {
-    final action = newStatus == 'accepted' ? 'accepter' : 'refuser';
+    final action = newStatus == 'Accepté' ? 'accepter' : 'refuser';
     final confirmed = await _showConfirmationDialog(action, patientName);
     if (confirmed == true) {
-      context.read<RendezVousBloc>().add(UpdateRendezVousStatus(
-        rendezVousId: id,
-        status: newStatus,
-        patientId: patientId,
-        doctorId: doctorId,
-        patientName: patientName,
-        doctorName: doctorName,
-      ));
+      if (newStatus == 'Accepté') {
+        context.read<RendezVousBloc>().add(AcceptAppointment(id));
+      } else if (newStatus == 'Refusé') {
+        context.read<RendezVousBloc>().add(RefuseAppointment(id));
+      } else {
+        context.read<RendezVousBloc>().add(UpdateRendezVousStatus(
+          rendezVousId: id,
+          status: newStatus,
+        ));
+      }
     }
   }
 
   String _translateStatus(String status) {
     switch (status) {
-      case 'pending':
+      case 'En attente':
         return 'En attente';
-      case 'accepted':
+      case 'Accepté':
         return 'Accepté';
-      case 'refused':
+      case 'Refusé':
         return 'Refusé';
+      case 'Annulé':
+        return 'Annulé';
+      case 'Terminé':
+        return 'Terminé';
       default:
         return status;
     }
@@ -190,23 +193,30 @@ class _RendezVousMedecinState extends State<RendezVousMedecin> {
                                     SizedBox(height: 8.h),
                                     ReusableTextWidget(
                                       text:
-                                      "Heure de début: ${consultation.startTime?.toLocal().toString().substring(0, 16) ?? 'Non défini'}",
+                                      "Heure de début: ${consultation.startDate.toLocal().toString().substring(0, 16) ?? 'Non défini'}",
                                       textSize: 14,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.grey[700],
                                     ),
                                     SizedBox(height: 8.h),
                                     ReusableTextWidget(
-                                      text: "Statut: ${_translateStatus(consultation.status ?? 'pending')}",
+                                      text: "Service: ${consultation.serviceName}",
                                       textSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: consultation.status == 'pending'
+                                      color: Colors.grey[700],
+                                    ),
+                                    SizedBox(height: 8.h),
+                                    ReusableTextWidget(
+                                      text: "Statut: ${_translateStatus(consultation.status)}",
+                                      textSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: consultation.status == 'En attente'
                                           ? Colors.orange
-                                          : consultation.status == 'accepted'
+                                          : consultation.status == 'Accepté'
                                           ? Colors.green
                                           : Colors.red,
                                     ),
-                                    if (consultation.status == 'pending') ...[
+                                    if (consultation.status == 'En attente') ...[
                                       SizedBox(height: 16.h),
                                       Row(
                                         mainAxisAlignment:
@@ -224,17 +234,11 @@ class _RendezVousMedecinState extends State<RendezVousMedecin> {
                                                   vertical: 12.h,
                                                 ),
                                               ),
-                                              onPressed: () async {
-                                                final authLocalDataSource = sl<AuthLocalDataSource>();
-                                                final user = await authLocalDataSource.getUser();
-                                                final doctorName = '${user.name} ${user.lastName}'.trim();
+                                              onPressed: () {
                                                 _updateConsultationStatus(
                                                   consultation.id ?? '',
-                                                  'accepted',
+                                                  'Accepté',
                                                   consultation.patientName ?? 'Inconnu',
-                                                  consultation.patientId ?? '',
-                                                  consultation.doctorId ?? '',
-                                                  doctorName,
                                                 );
                                               },
                                               child: Text(
@@ -260,17 +264,11 @@ class _RendezVousMedecinState extends State<RendezVousMedecin> {
                                                   vertical: 12.h,
                                                 ),
                                               ),
-                                              onPressed: () async {
-                                                final authLocalDataSource = sl<AuthLocalDataSource>();
-                                                final user = await authLocalDataSource.getUser();
-                                                final doctorName = '${user.name} ${user.lastName}'.trim();
+                                              onPressed: () {
                                                 _updateConsultationStatus(
                                                   consultation.id ?? '',
-                                                  'refused',
+                                                  'Refusé',
                                                   consultation.patientName ?? 'Inconnu',
-                                                  consultation.patientId ?? '',
-                                                  consultation.doctorId ?? '',
-                                                  doctorName,
                                                 );
                                               },
                                               child: Text(

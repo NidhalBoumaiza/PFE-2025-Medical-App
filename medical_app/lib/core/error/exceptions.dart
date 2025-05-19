@@ -4,7 +4,7 @@ import 'package:equatable/equatable.dart';
 class ServerException extends Equatable implements Exception {
   final String message;
 
-  ServerException(this.message);
+  ServerException({this.message = 'Server error occurred'});
 
   @override
   List<Object?> get props => [message];
@@ -14,7 +14,7 @@ class ServerException extends Equatable implements Exception {
 class EmptyCacheException extends Equatable implements Exception {
   final String message;
 
-  EmptyCacheException(this.message);
+  EmptyCacheException({this.message = 'Cache error occurred'});
 
   @override
   List<Object?> get props => [message];
@@ -24,7 +24,7 @@ class EmptyCacheException extends Equatable implements Exception {
 class OfflineException extends Equatable implements Exception {
   final String message;
 
-  OfflineException(this.message);
+  OfflineException({this.message = 'Network error occurred'});
 
   @override
   List<Object?> get props => [message];
@@ -34,7 +34,7 @@ class OfflineException extends Equatable implements Exception {
 class ServerMessageException extends Equatable implements Exception {
   final String message;
 
-  ServerMessageException(this.message);
+  ServerMessageException({this.message = 'Server error occurred'});
 
   @override
   List<Object?> get props => [message];
@@ -64,7 +64,7 @@ class TimeoutException extends Equatable implements Exception {
 class AuthException extends Equatable implements Exception {
   final String message;
 
-  const AuthException([this.message = 'Authentication error']);
+  AuthException({this.message = 'Authentication error occurred'});
 
   @override
   List<Object?> get props => [message];
@@ -94,4 +94,40 @@ class YouHaveToCreateAccountAgainException extends Equatable
 
   @override
   List<Object?> get props => [message];
+}
+
+class CacheException implements Exception {
+  final String message;
+
+  CacheException({this.message = 'Cache error occurred'});
+}
+
+class NetworkException implements Exception {
+  final String message;
+
+  NetworkException({this.message = 'Network error occurred'});
+}
+
+class ValidationException implements Exception {
+  final String message;
+
+  ValidationException({this.message = 'Validation error occurred'});
+}
+
+class PermissionException implements Exception {
+  final String message;
+
+  PermissionException({this.message = 'Permission denied'});
+}
+
+class FileException implements Exception {
+  final String message;
+
+  FileException({this.message = 'File error occurred'});
+}
+
+class NotFoundException implements Exception {
+  final String message;
+
+  NotFoundException({this.message = 'Resource not found'});
 }

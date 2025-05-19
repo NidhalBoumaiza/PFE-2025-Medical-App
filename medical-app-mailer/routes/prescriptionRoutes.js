@@ -64,3 +64,4 @@ router.patch(
 router.get("/:id", prescriptionController.getPrescriptionById);
 
 module.exports = router;
+ 

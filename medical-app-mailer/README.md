@@ -210,3 +210,71 @@ Authorization header:
 ```
 Authorization: Bearer your-token-here
 ```
+
+# Medical App API - Appointment System
+
+## Appointment Duration System
+
+The appointment system now uses the doctor's `appointmentDuration` setting to automatically calculate appointment end times.
+
+### How it works:
+
+1. The doctor sets their `appointmentDuration` in their profile (default is 30 minutes)
+2. When a patient creates an appointment, they only need to provide:
+   - `startDate`: The desired appointment start time
+   - `medecinId`: The ID of the doctor
+   - `serviceName`: The service being requested
+   - `motif` (optional): Reason for the appointment
+   - `symptoms` (optional): Array of symptoms
+
+3. The system automatically calculates the `endDate` by adding the doctor's `appointmentDuration` to the `startDate`
+
+### Example API Request:
+
+```json
+POST /api/v1/appointments/createAppointment
+{
+  "startDate": "2023-11-10T14:30:00.000Z",
+  "serviceName": "Consultation générale",
+  "medecinId": "6015f3f5c8b4a43f28a7f4b1",
+  "motif": "Maux de tête persistants",
+  "symptoms": ["Maux de tête", "Fièvre"]
+}
+```
+
+### Example API Response:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "appointment": {
+      "_id": "6015f5c5c8b4a43f28a7f4b3",
+      "startDate": "2023-11-10T14:30:00.000Z",
+      "endDate": "2023-11-10T15:00:00.000Z",
+      "serviceName": "Consultation générale",
+      "patient": "6015f2a5c8b4a43f28a7f4b0",
+      "medecin": "6015f3f5c8b4a43f28a7f4b1",
+      "status": "En attente",
+      "motif": "Maux de tête persistants",
+      "symptoms": ["Maux de tête", "Fièvre"],
+      "isRated": false,
+      "hasPrescription": false,
+      "createdAt": "2023-11-05T10:15:00.000Z"
+    }
+  }
+}
+```
+
+## Setting Doctor's Appointment Duration
+
+Doctors can set their appointment duration through the user profile update endpoint:
+
+```json
+PATCH /api/v1/users/updateMe
+{
+  "appointmentDuration": 45
+}
+```
+
+This will set the doctor's appointment duration to 45 minutes. All future appointments will be scheduled for 45-minute slots.

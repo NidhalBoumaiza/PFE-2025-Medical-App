@@ -54,12 +54,13 @@ class DossierMedicalRemoteDataSourceImpl
         return DossierMedicalModel.empty(patientId);
       } else {
         throw ServerException(
-          'Failed to get medical dossier. Status code: ${response.statusCode}',
+          message:
+              'Failed to get medical dossier. Status code: ${response.statusCode}',
         );
       }
     } catch (e) {
       if (e is ServerException) rethrow;
-      throw ServerException('Unexpected error: $e');
+      throw ServerException(message: 'Unexpected error: $e');
     }
   }
 
@@ -103,12 +104,12 @@ class DossierMedicalRemoteDataSourceImpl
         return DossierMedicalModel.fromJson(jsonResponse['data']['dossier']);
       } else {
         throw ServerException(
-          'Failed to add file. Status code: ${response.statusCode}',
+          message: 'Failed to add file. Status code: ${response.statusCode}',
         );
       }
     } catch (e) {
       if (e is ServerException) rethrow;
-      throw ServerException('Unexpected error: $e');
+      throw ServerException(message: 'Unexpected error: $e');
     }
   }
 
@@ -154,12 +155,12 @@ class DossierMedicalRemoteDataSourceImpl
         return DossierMedicalModel.fromJson(jsonResponse['data']['dossier']);
       } else {
         throw ServerException(
-          'Failed to add files. Status code: ${response.statusCode}',
+          message: 'Failed to add files. Status code: ${response.statusCode}',
         );
       }
     } catch (e) {
       if (e is ServerException) rethrow;
-      throw ServerException('Unexpected error: $e');
+      throw ServerException(message: 'Unexpected error: $e');
     }
   }
 
@@ -175,12 +176,12 @@ class DossierMedicalRemoteDataSourceImpl
         return unit;
       } else {
         throw ServerException(
-          'Failed to delete file. Status code: ${response.statusCode}',
+          message: 'Failed to delete file. Status code: ${response.statusCode}',
         );
       }
     } catch (e) {
       if (e is ServerException) rethrow;
-      throw ServerException('Unexpected error: $e');
+      throw ServerException(message: 'Unexpected error: $e');
     }
   }
 
@@ -201,12 +202,13 @@ class DossierMedicalRemoteDataSourceImpl
         return unit;
       } else {
         throw ServerException(
-          'Failed to update file description. Status code: ${response.statusCode}',
+          message:
+              'Failed to update file description. Status code: ${response.statusCode}',
         );
       }
     } catch (e) {
       if (e is ServerException) rethrow;
-      throw ServerException('Unexpected error: $e');
+      throw ServerException(message: 'Unexpected error: $e');
     }
   }
 

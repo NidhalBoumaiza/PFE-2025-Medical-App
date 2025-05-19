@@ -1,17 +1,27 @@
 import 'package:bloc/bloc.dart';
-import 'package:medical_app/features/dossier_medical/domain/usecases/get_dossier_medical.dart';
-import 'package:medical_app/features/dossier_medical/domain/usecases/has_dossier_medical.dart';
-import '../../../authentication/domain/entities/patient_entity.dart';
+import 'package:dartz/dartz.dart';
+import 'package:medical_app/core/error/failures.dart';
+import 'package:medical_app/features/dossier_medical/domain/entities/dossier_medical_entity.dart';
+import 'package:medical_app/features/dossier_medical/domain/usecases/get_dossier_medical.dart'
+    as get_dm;
+import 'package:medical_app/features/dossier_medical/domain/usecases/has_dossier_medical.dart'
+    as has_dm;
 import '../../domain/repositories/dossier_medical_repository.dart';
 import 'dossier_medical_event.dart';
 import 'dossier_medical_state.dart';
 
+// BLoC
 class DossierMedicalBloc
     extends Bloc<DossierMedicalEvent, DossierMedicalState> {
   final DossierMedicalRepository repository;
+  final get_dm.GetDossierMedical getDossierMedicalUseCase;
+  final has_dm.HasDossierMedical hasDossierMedicalUseCase;
 
-  DossierMedicalBloc({required this.repository})
-    : super(const DossierMedicalInitial()) {
+  DossierMedicalBloc({
+    required this.repository,
+    required this.getDossierMedicalUseCase,
+    required this.hasDossierMedicalUseCase,
+  }) : super(const DossierMedicalInitial()) {
     on<FetchDossierMedical>(_onFetchDossierMedical);
     on<CheckDossierMedicalExists>(_onCheckDossierMedicalExists);
     on<UploadSingleFile>(_onUploadSingleFile);
@@ -25,14 +35,10 @@ class DossierMedicalBloc
     Emitter<DossierMedicalState> emit,
   ) async {
     emit(const DossierMedicalLoading());
-    final result = await repository.getDossierMedical(event.patientId);
-    result.fold(
-      (failure) => emit(DossierMedicalError(message: failure.message)),
-      (dossier) =>
-          dossier.files.isEmpty
-              ? emit(DossierMedicalEmpty(patientId: event.patientId))
-              : emit(DossierMedicalLoaded(dossier: dossier)),
+    final result = await getDossierMedicalUseCase(
+      get_dm.Params(patientId: event.patientId),
     );
+    _emitDossierMedicalResult(result, emit);
   }
 
   Future<void> _onCheckDossierMedicalExists(
@@ -40,11 +46,42 @@ class DossierMedicalBloc
     Emitter<DossierMedicalState> emit,
   ) async {
     emit(const CheckingDossierMedicalStatus());
-    final result = await repository.hasDossierMedical(event.patientId);
-    result.fold(
-      (failure) => emit(DossierMedicalError(message: failure.message)),
-      (exists) => emit(DossierMedicalExists(exists: exists)),
+    final result = await hasDossierMedicalUseCase(
+      has_dm.Params(patientId: event.patientId),
     );
+
+    result.fold(
+      (failure) =>
+          emit(DossierMedicalError(message: _mapFailureToMessage(failure))),
+      (hasDossier) => emit(DossierMedicalExists(exists: hasDossier)),
+    );
+  }
+
+  void _emitDossierMedicalResult(
+    Either<Failure, DossierMedicalEntity> result,
+    Emitter<DossierMedicalState> emit,
+  ) {
+    result.fold(
+      (failure) =>
+          emit(DossierMedicalError(message: _mapFailureToMessage(failure))),
+      (dossierMedical) =>
+          dossierMedical.files.isEmpty
+              ? emit(DossierMedicalEmpty(patientId: dossierMedical.patientId))
+              : emit(DossierMedicalLoaded(dossier: dossierMedical)),
+    );
+  }
+
+  String _mapFailureToMessage(Failure failure) {
+    switch (failure.runtimeType) {
+      case ServerFailure:
+        return failure.message ?? 'Server failure';
+      case NetworkFailure:
+        return failure.message ?? 'Network failure';
+      case FileFailure:
+        return failure.message ?? 'File failure';
+      default:
+        return 'Unexpected error';
+    }
   }
 
   Future<void> _onUploadSingleFile(

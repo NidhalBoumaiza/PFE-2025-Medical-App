@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/custom_snack_bar.dart';
+import '../../../../core/services/api_service.dart';
 import '../../../authentication/domain/entities/patient_entity.dart';
 import '../../../rendez_vous/domain/entities/rendez_vous_entity.dart';
 import '../../domain/entities/prescription_entity.dart';
@@ -33,26 +34,33 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   final _medicationNameController = TextEditingController();
   final _dosageController = TextEditingController();
   final _instructionsController = TextEditingController();
+  final _frequencyController = TextEditingController();
+  final _durationController = TextEditingController();
   final _noteController = TextEditingController();
   final List<MedicationModel> _medications = [];
   bool _isSaving = false;
   bool _isEditing = false;
   String? _prescriptionId;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  DateTime _expiresAt = DateTime.now().add(
+    const Duration(days: 30),
+  ); // Default 30 days
 
   @override
   void initState() {
     super.initState();
     _loadExistingPrescription();
   }
-  
+
   void _loadExistingPrescription() {
     if (widget.existingPrescription != null) {
       setState(() {
         _isEditing = true;
         _prescriptionId = widget.existingPrescription!.id;
         _noteController.text = widget.existingPrescription!.note ?? '';
-        
+        if (widget.existingPrescription!.expiresAt != null) {
+          _expiresAt = widget.existingPrescription!.expiresAt!;
+        }
+
         // Load medications from existing prescription
         for (var med in widget.existingPrescription!.medications) {
           _medications.add(MedicationModel.fromEntity(med));
@@ -66,6 +74,8 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
     _medicationNameController.dispose();
     _dosageController.dispose();
     _instructionsController.dispose();
+    _frequencyController.dispose();
+    _durationController.dispose();
     _noteController.dispose();
     super.dispose();
   }
@@ -76,7 +86,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
         _instructionsController.text.isEmpty) {
       showWarningSnackBar(
         context,
-            'Veuillez remplir tous les champs pour le médicament',
+        'Veuillez remplir tous les champs pour le médicament',
       );
       return;
     }
@@ -88,11 +98,21 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
           name: _medicationNameController.text,
           dosage: _dosageController.text,
           instructions: _instructionsController.text,
+          frequency:
+              _frequencyController.text.isNotEmpty
+                  ? _frequencyController.text
+                  : null,
+          duration:
+              _durationController.text.isNotEmpty
+                  ? _durationController.text
+                  : null,
         ),
       );
       _medicationNameController.clear();
       _dosageController.clear();
       _instructionsController.clear();
+      _frequencyController.clear();
+      _durationController.clear();
     });
   }
 
@@ -106,9 +126,11 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
     _medicationNameController.text = medication.name;
     _dosageController.text = medication.dosage;
     _instructionsController.text = medication.instructions;
-    
+    _frequencyController.text = medication.frequency ?? '';
+    _durationController.text = medication.duration ?? '';
+
     _removeMedication(medication.id);
-    
+
     // Scroll to medication form
     Future.delayed(Duration(milliseconds: 100), () {
       Scrollable.ensureVisible(
@@ -120,10 +142,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
 
   Future<void> _savePrescription() async {
     if (_medications.isEmpty) {
-      showWarningSnackBar(
-        context,
-            'Veuillez ajouter au moins un médicament',
-      );
+      showWarningSnackBar(context, 'Veuillez ajouter au moins un médicament');
       return;
     }
 
@@ -134,44 +153,40 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
     try {
       // Generate ID if it's a new prescription, otherwise use existing
       final prescriptionId = _isEditing ? _prescriptionId! : const Uuid().v4();
-      final prescriptionData = {
-        'id': prescriptionId,
-        'appointmentId': widget.appointment.id,
-        'patientId': widget.appointment.patientId,
-        'patientName': widget.appointment.patientName,
-        'doctorId': widget.appointment.doctorId,
-        'doctorName': widget.appointment.doctorName,
-        'date': _isEditing 
-          ? widget.existingPrescription!.date.toIso8601String() 
-          : DateTime.now().toIso8601String(),
-        'lastUpdated': DateTime.now().toIso8601String(),
-        'medications': _medications.map((m) => m.toJson()).toList(),
-        'note': _noteController.text,
-      };
-
-      await _firestore.collection('prescriptions').doc(prescriptionId).set(prescriptionData);
-
-      // Also update the appointment status to completed if needed
-      if (widget.appointment.status != 'completed' && widget.appointment.id != null) {
-        await _firestore.collection('rendez_vous').doc(widget.appointment.id).update({
-          'status': 'completed',
-        });
+      
+      // Use the Express API instead of directly updating Firestore
+      if (_isEditing) {
+        await ApiService.patchRequest(
+          '${ApiService.baseUrl}/prescriptions/$prescriptionId',
+          {
+            'medications': _medications.map((m) => m.toJson()).toList(),
+            'note': _noteController.text,
+            'expiresAt': _expiresAt.toIso8601String(),
+          },
+        );
+      } else {
+        await ApiService.postRequest(
+          '${ApiService.baseUrl}/prescriptions',
+          {
+            'appointmentId': widget.appointment.id,
+            'medications': _medications.map((m) => m.toJson()).toList(),
+            'note': _noteController.text,
+            'expiresAt': _expiresAt.toIso8601String(),
+          },
+        );
       }
 
       showSuccessSnackBar(
         context,
         _isEditing
-          ? 'Ordonnance mise à jour avec succès'
-          : 'Ordonnance enregistrée avec succès',
+            ? 'Ordonnance mise à jour avec succès'
+            : 'Ordonnance enregistrée avec succès',
       );
 
       Navigator.pop(context, true);
     } catch (e) {
       print('Error saving prescription: $e');
-      showErrorSnackBar(
-        context,
-            'Erreur lors de l\'enregistrement: $e',
-      );
+      showErrorSnackBar(context, 'Erreur lors de l\'enregistrement: $e');
     } finally {
       setState(() {
         _isSaving = false;
@@ -200,23 +215,24 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
         actions: [
           TextButton(
             onPressed: _isSaving ? null : _savePrescription,
-            child: _isSaving
-                ? SizedBox(
-                    width: 24.w,
-                    height: 24.h,
-                    child: const CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
+            child:
+                _isSaving
+                    ? SizedBox(
+                      width: 24.w,
+                      height: 24.h,
+                      child: const CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                    : Text(
+                      "Enregistrer",
+                      style: GoogleFonts.raleway(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.sp,
+                      ),
                     ),
-                  )
-                : Text(
-                    "Enregistrer",
-                    style: GoogleFonts.raleway(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16.sp,
-                    ),
-                  ),
           ),
         ],
       ),
@@ -242,7 +258,9 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
               SizedBox(height: 8.h),
 
               // Existing medications
-              ..._medications.map((medication) => _buildMedicationItem(medication)),
+              ..._medications.map(
+                (medication) => _buildMedicationItem(medication),
+              ),
 
               // Add medication form
               _buildAddMedicationForm(),
@@ -308,9 +326,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   Widget _buildPatientInfoCard() {
     return Card(
       elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
       child: Padding(
         padding: EdgeInsets.all(16.w),
         child: Column(
@@ -325,11 +341,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                     color: Colors.orange,
                     borderRadius: BorderRadius.circular(10.r),
                   ),
-                  child: Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 30.sp,
-                  ),
+                  child: Icon(Icons.person, color: Colors.white, size: 30.sp),
                 ),
                 SizedBox(width: 12.w),
                 Expanded(
@@ -346,7 +358,9 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                       ),
                       SizedBox(height: 4.h),
                       Text(
-                        DateFormat('dd/MM/yyyy à HH:mm').format(widget.appointment.startTime),
+                        DateFormat(
+                          'dd/MM/yyyy à HH:mm',
+                        ).format(widget.appointment.startDate),
                         style: GoogleFonts.raleway(
                           fontSize: 14.sp,
                           color: Colors.grey.shade600,
@@ -357,7 +371,8 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                 ),
               ],
             ),
-            if (widget.patient != null && widget.patient!.antecedent.isNotEmpty) ...[
+            if (widget.patient != null &&
+                widget.patient!.antecedent.isNotEmpty) ...[
               Divider(height: 24.h),
               Text(
                 "Antécédents médicaux:",
@@ -386,9 +401,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
     return Card(
       margin: EdgeInsets.only(bottom: 12.h),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
       child: Padding(
         padding: EdgeInsets.all(16.w),
         child: Column(
@@ -474,9 +487,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   Widget _buildAddMedicationForm() {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
       child: Padding(
         padding: EdgeInsets.all(16.w),
         child: Form(
@@ -535,6 +546,34 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                 ),
                 maxLines: 2,
               ),
+              SizedBox(height: 12.h),
+              TextFormField(
+                controller: _frequencyController,
+                decoration: InputDecoration(
+                  labelText: 'Fréquence',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 12.h,
+                  ),
+                ),
+              ),
+              SizedBox(height: 12.h),
+              TextFormField(
+                controller: _durationController,
+                decoration: InputDecoration(
+                  labelText: 'Durée',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 12.h,
+                  ),
+                ),
+              ),
               SizedBox(height: 16.h),
               Center(
                 child: ElevatedButton.icon(
@@ -565,4 +604,4 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
       ),
     );
   }
-} 
+}

@@ -45,4 +45,4 @@ class GetDoctorAverageRating extends RatingEvent {
 
   @override
   List<Object> get props => [doctorId];
-} 
+}

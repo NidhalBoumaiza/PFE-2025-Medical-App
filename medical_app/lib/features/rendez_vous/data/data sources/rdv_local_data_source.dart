@@ -5,7 +5,6 @@ import 'package:dartz/dartz.dart';
 import 'package:medical_app/core/error/exceptions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 import '../models/RendezVous.dart';
 
 abstract class RendezVousLocalDataSource {
@@ -30,7 +29,9 @@ class RendezVousLocalDataSourceImpl implements RendezVousLocalDataSource {
   Future<Unit> cacheRendezVous(List<RendezVousModel> rendezVous) async {
     final rendezVousJson = rendezVous.map((r) => r.toJson()).toList();
     await sharedPreferences.setString(
-        RENDEZ_VOUS_KEY, jsonEncode(rendezVousJson));
+      RENDEZ_VOUS_KEY,
+      jsonEncode(rendezVousJson),
+    );
     return unit;
   }
 
@@ -41,13 +42,17 @@ class RendezVousLocalDataSourceImpl implements RendezVousLocalDataSource {
       try {
         final rendezVousList = jsonDecode(rendezVousJson) as List<dynamic>;
         return rendezVousList
-            .map((json) => RendezVousModel.fromJson(json as Map<String, dynamic>))
+            .map(
+              (json) => RendezVousModel.fromJson(json as Map<String, dynamic>),
+            )
             .toList();
       } catch (e) {
-        throw EmptyCacheException('Failed to parse cached rendezvous data: $e');
+        throw EmptyCacheException(
+          message: 'Failed to parse cached rendezvous data: $e',
+        );
       }
     } else {
-      throw EmptyCacheException('No cached rendezvous data found');
+      throw EmptyCacheException(message: 'No cached rendezvous data found');
     }
   }
 

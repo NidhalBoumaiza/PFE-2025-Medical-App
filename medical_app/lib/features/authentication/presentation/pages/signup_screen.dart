@@ -10,6 +10,7 @@ import 'package:medical_app/features/authentication/presentation/pages/signup_pa
 import '../../../../core/utils/app_colors.dart';
 import '../../domain/entities/medecin_entity.dart';
 import '../../domain/entities/patient_entity.dart';
+import 'package:medical_app/core/utils/navigation_with_transition.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -637,10 +638,9 @@ class _SignupScreenState extends State<SignupScreen> {
                               dateOfBirth: selectedDate!,
                               antecedent: '',
                             );
-                            Get.to(
-                              () => SignupPatientScreen(
-                                patientEntity: patientEntity,
-                              ),
+                            navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                              context,
+                              SignupPatientScreen(patientEntity: patientEntity),
                             );
                           } else {
                             final medecinEntity = MedecinEntity(
@@ -654,10 +654,9 @@ class _SignupScreenState extends State<SignupScreen> {
                               speciality: '',
                               numLicence: '',
                             );
-                            Get.to(
-                              () => SignupMedecinScreen(
-                                medecinEntity: medecinEntity,
-                              ),
+                            navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                              context,
+                              SignupMedecinScreen(medecinEntity: medecinEntity),
                             );
                           }
                         }

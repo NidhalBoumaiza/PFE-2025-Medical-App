@@ -21,29 +21,14 @@ class FetchRendezVous extends RendezVousEvent {
 class UpdateRendezVousStatus extends RendezVousEvent {
   final String rendezVousId;
   final String status;
-  final String patientId;
-  final String doctorId;
-  final String patientName;
-  final String doctorName;
 
   const UpdateRendezVousStatus({
     required this.rendezVousId,
     required this.status,
-    required this.patientId,
-    required this.doctorId,
-    required this.patientName,
-    required this.doctorName,
   });
 
   @override
-  List<Object> get props => [
-    rendezVousId,
-    status,
-    patientId,
-    doctorId,
-    patientName,
-    doctorName,
-  ];
+  List<Object> get props => [rendezVousId, status];
 }
 
 class CreateRendezVous extends RendezVousEvent {
@@ -57,27 +42,63 @@ class CreateRendezVous extends RendezVousEvent {
 
 class FetchDoctorsBySpecialty extends RendezVousEvent {
   final String specialty;
-  final DateTime startTime;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
-  const FetchDoctorsBySpecialty(this.specialty, this.startTime);
+  const FetchDoctorsBySpecialty(this.specialty, {this.startDate, this.endDate});
 
   @override
-  List<Object> get props => [specialty, startTime];
+  List<Object?> get props => [specialty, startDate, endDate];
 }
 
-class AssignDoctorToRendezVous extends RendezVousEvent {
-  final String rendezVousId;
-  final String doctorId;
-  final String doctorName;
+class CancelAppointment extends RendezVousEvent {
+  final String appointmentId;
 
-  const AssignDoctorToRendezVous(
-      this.rendezVousId,
-      this.doctorId,
-      this.doctorName,
-      );
+  const CancelAppointment(this.appointmentId);
 
   @override
-  List<Object> get props => [rendezVousId, doctorId, doctorName];
+  List<Object> get props => [appointmentId];
+}
+
+class RateDoctor extends RendezVousEvent {
+  final String appointmentId;
+  final double rating;
+
+  const RateDoctor({required this.appointmentId, required this.rating});
+
+  @override
+  List<Object> get props => [appointmentId, rating];
+}
+
+class GetDoctorAppointmentsForDay extends RendezVousEvent {
+  final String doctorId;
+  final DateTime date;
+
+  const GetDoctorAppointmentsForDay({
+    required this.doctorId,
+    required this.date,
+  });
+
+  @override
+  List<Object> get props => [doctorId, date];
+}
+
+class AcceptAppointment extends RendezVousEvent {
+  final String appointmentId;
+
+  const AcceptAppointment(this.appointmentId);
+
+  @override
+  List<Object> get props => [appointmentId];
+}
+
+class RefuseAppointment extends RendezVousEvent {
+  final String appointmentId;
+
+  const RefuseAppointment(this.appointmentId);
+
+  @override
+  List<Object> get props => [appointmentId];
 }
 
 class CheckAndUpdatePastAppointments extends RendezVousEvent {

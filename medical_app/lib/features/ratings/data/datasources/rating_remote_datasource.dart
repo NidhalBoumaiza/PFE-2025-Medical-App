@@ -1,6 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:medical_app/constants.dart';
 import 'package:medical_app/core/error/exceptions.dart';
 import 'package:medical_app/features/ratings/data/models/doctor_rating_model.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 abstract class RatingRemoteDataSource {
   /// Submit a rating for a doctor
@@ -13,95 +16,156 @@ abstract class RatingRemoteDataSource {
   Future<double> getDoctorAverageRating(String doctorId);
 
   /// Check if patient has already rated a specific appointment
-  Future<bool> hasPatientRatedAppointment(String patientId, String rendezVousId);
+  Future<bool> hasPatientRatedAppointment(
+    String patientId,
+    String rendezVousId,
+  );
 }
 
 class RatingRemoteDataSourceImpl implements RatingRemoteDataSource {
-  final FirebaseFirestore firestore;
+  final http.Client client;
 
-  RatingRemoteDataSourceImpl({required this.firestore});
+  RatingRemoteDataSourceImpl({required this.client});
+
+  // Helper method to get the auth token
+  Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('TOKEN');
+  }
 
   @override
   Future<void> submitDoctorRating(DoctorRatingModel rating) async {
     try {
-      // Check if collection exists
-      final CollectionReference ratingsCollection = firestore.collection('doctor_ratings');
-      
-      // Create a reference for a new document with auto-generated ID
-      final docRef = ratingsCollection.doc();
-      
-      // Add the ID to the rating model
-      final ratingWithId = rating.toJson()
-        ..['id'] = docRef.id;
-      
-      // Set the data for the new document
-      await docRef.set(ratingWithId);
-    } on FirebaseException catch (e) {
-      throw ServerException('Firestore error: ${e.message}');
+      final token = await _getToken();
+      if (token == null) {
+        throw ServerException(message: 'Authentication token not found');
+      }
+
+      final response = await client.post(
+        Uri.parse(AppConstants.ratingsEndpoint),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'doctorId': rating.doctorId,
+          'rendezVousId': rating.rendezVousId,
+          'rating': rating.rating,
+          'comment': rating.comment ?? '',
+        }),
+      );
+
+      if (response.statusCode != 201) {
+        final errorBody = json.decode(response.body);
+        throw ServerException(
+          message: errorBody['message'] ?? 'Failed to submit rating',
+        );
+      }
     } catch (e) {
-      throw ServerException('Unexpected error: $e');
+      if (e is ServerException) rethrow;
+      throw ServerException(message: 'Unexpected error: $e');
     }
   }
 
   @override
   Future<List<DoctorRatingModel>> getDoctorRatings(String doctorId) async {
     try {
-      final QuerySnapshot ratingSnapshot = await firestore
-          .collection('doctor_ratings')
-          .where('doctorId', isEqualTo: doctorId)
-          .orderBy('createdAt', descending: true)
-          .get();
+      final response = await client.get(
+        Uri.parse('${AppConstants.ratingsEndpoint}/doctor/$doctorId'),
+        headers: {'Content-Type': 'application/json'},
+      );
 
-      return ratingSnapshot.docs
-          .map((doc) => DoctorRatingModel.fromJson(doc.data() as Map<String, dynamic>))
-          .toList();
-    } on FirebaseException catch (e) {
-      throw ServerException('Firestore error: ${e.message}');
+      if (response.statusCode != 200) {
+        final errorBody = json.decode(response.body);
+        throw ServerException(
+          message: errorBody['message'] ?? 'Failed to get doctor ratings',
+        );
+      }
+
+      final Map<String, dynamic> responseData = json.decode(response.body);
+      final List<dynamic> ratingsData = responseData['data']['ratings'];
+      return ratingsData.map((ratingData) {
+        return DoctorRatingModel.fromJson({
+          'id': ratingData['_id'],
+          'doctorId': ratingData['doctorId'],
+          'patientId':
+              ratingData['patientId'] is Map
+                  ? ratingData['patientId']['_id']
+                  : ratingData['patientId'],
+          'patientName':
+              ratingData['patientId'] is Map
+                  ? '${ratingData['patientId']['name']} ${ratingData['patientId']['lastName']}'
+                  : null,
+          'rating': ratingData['rating'].toDouble(),
+          'comment': ratingData['comment'],
+          'createdAt': ratingData['createdAt'],
+          'rendezVousId': ratingData['rendezVousId'],
+        });
+      }).toList();
     } catch (e) {
-      throw ServerException('Unexpected error: $e');
+      if (e is ServerException) rethrow;
+      throw ServerException(message: 'Unexpected error: $e');
     }
   }
 
   @override
   Future<double> getDoctorAverageRating(String doctorId) async {
     try {
-      final QuerySnapshot ratingSnapshot = await firestore
-          .collection('doctor_ratings')
-          .where('doctorId', isEqualTo: doctorId)
-          .get();
+      final response = await client.get(
+        Uri.parse('${AppConstants.ratingsEndpoint}/doctor/$doctorId/average'),
+        headers: {'Content-Type': 'application/json'},
+      );
 
-      if (ratingSnapshot.docs.isEmpty) {
-        return 0.0;
+      if (response.statusCode != 200) {
+        final errorBody = json.decode(response.body);
+        throw ServerException(
+          message:
+              errorBody['message'] ?? 'Failed to get doctor average rating',
+        );
       }
 
-      double totalRating = 0;
-      for (var doc in ratingSnapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        totalRating += (data['rating'] as num).toDouble();
-      }
-
-      return totalRating / ratingSnapshot.docs.length;
-    } on FirebaseException catch (e) {
-      throw ServerException('Firestore error: ${e.message}');
+      final Map<String, dynamic> responseData = json.decode(response.body);
+      final double averageRating =
+          responseData['data']['averageRating']?.toDouble() ?? 0.0;
+      return averageRating;
     } catch (e) {
-      throw ServerException('Unexpected error: $e');
+      if (e is ServerException) rethrow;
+      throw ServerException(message: 'Unexpected error: $e');
     }
   }
 
   @override
-  Future<bool> hasPatientRatedAppointment(String patientId, String rendezVousId) async {
+  Future<bool> hasPatientRatedAppointment(
+    String patientId,
+    String rendezVousId,
+  ) async {
     try {
-      final QuerySnapshot ratingSnapshot = await firestore
-          .collection('doctor_ratings')
-          .where('patientId', isEqualTo: patientId)
-          .where('rendezVousId', isEqualTo: rendezVousId)
-          .get();
+      final token = await _getToken();
+      if (token == null) {
+        throw ServerException(message: 'Authentication token not found');
+      }
 
-      return ratingSnapshot.docs.isNotEmpty;
-    } on FirebaseException catch (e) {
-      throw ServerException('Firestore error: ${e.message}');
+      final response = await client.get(
+        Uri.parse('${AppConstants.ratingsEndpoint}/check-rated/$rendezVousId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        final errorBody = json.decode(response.body);
+        throw ServerException(
+          message:
+              errorBody['message'] ?? 'Failed to check if appointment is rated',
+        );
+      }
+
+      final Map<String, dynamic> responseData = json.decode(response.body);
+      return responseData['data']['hasRated'] as bool;
     } catch (e) {
-      throw ServerException('Unexpected error: $e');
+      if (e is ServerException) rethrow;
+      throw ServerException(message: 'Unexpected error: $e');
     }
   }
-} 
+}

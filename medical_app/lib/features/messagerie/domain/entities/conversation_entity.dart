@@ -9,8 +9,12 @@ class ConversationEntity extends Equatable {
   final String lastMessage;
   final String lastMessageType;
   final DateTime lastMessageTime;
+  final String? lastMessageSenderId;
+  final List<String> lastMessageReadBy;
   final String? lastMessageUrl;
-  final bool lastMessageRead;
+  final bool isActive;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const ConversationEntity({
     this.id,
@@ -18,11 +22,15 @@ class ConversationEntity extends Equatable {
     required this.doctorId,
     required this.patientName,
     required this.doctorName,
-    required this.lastMessage,
-    required this.lastMessageType,
+    this.lastMessage = '',
+    this.lastMessageType = 'text',
     required this.lastMessageTime,
+    this.lastMessageSenderId,
+    this.lastMessageReadBy = const [],
     this.lastMessageUrl,
-    this.lastMessageRead = true,
+    this.isActive = true,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   factory ConversationEntity.create({
@@ -31,12 +39,17 @@ class ConversationEntity extends Equatable {
     required String doctorId,
     required String patientName,
     required String doctorName,
-    required String lastMessage,
-    required String lastMessageType,
-    required DateTime lastMessageTime,
+    String lastMessage = '',
+    String lastMessageType = 'text',
+    DateTime? lastMessageTime,
+    String? lastMessageSenderId,
+    List<String>? lastMessageReadBy,
     String? lastMessageUrl,
-    bool lastMessageRead = true,
+    bool isActive = true,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
+    final now = DateTime.now();
     return ConversationEntity(
       id: id,
       patientId: patientId,
@@ -45,9 +58,13 @@ class ConversationEntity extends Equatable {
       doctorName: doctorName,
       lastMessage: lastMessage,
       lastMessageType: lastMessageType,
-      lastMessageTime: lastMessageTime,
+      lastMessageTime: lastMessageTime ?? now,
+      lastMessageSenderId: lastMessageSenderId,
+      lastMessageReadBy: lastMessageReadBy ?? [],
       lastMessageUrl: lastMessageUrl,
-      lastMessageRead: lastMessageRead,
+      isActive: isActive,
+      createdAt: createdAt ?? now,
+      updatedAt: updatedAt ?? now,
     );
   }
 
@@ -61,7 +78,11 @@ class ConversationEntity extends Equatable {
     lastMessage,
     lastMessageType,
     lastMessageTime,
+    lastMessageSenderId,
+    lastMessageReadBy,
     lastMessageUrl,
-    lastMessageRead,
+    isActive,
+    createdAt,
+    updatedAt,
   ];
 }

@@ -751,15 +751,16 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
   RendezVousEntity _convertToRendezVous(AppointmentEntity appointment) {
     return RendezVousEntity(
       id: appointment.id,
-      patientId: appointment.patientId,
-      doctorId: currentUser?.id,
+      patient: appointment.patientId,
+      medecin: currentUser?.id ?? '',
       patientName: appointment.patientName,
-      doctorName:
+      medecinName:
           currentUser != null ? "Dr. ${currentUser!.lastName}" : "Doctor",
-      speciality: appointment.appointmentType,
-      startTime: appointment.appointmentDate,
-      endTime: appointment.appointmentDate.add(const Duration(minutes: 30)),
+      medecinSpeciality: appointment.appointmentType,
+      startDate: appointment.appointmentDate,
+      endDate: appointment.appointmentDate.add(const Duration(minutes: 30)),
       status: appointment.status,
+      serviceName: appointment.appointmentType ?? 'Consultation',
     );
   }
 

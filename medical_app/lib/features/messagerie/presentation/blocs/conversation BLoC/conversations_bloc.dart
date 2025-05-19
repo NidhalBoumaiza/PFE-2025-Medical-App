@@ -3,7 +3,8 @@ import 'package:bloc/bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:medical_app/core/utils/map_failure_to_message.dart';
 import 'package:medical_app/features/messagerie/domain/entities/conversation_entity.dart';
-import 'package:medical_app/features/messagerie/domain/use_cases/get_conversations.dart';
+import 'package:medical_app/features/messagerie/domain/use_cases/get_conversations_use_case.dart';
+import 'package:medical_app/core/usecases/usecase.dart';
 import 'conversations_event.dart';
 import 'conversations_state.dart';
 
@@ -26,10 +27,7 @@ class ConversationsBloc extends Bloc<ConversationsEvent, ConversationsState> {
     Emitter<ConversationsState> emit,
   ) async {
     emit(ConversationsLoading(conversations: _currentConversations));
-    final failureOrConversations = await getConversationsUseCase(
-      userId: event.userId,
-      isDoctor: event.isDoctor,
-    );
+    final failureOrConversations = await getConversationsUseCase(NoParams());
     failureOrConversations.fold(
       (failure) => emit(
         ConversationsError(
@@ -51,18 +49,25 @@ class ConversationsBloc extends Bloc<ConversationsEvent, ConversationsState> {
     emit(ConversationsLoading(conversations: _currentConversations));
     try {
       await _conversationsSubscription?.cancel();
-      final stream = getConversationsUseCase.getConversationsStream(
-        userId: event.userId,
-        isDoctor: event.isDoctor,
-      );
-      _conversationsSubscription = stream.listen(
-        (conversations) {
-          add(ConversationsUpdatedEvent(conversations: conversations));
-        },
-        onError: (error) {
-          add(ConversationsStreamErrorEvent(error: error.toString()));
-        },
-      );
+
+      // Since the repository doesn't support streams directly, we'll implement
+      // a polling mechanism for now
+      _conversationsSubscription = Stream.periodic(const Duration(seconds: 10))
+          .asyncMap((_) async {
+            final result = await getConversationsUseCase(NoParams());
+            return result.fold(
+              (failure) => throw Exception(mapFailureToMessage(failure)),
+              (conversations) => conversations,
+            );
+          })
+          .listen(
+            (conversations) {
+              add(ConversationsUpdatedEvent(conversations: conversations));
+            },
+            onError: (error) {
+              add(ConversationsStreamErrorEvent(error: error.toString()));
+            },
+          );
     } catch (e) {
       emit(
         ConversationsError(
@@ -77,32 +82,9 @@ class ConversationsBloc extends Bloc<ConversationsEvent, ConversationsState> {
     ConversationsUpdatedEvent event,
     Emitter<ConversationsState> emit,
   ) {
-    // Handle read status updates more intelligently
-    final updatedConversations =
-        event.conversations.map((serverConversation) {
-          // Try to find the same conversation in our current list
-          final existingConversation = _currentConversations.firstWhere(
-            (c) => c.id == serverConversation.id,
-            orElse: () => serverConversation,
-          );
-
-          // If this is an existing conversation and the only thing that changed is the read status,
-          // prioritize the local version if the local version shows it as read
-          if (existingConversation.id == serverConversation.id &&
-              existingConversation.lastMessageRead &&
-              !serverConversation.lastMessageRead) {
-            print(
-              'Preserving local read status for conversation ${serverConversation.id}',
-            );
-            return existingConversation;
-          }
-
-          // Otherwise use the server version
-          return serverConversation;
-        }).toList();
-
-    _currentConversations = updatedConversations;
-    emit(ConversationsLoaded(conversations: updatedConversations));
+    // Update conversations list
+    _currentConversations = event.conversations;
+    emit(ConversationsLoaded(conversations: _currentConversations));
   }
 
   void _onConversationsStreamError(
@@ -125,28 +107,7 @@ class ConversationsBloc extends Bloc<ConversationsEvent, ConversationsState> {
     try {
       print('Marking all conversations as read for user: ${event.userId}');
 
-      // Update local conversations
-      final updatedConversations =
-          _currentConversations.map((conversation) {
-            return conversation.lastMessageRead
-                ? conversation
-                : ConversationEntity.create(
-                  id: conversation.id,
-                  patientId: conversation.patientId,
-                  doctorId: conversation.doctorId,
-                  patientName: conversation.patientName,
-                  doctorName: conversation.doctorName,
-                  lastMessage: conversation.lastMessage,
-                  lastMessageType: conversation.lastMessageType,
-                  lastMessageTime: conversation.lastMessageTime,
-                  lastMessageUrl: conversation.lastMessageUrl,
-                  lastMessageRead: true,
-                );
-          }).toList();
-
-      _currentConversations = updatedConversations;
-      emit(ConversationsLoaded(conversations: updatedConversations));
-
+      // Since we don't have a lastMessageRead field, we'll work with Firestore directly
       // Update Firestore
       final firestore = FirebaseFirestore.instance;
 
@@ -171,15 +132,30 @@ class ConversationsBloc extends Bloc<ConversationsEvent, ConversationsState> {
       if (allDocs.isNotEmpty) {
         final batch = firestore.batch();
 
-        // Mark all as read in batch
+        // Mark all as read in batch by adding user to lastMessageReadBy array
         for (final doc in allDocs) {
-          batch.update(doc.reference, {'lastMessageRead': true});
+          final data = doc.data();
+          if (data.containsKey('lastMessageReadBy') &&
+              data['lastMessageReadBy'] is List) {
+            List<String> readBy = List<String>.from(data['lastMessageReadBy']);
+            if (!readBy.contains(event.userId)) {
+              readBy.add(event.userId);
+              batch.update(doc.reference, {'lastMessageReadBy': readBy});
+            }
+          } else {
+            batch.update(doc.reference, {
+              'lastMessageReadBy': [event.userId],
+            });
+          }
         }
 
         await batch.commit();
         print(
           'Successfully marked ${allDocs.length} conversations as read in Firestore',
         );
+
+        // Refresh conversations
+        add(FetchConversationsEvent(userId: event.userId, isDoctor: false));
       } else {
         print('No conversations found to mark as read');
       }

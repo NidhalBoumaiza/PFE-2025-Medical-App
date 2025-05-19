@@ -90,4 +90,17 @@ class UpdatePrescription extends PrescriptionEvent {
 
   @override
   List<Object> get props => [prescription];
-} 
+}
+
+class UpdatePrescriptionStatus extends PrescriptionEvent {
+  final String prescriptionId;
+  final String status;
+
+  const UpdatePrescriptionStatus({
+    required this.prescriptionId,
+    required this.status,
+  });
+
+  @override
+  List<Object> get props => [prescriptionId, status];
+}

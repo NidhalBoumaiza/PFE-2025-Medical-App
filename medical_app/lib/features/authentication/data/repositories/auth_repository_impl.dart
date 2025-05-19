@@ -11,8 +11,6 @@ import 'package:medical_app/features/authentication/domain/entities/user_entity.
 import 'package:medical_app/features/authentication/domain/repositories/auth_repository.dart';
 
 import '../data sources/auth_remote_data_source.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
@@ -288,35 +286,16 @@ class AuthRepositoryImpl implements AuthRepository {
   }) async {
     if (await networkInfo.isConnected) {
       try {
-        // Get Firebase Auth instance to handle the password change
-        final auth = FirebaseAuth.instance;
-        final user = auth.currentUser;
-
-        if (user != null && email.isNotEmpty) {
-          // Create credentials with current password
-          final credential = EmailAuthProvider.credential(
-            email: email,
-            password: currentPassword,
-          );
-
-          // Re-authenticate user
-          await user.reauthenticateWithCredential(credential);
-
-          // Update password
-          await user.updatePassword(newPassword);
-
-          return const Right(unit);
-        } else {
-          return Left(AuthFailure('User not found or not authenticated'));
-        }
-      } on FirebaseAuthException catch (e) {
-        if (e.code == 'wrong-password') {
-          return Left(AuthFailure('Current password is incorrect'));
-        } else {
-          return Left(AuthFailure(e.message ?? 'Firebase auth error'));
-        }
+        await remoteDataSource.updatePasswordDirect(
+          email: email,
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+        );
+        return const Right(unit);
       } on ServerException {
         return Left(ServerFailure());
+      } on UnauthorizedException {
+        return Left(UnauthorizedFailure());
       } on AuthException catch (e) {
         return Left(AuthFailure(e.message));
       } catch (e) {

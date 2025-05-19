@@ -18,7 +18,8 @@ import '../blocs/rendez-vous BLoC/rendez_vous_bloc.dart';
 import '../../../../features/authentication/data/models/user_model.dart';
 import '../../../../injection_container.dart' as di;
 import 'appointment_details_page.dart';
-import 'doctor_profile_page.dart';
+import '../../../profile/presentation/pages/doctor_profile_page.dart'
+    as doctor_profile_page;
 import 'package:medical_app/features/dossier_medical/presentation/bloc/dossier_medical_bloc.dart';
 import 'package:medical_app/features/dossier_medical/presentation/bloc/dossier_medical_event.dart';
 import 'package:medical_app/features/dossier_medical/presentation/bloc/dossier_medical_state.dart';
@@ -149,9 +150,9 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
     final filtered =
         appointments.where((appointment) {
           final appointmentDate = DateTime(
-            appointment.startTime.year,
-            appointment.startTime.month,
-            appointment.startTime.day,
+            appointment.startDate.year,
+            appointment.startDate.month,
+            appointment.startDate.day,
           );
 
           final selectedDate = DateTime(
@@ -218,10 +219,10 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
               TextButton(
                 onPressed: () {
                   if (appointment.id != null &&
-                      appointment.patientId != null &&
-                      appointment.doctorId != null &&
+                      appointment.patient != null &&
+                      appointment.medecin != null &&
                       appointment.patientName != null &&
-                      appointment.doctorName != null) {
+                      appointment.medecinName != null) {
                     setState(() {
                       cancellingAppointmentId = appointment.id;
                     });
@@ -231,10 +232,6 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
                       UpdateRendezVousStatus(
                         rendezVousId: appointment.id!,
                         status: "cancelled",
-                        patientId: appointment.patientId!,
-                        doctorId: appointment.doctorId!,
-                        patientName: appointment.patientName!,
-                        doctorName: appointment.doctorName!,
                       ),
                     );
                   }
@@ -348,7 +345,7 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
       context,
       MaterialPageRoute(
         builder:
-            (context) => DoctorProfilePage(
+            (context) => doctor_profile_page.DoctorProfilePage(
               doctor: doctorEntity!,
               canBookAppointment: false,
             ),
@@ -528,7 +525,7 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
               // Debug each appointment
               for (var appt in state.rendezVous) {
                 print(
-                  'Appointment: id=${appt.id}, status=${appt.status}, doctor=${appt.doctorName}, time=${appt.startTime}',
+                  'Appointment: id=${appt.id}, status=${appt.status}, doctor=${appt.medecinName}, time=${appt.startDate}',
                 );
               }
 
@@ -583,13 +580,14 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
                   // Update the appointment in the list with the new status
                   final updatedAppointment = RendezVousEntity(
                     id: appointments[index].id,
-                    patientId: appointments[index].patientId,
-                    doctorId: appointments[index].doctorId,
+                    startDate: appointments[index].startDate,
+                    endDate: appointments[index].endDate,
+                    serviceName: appointments[index].serviceName,
+                    patient: appointments[index].patient,
+                    medecin: appointments[index].medecin,
                     patientName: appointments[index].patientName,
-                    doctorName: appointments[index].doctorName,
-                    speciality: appointments[index].speciality,
-                    startTime: appointments[index].startTime,
-                    endTime: appointments[index].endTime,
+                    medecinName: appointments[index].medecinName,
+                    medecinSpeciality: appointments[index].medecinSpeciality,
                     status: state.status,
                   );
                   appointments[index] = updatedAppointment;
@@ -806,7 +804,7 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
                                                     appointment,
                                                   ) {
                                                     return isSameDay(
-                                                      appointment.startTime,
+                                                      appointment.startDate,
                                                       date,
                                                     );
                                                   }).toList();
@@ -1059,10 +1057,10 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
                                             filteredAppointments[index];
                                         final formattedDate = DateFormat(
                                           'dd/MM/yyyy',
-                                        ).format(appointment.startTime);
+                                        ).format(appointment.startDate);
                                         final formattedTime = DateFormat(
                                           'HH:mm',
-                                        ).format(appointment.startTime);
+                                        ).format(appointment.startDate);
 
                                         // Check if this appointment is currently being cancelled
                                         final isCancelling =
@@ -1103,12 +1101,12 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
                                                         onTap:
                                                             () => _navigateToDoctorProfile(
                                                               appointment
-                                                                  .doctorId,
+                                                                  .medecin,
                                                               appointment
-                                                                      .doctorName ??
+                                                                      .medecinName ??
                                                                   "Médecin",
                                                               appointment
-                                                                  .speciality,
+                                                                  .medecinSpeciality,
                                                             ),
                                                         child: Icon(
                                                           Icons.person,
@@ -1128,17 +1126,17 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
                                                             onTap:
                                                                 () => _navigateToDoctorProfile(
                                                                   appointment
-                                                                      .doctorId,
+                                                                      .medecin,
                                                                   appointment
-                                                                          .doctorName ??
+                                                                          .medecinName ??
                                                                       "Médecin",
                                                                   appointment
-                                                                      .speciality,
+                                                                      .medecinSpeciality,
                                                                 ),
                                                             child: Text(
-                                                              appointment.doctorName !=
+                                                              appointment.medecinName !=
                                                                       null
-                                                                  ? "Dr. ${appointment.doctorName?.split(" ").last ?? ''}"
+                                                                  ? "Dr. ${appointment.medecinName?.split(" ").last ?? ''}"
                                                                   : "doctor_to_assign"
                                                                       .tr,
                                                               style: GoogleFonts.raleway(
@@ -1155,7 +1153,7 @@ class _AppointmentsPatientsState extends State<AppointmentsPatients> {
                                                           SizedBox(height: 4.h),
                                                           Text(
                                                             appointment
-                                                                    .speciality ??
+                                                                    .medecinSpeciality ??
                                                                 '',
                                                             style: GoogleFonts.raleway(
                                                               fontSize: 13.sp,

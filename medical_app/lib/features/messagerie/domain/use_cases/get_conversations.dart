@@ -1,24 +1,26 @@
 import 'package:dartz/dartz.dart';
 import 'package:medical_app/core/error/failures.dart';
+import 'package:medical_app/core/usecases/usecase.dart';
 import 'package:medical_app/features/messagerie/domain/entities/conversation_entity.dart';
-import 'package:medical_app/features/messagerie/domain/repositories/message_repository.dart';
+import 'package:medical_app/features/messagerie/domain/repositories/conversation_repository.dart';
 
-class GetConversationsUseCase {
-  final MessagingRepository repository;
+class GetConversations implements UseCase<List<ConversationEntity>, NoParams> {
+  final ConversationRepository repository;
 
-  GetConversationsUseCase(this.repository);
+  GetConversations(this.repository);
 
-  Future<Either<Failure, List<ConversationEntity>>> call({
-    required String userId,
-    required bool isDoctor,
-  }) async {
-    return await repository.getConversations(userId: userId, isDoctor: isDoctor);
+  @override
+  Future<Either<Failure, List<ConversationEntity>>> call(NoParams params) {
+    return repository.getConversations();
   }
 
   Stream<List<ConversationEntity>> getConversationsStream({
     required String userId,
     required bool isDoctor,
   }) {
-    return repository.getConversationsStream(userId: userId, isDoctor: isDoctor);
+    return repository.getConversationsStream(
+      userId: userId,
+      isDoctor: isDoctor,
+    );
   }
 }

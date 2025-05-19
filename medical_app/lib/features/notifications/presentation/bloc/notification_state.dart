@@ -47,15 +47,19 @@ class UnreadNotificationsCountLoaded extends NotificationState {
   List<Object> get props => [count];
 }
 
-class FCMSetupSuccess extends NotificationState {
-  final String? token;
+class OneSignalInitialized extends NotificationState {}
 
-  const FCMSetupSuccess({this.token});
+class ExternalUserIdSet extends NotificationState {}
+
+class OneSignalPlayerIdLoaded extends NotificationState {
+  final String? playerId;
+
+  const OneSignalPlayerIdLoaded({this.playerId});
 
   @override
-  List<Object> get props => token != null ? [token!] : [];
+  List<Object> get props => playerId != null ? [playerId!] : [];
 }
 
-class FCMTokenSaved extends NotificationState {}
+class OneSignalPlayerIdSaved extends NotificationState {}
 
-class NotificationStreamActive extends NotificationState {} 
+class OneSignalLoggedOut extends NotificationState {}

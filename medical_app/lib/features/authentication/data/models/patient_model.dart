@@ -4,6 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PatientModel extends UserModel {
   final String antecedent;
+  final String? bloodType;
+  final double? height;
+  final double? weight;
+  final List<String>? allergies;
+  final List<String>? chronicDiseases;
+  final Map<String, String?>? emergencyContact;
 
   PatientModel({
     String? id,
@@ -19,6 +25,21 @@ class PatientModel extends UserModel {
     required this.antecedent,
     DateTime? validationCodeExpiresAt,
     String? fcmToken,
+    Map<String, String?>? address,
+    Map<String, dynamic>? location,
+    String? profilePicture,
+    bool? isOnline,
+    DateTime? lastActive,
+    String? oneSignalPlayerId,
+    String? passwordResetCode,
+    DateTime? passwordResetExpires,
+    String? refreshToken,
+    this.bloodType,
+    this.height,
+    this.weight,
+    this.allergies,
+    this.chronicDiseases,
+    this.emergencyContact,
   }) : super(
          id: id,
          name: name,
@@ -32,6 +53,15 @@ class PatientModel extends UserModel {
          verificationCode: verificationCode,
          validationCodeExpiresAt: validationCodeExpiresAt,
          fcmToken: fcmToken,
+         address: address,
+         location: location,
+         profilePicture: profilePicture,
+         isOnline: isOnline,
+         lastActive: lastActive,
+         oneSignalPlayerId: oneSignalPlayerId,
+         passwordResetCode: passwordResetCode,
+         passwordResetExpires: passwordResetExpires,
+         refreshToken: refreshToken,
        );
 
   factory PatientModel.fromJson(Map<String, dynamic> json) {
@@ -99,6 +129,111 @@ class PatientModel extends UserModel {
       fcmToken = json['fcmToken'] as String;
     }
 
+    // Handle address
+    Map<String, String?>? address;
+    if (json['address'] is Map) {
+      address = Map<String, String?>.from(json['address'] as Map);
+    }
+
+    // Handle location
+    Map<String, dynamic>? location;
+    if (json['location'] is Map) {
+      location = Map<String, dynamic>.from(json['location'] as Map);
+    }
+
+    // Handle profile picture
+    String? profilePicture;
+    if (json['profilePicture'] is String) {
+      profilePicture = json['profilePicture'] as String;
+    }
+
+    // Handle isOnline
+    bool? isOnline;
+    if (json['isOnline'] is bool) {
+      isOnline = json['isOnline'] as bool;
+    }
+
+    // Handle lastActive
+    DateTime? lastActive;
+    if (json['lastActive'] is String &&
+        (json['lastActive'] as String).isNotEmpty) {
+      try {
+        lastActive = DateTime.parse(json['lastActive'] as String);
+      } catch (_) {
+        lastActive = null;
+      }
+    }
+
+    // Handle oneSignalPlayerId
+    String? oneSignalPlayerId;
+    if (json['oneSignalPlayerId'] is String) {
+      oneSignalPlayerId = json['oneSignalPlayerId'] as String;
+    }
+
+    // Handle passwordResetCode
+    String? passwordResetCode;
+    if (json['passwordResetCode'] is String) {
+      passwordResetCode = json['passwordResetCode'] as String;
+    }
+
+    // Handle passwordResetExpires
+    DateTime? passwordResetExpires;
+    if (json['passwordResetExpires'] is String &&
+        (json['passwordResetExpires'] as String).isNotEmpty) {
+      try {
+        passwordResetExpires = DateTime.parse(
+          json['passwordResetExpires'] as String,
+        );
+      } catch (_) {
+        passwordResetExpires = null;
+      }
+    }
+
+    // Handle refreshToken
+    String? refreshToken;
+    if (json['refreshToken'] is String) {
+      refreshToken = json['refreshToken'] as String;
+    }
+
+    // New fields from MongoDB schema
+    String? bloodType;
+    if (json['bloodType'] is String) {
+      bloodType = json['bloodType'] as String;
+    }
+
+    double? height;
+    if (json['height'] is num) {
+      height = (json['height'] as num).toDouble();
+    }
+
+    double? weight;
+    if (json['weight'] is num) {
+      weight = (json['weight'] as num).toDouble();
+    }
+
+    List<String>? allergies;
+    if (json['allergies'] is List) {
+      allergies = List<String>.from(
+        (json['allergies'] as List).map((item) => item.toString()),
+      );
+    }
+
+    List<String>? chronicDiseases;
+    if (json['chronicDiseases'] is List) {
+      chronicDiseases = List<String>.from(
+        (json['chronicDiseases'] as List).map((item) => item.toString()),
+      );
+    }
+
+    Map<String, String?>? emergencyContact;
+    if (json['emergencyContact'] is Map) {
+      emergencyContact = Map<String, String?>.from(
+        (json['emergencyContact'] as Map).map(
+          (key, value) => MapEntry(key.toString(), value?.toString()),
+        ),
+      );
+    }
+
     return PatientModel(
       id: id,
       name: name,
@@ -113,6 +248,21 @@ class PatientModel extends UserModel {
       verificationCode: verificationCode,
       validationCodeExpiresAt: validationCodeExpiresAt,
       fcmToken: fcmToken,
+      address: address,
+      location: location,
+      profilePicture: profilePicture,
+      isOnline: isOnline,
+      lastActive: lastActive,
+      oneSignalPlayerId: oneSignalPlayerId,
+      passwordResetCode: passwordResetCode,
+      passwordResetExpires: passwordResetExpires,
+      refreshToken: refreshToken,
+      bloodType: bloodType,
+      height: height,
+      weight: weight,
+      allergies: allergies,
+      chronicDiseases: chronicDiseases,
+      emergencyContact: emergencyContact,
     );
   }
 
@@ -168,6 +318,23 @@ class PatientModel extends UserModel {
           // Invalid timestamp, don't add to safeData
         }
       }
+
+      // New fields recovery
+      if (docData['bloodType'] is String)
+        safeData['bloodType'] = docData['bloodType'];
+
+      if (docData['height'] is num) safeData['height'] = docData['height'];
+
+      if (docData['weight'] is num) safeData['weight'] = docData['weight'];
+
+      if (docData['allergies'] is List)
+        safeData['allergies'] = docData['allergies'];
+
+      if (docData['chronicDiseases'] is List)
+        safeData['chronicDiseases'] = docData['chronicDiseases'];
+
+      if (docData['emergencyContact'] is Map)
+        safeData['emergencyContact'] = docData['emergencyContact'];
     }
 
     return PatientModel.fromJson(safeData);
@@ -177,6 +344,14 @@ class PatientModel extends UserModel {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = super.toJson();
     data['antecedent'] = antecedent;
+
+    if (bloodType != null) data['bloodType'] = bloodType;
+    if (height != null) data['height'] = height;
+    if (weight != null) data['weight'] = weight;
+    if (allergies != null) data['allergies'] = allergies;
+    if (chronicDiseases != null) data['chronicDiseases'] = chronicDiseases;
+    if (emergencyContact != null) data['emergencyContact'] = emergencyContact;
+
     return data;
   }
 
@@ -194,6 +369,22 @@ class PatientModel extends UserModel {
       accountStatus: accountStatus,
       verificationCode: verificationCode,
       validationCodeExpiresAt: validationCodeExpiresAt,
+      fcmToken: fcmToken,
+      address: address,
+      location: location,
+      profilePicture: profilePicture,
+      isOnline: isOnline,
+      lastActive: lastActive,
+      oneSignalPlayerId: oneSignalPlayerId,
+      passwordResetCode: passwordResetCode,
+      passwordResetExpires: passwordResetExpires,
+      refreshToken: refreshToken,
+      bloodType: bloodType,
+      height: height,
+      weight: weight,
+      allergies: allergies,
+      chronicDiseases: chronicDiseases,
+      emergencyContact: emergencyContact,
     );
   }
 
@@ -212,6 +403,21 @@ class PatientModel extends UserModel {
     DateTime? validationCodeExpiresAt,
     String? antecedent,
     String? fcmToken,
+    Map<String, String?>? address,
+    Map<String, dynamic>? location,
+    String? profilePicture,
+    bool? isOnline,
+    DateTime? lastActive,
+    String? oneSignalPlayerId,
+    String? passwordResetCode,
+    DateTime? passwordResetExpires,
+    String? refreshToken,
+    String? bloodType,
+    double? height,
+    double? weight,
+    List<String>? allergies,
+    List<String>? chronicDiseases,
+    Map<String, String?>? emergencyContact,
   }) {
     return PatientModel(
       id: id ?? this.id,
@@ -228,6 +434,21 @@ class PatientModel extends UserModel {
           validationCodeExpiresAt ?? this.validationCodeExpiresAt,
       antecedent: antecedent ?? this.antecedent,
       fcmToken: fcmToken ?? this.fcmToken,
+      address: address ?? this.address,
+      location: location ?? this.location,
+      profilePicture: profilePicture ?? this.profilePicture,
+      isOnline: isOnline ?? this.isOnline,
+      lastActive: lastActive ?? this.lastActive,
+      oneSignalPlayerId: oneSignalPlayerId ?? this.oneSignalPlayerId,
+      passwordResetCode: passwordResetCode ?? this.passwordResetCode,
+      passwordResetExpires: passwordResetExpires ?? this.passwordResetExpires,
+      refreshToken: refreshToken ?? this.refreshToken,
+      bloodType: bloodType ?? this.bloodType,
+      height: height ?? this.height,
+      weight: weight ?? this.weight,
+      allergies: allergies ?? this.allergies,
+      chronicDiseases: chronicDiseases ?? this.chronicDiseases,
+      emergencyContact: emergencyContact ?? this.emergencyContact,
     );
   }
 }

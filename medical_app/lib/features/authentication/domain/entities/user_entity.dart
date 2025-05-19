@@ -15,6 +15,18 @@ class UserEntity extends Equatable {
   validationCodeExpiresAt; // validationCodeExpiresAt is optional
   final String? fcmToken; // fcmToken is optional
 
+  // New fields to match MongoDB schema
+  final Map<String, String?>? address; // street, city, state, zipCode, country
+  final Map<String, dynamic>?
+  location; // type and coordinates for geospatial queries
+  final String? profilePicture;
+  final bool? isOnline;
+  final DateTime? lastActive;
+  final String? oneSignalPlayerId;
+  final String? passwordResetCode;
+  final DateTime? passwordResetExpires;
+  final String? refreshToken;
+
   UserEntity({
     this.id, // id is not required
     required this.name,
@@ -28,6 +40,15 @@ class UserEntity extends Equatable {
     this.verificationCode, // verificationCode is not required
     this.validationCodeExpiresAt, // validationCodeExpiresAt is not required
     this.fcmToken, // fcmToken is not required
+    this.address,
+    this.location,
+    this.profilePicture,
+    this.isOnline,
+    this.lastActive,
+    this.oneSignalPlayerId,
+    this.passwordResetCode,
+    this.passwordResetExpires,
+    this.refreshToken,
   });
 
   factory UserEntity.create({
@@ -43,6 +64,15 @@ class UserEntity extends Equatable {
     int? verificationCode,
     DateTime? validationCodeExpiresAt, // validationCodeExpiresAt is optional
     String? fcmToken, // fcmToken is optional
+    Map<String, String?>? address,
+    Map<String, dynamic>? location,
+    String? profilePicture,
+    bool? isOnline,
+    DateTime? lastActive,
+    String? oneSignalPlayerId,
+    String? passwordResetCode,
+    DateTime? passwordResetExpires,
+    String? refreshToken,
   }) {
     return UserEntity(
       id: id,
@@ -57,6 +87,15 @@ class UserEntity extends Equatable {
       verificationCode: verificationCode,
       validationCodeExpiresAt: validationCodeExpiresAt,
       fcmToken: fcmToken,
+      address: address,
+      location: location,
+      profilePicture: profilePicture,
+      isOnline: isOnline,
+      lastActive: lastActive,
+      oneSignalPlayerId: oneSignalPlayerId,
+      passwordResetCode: passwordResetCode,
+      passwordResetExpires: passwordResetExpires,
+      refreshToken: refreshToken,
     );
   }
 
@@ -74,5 +113,14 @@ class UserEntity extends Equatable {
     verificationCode,
     validationCodeExpiresAt,
     fcmToken,
+    address,
+    location,
+    profilePicture,
+    isOnline,
+    lastActive,
+    oneSignalPlayerId,
+    passwordResetCode,
+    passwordResetExpires,
+    refreshToken,
   ];
 }

@@ -8,14 +8,7 @@ abstract class NotificationEvent extends Equatable {
   List<Object> get props => [];
 }
 
-class GetNotificationsEvent extends NotificationEvent {
-  final String userId;
-
-  const GetNotificationsEvent({required this.userId});
-
-  @override
-  List<Object> get props => [userId];
-}
+class GetNotificationsEvent extends NotificationEvent {}
 
 class SendNotificationEvent extends NotificationEvent {
   final String title;
@@ -25,7 +18,6 @@ class SendNotificationEvent extends NotificationEvent {
   final NotificationType type;
   final String? appointmentId;
   final String? prescriptionId;
-  final String? ratingId;
   final Map<String, dynamic>? data;
 
   const SendNotificationEvent({
@@ -36,7 +28,6 @@ class SendNotificationEvent extends NotificationEvent {
     required this.type,
     this.appointmentId,
     this.prescriptionId,
-    this.ratingId,
     this.data,
   });
 
@@ -53,14 +44,7 @@ class MarkNotificationAsReadEvent extends NotificationEvent {
   List<Object> get props => [notificationId];
 }
 
-class MarkAllNotificationsAsReadEvent extends NotificationEvent {
-  final String userId;
-
-  const MarkAllNotificationsAsReadEvent({required this.userId});
-
-  @override
-  List<Object> get props => [userId];
-}
+class MarkAllNotificationsAsReadEvent extends NotificationEvent {}
 
 class DeleteNotificationEvent extends NotificationEvent {
   final String notificationId;
@@ -71,35 +55,31 @@ class DeleteNotificationEvent extends NotificationEvent {
   List<Object> get props => [notificationId];
 }
 
-class GetUnreadNotificationsCountEvent extends NotificationEvent {
+class GetUnreadNotificationsCountEvent extends NotificationEvent {}
+
+class InitializeOneSignalEvent extends NotificationEvent {}
+
+class SetExternalUserIdEvent extends NotificationEvent {
   final String userId;
 
-  const GetUnreadNotificationsCountEvent({required this.userId});
+  const SetExternalUserIdEvent({required this.userId});
 
   @override
   List<Object> get props => [userId];
 }
 
-class SetupFCMEvent extends NotificationEvent {}
+class GetOneSignalPlayerIdEvent extends NotificationEvent {}
 
-class SaveFCMTokenEvent extends NotificationEvent {
-  final String userId;
-  final String token;
-
-  const SaveFCMTokenEvent({required this.userId, required this.token});
-
-  @override
-  List<Object> get props => [userId, token];
-}
-
-class GetNotificationsStreamEvent extends NotificationEvent {
+class SaveOneSignalPlayerIdEvent extends NotificationEvent {
   final String userId;
 
-  const GetNotificationsStreamEvent({required this.userId});
+  const SaveOneSignalPlayerIdEvent({required this.userId});
 
   @override
   List<Object> get props => [userId];
 }
+
+class LogoutOneSignalEvent extends NotificationEvent {}
 
 class NotificationReceivedEvent extends NotificationEvent {
   final NotificationEntity notification;

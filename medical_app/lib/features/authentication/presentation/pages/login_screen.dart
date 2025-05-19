@@ -298,11 +298,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
-                        Navigator.push(
+                        navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => ForgotPasswordScreen(),
-                          ),
+                          ForgotPasswordScreen(),
                         );
                       },
                       child: Text(

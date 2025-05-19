@@ -8,7 +8,6 @@ const appointmentSchema = new mongoose.Schema(
     },
     endDate: {
       type: Date,
-      required: [true, "Veuillez fournir la date de fin !"],
     },
     serviceName: {
       type: String,

@@ -2,7 +2,7 @@ part of 'prescription_bloc.dart';
 
 abstract class PrescriptionState extends Equatable {
   const PrescriptionState();
-  
+
   @override
   List<Object?> get props => [];
 }
@@ -27,6 +27,19 @@ class PrescriptionUpdated extends PrescriptionState {
 
   @override
   List<Object> get props => [prescription];
+}
+
+class PrescriptionStatusUpdated extends PrescriptionState {
+  final String prescriptionId;
+  final String status;
+
+  const PrescriptionStatusUpdated({
+    required this.prescriptionId,
+    required this.status,
+  });
+
+  @override
+  List<Object> get props => [prescriptionId, status];
 }
 
 class PrescriptionEdited extends PrescriptionState {
@@ -74,4 +87,4 @@ class PrescriptionError extends PrescriptionState {
 
   @override
   List<Object> get props => [message];
-} 
+}

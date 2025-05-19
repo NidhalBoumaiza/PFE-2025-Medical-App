@@ -20,8 +20,8 @@ import '../../../ratings/domain/entities/doctor_rating_entity.dart';
 import '../../../ratings/presentation/bloc/rating_bloc.dart';
 import '../../domain/entities/rendez_vous_entity.dart';
 import '../blocs/rendez-vous BLoC/rendez_vous_bloc.dart';
-import 'doctor_profile_page.dart';
-import 'patient_profile_page.dart';
+import '../../../profile/presentation/pages/doctor_profile_page.dart';
+import '../../../profile/presentation/pages/patient_profile_page.dart';
 import '../../../ordonnance/domain/entities/prescription_entity.dart';
 import '../../../ordonnance/presentation/bloc/prescription_bloc.dart';
 import '../../../ordonnance/presentation/pages/prescription_details_page.dart';
@@ -96,13 +96,30 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
         // Check if appointment is in the past based on endTime if available
         DateTime appointmentEndTime;
-        if (widget.appointment.endTime != null) {
-          appointmentEndTime = widget.appointment.endTime!;
+        if (widget.appointment.endDate != null) {
+          appointmentEndTime = widget.appointment.endDate;
         } else {
-          // Fallback to estimated duration if endTime not available
-          appointmentEndTime = widget.appointment.startTime.add(
+          // Use the doctor's appointment duration when available, otherwise default to 30 minutes
+          appointmentEndTime = widget.appointment.startDate.add(
             const Duration(minutes: 30),
           );
+
+          // Try to get more accurate duration from doctor profile
+          if (widget.appointment.medecin != null) {
+            _fetchDoctorInfo(widget.appointment.medecin!).then((doctor) {
+              if (doctor != null && mounted) {
+                final moreAccurateEndTime = widget.appointment.startDate.add(
+                  Duration(minutes: doctor.appointmentDuration),
+                );
+                setState(() {
+                  // Update past status with more accurate end time
+                  isAppointmentPast = DateTime.now().isAfter(
+                    moreAccurateEndTime,
+                  );
+                });
+              }
+            });
+          }
         }
 
         setState(() {
@@ -189,10 +206,10 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
               TextButton(
                 onPressed: () {
                   if (widget.appointment.id != null &&
-                      widget.appointment.patientId != null &&
-                      widget.appointment.doctorId != null &&
+                      widget.appointment.patient != null &&
+                      widget.appointment.medecin != null &&
                       widget.appointment.patientName != null &&
-                      widget.appointment.doctorName != null) {
+                      widget.appointment.medecinName != null) {
                     setState(() {
                       isCancelling = true;
                     });
@@ -201,10 +218,6 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                       UpdateRendezVousStatus(
                         rendezVousId: widget.appointment.id!,
                         status: "cancelled",
-                        patientId: widget.appointment.patientId!,
-                        doctorId: widget.appointment.doctorId!,
-                        patientName: widget.appointment.patientName!,
-                        doctorName: widget.appointment.doctorName!,
                       ),
                     );
                   }
@@ -228,7 +241,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   void _submitRating() {
     if (currentUser == null ||
         currentUser!.id == null ||
-        widget.appointment.doctorId == null ||
+        widget.appointment.medecin == null ||
         widget.appointment.id == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -247,7 +260,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
     }
 
     final rating = DoctorRatingEntity.create(
-      doctorId: widget.appointment.doctorId!,
+      doctorId: widget.appointment.medecin,
       patientId: currentUser!.id!,
       patientName: currentUser!.name + ' ' + currentUser!.lastName,
       rating: _rating,
@@ -291,9 +304,9 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
   // Calculate appointment duration in minutes
   String _getAppointmentDuration() {
-    if (widget.appointment.endTime != null) {
-      final duration = widget.appointment.endTime!.difference(
-        widget.appointment.startTime,
+    if (widget.appointment.endDate != null) {
+      final duration = widget.appointment.endDate.difference(
+        widget.appointment.startDate,
       );
       final minutes = duration.inMinutes;
       if (minutes >= 60) {
@@ -311,7 +324,21 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
         return "$minutes " + (minutes > 1 ? 'minutes'.tr : 'minute'.tr);
       }
     } else {
-      // Default duration if endTime not available
+      // If we don't have an end date, we just return the default
+      // The component will later be updated if we successfully fetch the doctor info
+      if (widget.appointment.medecin != null) {
+        // Start an async fetch for the doctor info, but don't wait for result
+        _fetchDoctorInfo(widget.appointment.medecin!).then((doctor) {
+          if (doctor != null && mounted) {
+            // This will update the UI with the correct duration once doctor info is loaded
+            setState(() {
+              // We're just triggering a rebuild here, not returning anything
+            });
+          }
+        });
+      }
+
+      // Default fallback duration if endTime not available
       return "30 " + 'minutes'.tr;
     }
   }
@@ -345,7 +372,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   }
 
   void _navigateToDoctorProfile() async {
-    if (widget.appointment.doctorId == null) return;
+    if (widget.appointment.medecin == null) return;
 
     // Show loading indicator
     showDialog(
@@ -359,7 +386,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
     // Try to fetch doctor from Firestore
     MedecinEntity? doctorEntity = await _fetchDoctorInfo(
-      widget.appointment.doctorId!,
+      widget.appointment.medecin,
     );
 
     // Dismiss loading indicator
@@ -367,17 +394,17 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
     // If fetch failed, create a basic doctor entity with available info
     if (doctorEntity == null) {
-      final doctorName = widget.appointment.doctorName ?? '';
+      final doctorName = widget.appointment.medecinName ?? '';
       final nameArray = doctorName.split(' ');
       final firstName = nameArray.isNotEmpty ? nameArray[0] : '';
       final lastName = nameArray.length > 1 ? nameArray[1] : '';
 
       doctorEntity = MedecinEntity(
-        id: widget.appointment.doctorId!,
+        id: widget.appointment.medecin,
         name: firstName,
         lastName: lastName,
         email: "docteur@medical-app.com",
-        speciality: widget.appointment.speciality,
+        speciality: widget.appointment.medecinSpeciality,
         role: 'doctor',
         gender: 'unknown',
         phoneNumber: "+212 600000000",
@@ -431,7 +458,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   }
 
   void _navigateToPatientProfile() async {
-    if (widget.appointment.patientId == null) return;
+    if (widget.appointment.patient == null) return;
 
     // Show loading indicator
     showDialog(
@@ -445,7 +472,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
     // Try to fetch patient from Firestore
     PatientEntity? patientEntity = await _fetchPatientInfo(
-      widget.appointment.patientId!,
+      widget.appointment.patient,
     );
 
     // Dismiss loading indicator
@@ -459,7 +486,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
       final lastName = nameArray.length > 1 ? nameArray[1] : '';
 
       patientEntity = PatientEntity(
-        id: widget.appointment.patientId!,
+        id: widget.appointment.patient,
         name: firstName,
         lastName: lastName,
         email: "patient@medical-app.com",
@@ -480,7 +507,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   }
 
   void _createPrescription() async {
-    if (widget.appointment.patientId == null) return;
+    if (widget.appointment.patient == null) return;
 
     // Show loading indicator
     showDialog(
@@ -494,7 +521,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
     // Try to fetch patient from Firestore for medical history
     PatientEntity? patientEntity = await _fetchPatientInfo(
-      widget.appointment.patientId!,
+      widget.appointment.patient,
     );
 
     // Dismiss loading indicator
@@ -518,7 +545,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
       // Also refresh the appointment status
       _rendezVousBloc.add(
-        FetchRendezVous(patientId: widget.appointment.patientId),
+        FetchRendezVous(patientId: widget.appointment.patient),
       );
 
       // Show success message
@@ -539,46 +566,16 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
   }
 
   // Fetch appointment rating and comment
-  Future<void> _fetchAppointmentRating() async {
-    if (widget.appointment.id == null) return;
+  void _fetchAppointmentRating() {
+    if (widget.appointment.id == null || widget.appointment.medecin == null)
+      return;
 
     setState(() {
       _isLoadingRating = true;
     });
 
-    try {
-      final ratingDoc =
-          await _firestore
-              .collection('ratings')
-              .where('rendezVousId', isEqualTo: widget.appointment.id)
-              .limit(1)
-              .get();
-
-      if (ratingDoc.docs.isNotEmpty) {
-        final data = ratingDoc.docs.first.data();
-        setState(() {
-          _appointmentRating = DoctorRatingEntity(
-            id: ratingDoc.docs.first.id,
-            doctorId: data['doctorId'] ?? '',
-            patientId: data['patientId'] ?? '',
-            patientName: data['patientName'],
-            rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
-            comment: data['comment'],
-            createdAt:
-                (data['createdAt'] is Timestamp)
-                    ? (data['createdAt'] as Timestamp).toDate()
-                    : DateTime.now(),
-            rendezVousId: data['rendezVousId'] ?? '',
-          );
-        });
-      }
-    } catch (e) {
-      print('Error fetching appointment rating: $e');
-    } finally {
-      setState(() {
-        _isLoadingRating = false;
-      });
-    }
+    // Fetch all ratings for the doctor
+    _ratingBloc.add(GetDoctorRatings(widget.appointment.medecin!));
   }
 
   // Add this method to fetch prescription
@@ -667,7 +664,27 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                     ),
                   ),
                 );
+              } else if (state is DoctorRatingState) {
+                setState(() {
+                  _isLoadingRating = false;
+                  // Find the rating for this specific appointment
+                  if (widget.appointment.id != null) {
+                    _appointmentRating = state.ratings.firstWhere(
+                      (rating) => rating.rendezVousId == widget.appointment.id,
+                      orElse:
+                          () => DoctorRatingEntity.create(
+                            doctorId: '',
+                            patientId: '',
+                            rating: 0,
+                            rendezVousId: '',
+                          ),
+                    );
+                  }
+                });
               } else if (state is RatingError) {
+                setState(() {
+                  _isLoadingRating = false;
+                });
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(state.message, style: GoogleFonts.raleway()),
@@ -831,8 +848,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                                         ),
                                         child: InkWell(
                                           onTap:
-                                              widget.appointment.doctorId !=
-                                                      null
+                                              widget.appointment.medecin != null
                                                   ? _navigateToDoctorProfile
                                                   : null,
                                           child: Icon(
@@ -850,14 +866,16 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                                           children: [
                                             InkWell(
                                               onTap:
-                                                  widget.appointment.doctorId !=
+                                                  widget.appointment.medecin !=
                                                           null
                                                       ? _navigateToDoctorProfile
                                                       : null,
                                               child: Text(
-                                                widget.appointment.doctorName !=
+                                                widget
+                                                            .appointment
+                                                            .medecinName !=
                                                         null
-                                                    ? "Dr. ${widget.appointment.doctorName}"
+                                                    ? "Dr. ${widget.appointment.medecinName}"
                                                     : "Médecin à assigner",
                                                 style: GoogleFonts.raleway(
                                                   fontSize: 18.sp,
@@ -868,7 +886,9 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                                             ),
                                             SizedBox(height: 4.h),
                                             Text(
-                                              widget.appointment.speciality ??
+                                              widget
+                                                      .appointment
+                                                      .medecinSpeciality ??
                                                   'Spécialité non spécifiée',
                                               style: GoogleFonts.raleway(
                                                 fontSize: 16.sp,
@@ -982,7 +1002,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                                                   ).format(
                                                     widget
                                                         .appointment
-                                                        .startTime,
+                                                        .startDate,
                                                   ),
                                                   style: GoogleFonts.raleway(
                                                     fontSize: 16.sp,
@@ -1018,7 +1038,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                                                   DateFormat('HH:mm').format(
                                                     widget
                                                         .appointment
-                                                        .startTime,
+                                                        .startDate,
                                                   ),
                                                   style: GoogleFonts.raleway(
                                                     fontWeight: FontWeight.bold,
@@ -1039,6 +1059,150 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
                                             ),
                                           ],
                                         ),
+
+                                        // Add reason if available
+                                        if (widget.appointment.motif != null &&
+                                            widget
+                                                .appointment
+                                                .motif!
+                                                .isNotEmpty) ...[
+                                          SizedBox(height: 16.h),
+                                          Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Icon(
+                                                Icons.subject,
+                                                color: AppColors.primaryColor,
+                                                size: 24.sp,
+                                              ),
+                                              SizedBox(width: 12.w),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'reason'.tr,
+                                                      style:
+                                                          GoogleFonts.raleway(
+                                                            fontSize: 14.sp,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color:
+                                                                Colors
+                                                                    .grey[700],
+                                                          ),
+                                                    ),
+                                                    Text(
+                                                      widget.appointment.motif!,
+                                                      style:
+                                                          GoogleFonts.raleway(
+                                                            fontSize: 16.sp,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+
+                                        // Add notes if available
+                                        if (widget.appointment.notes != null &&
+                                            widget
+                                                .appointment
+                                                .notes!
+                                                .isNotEmpty) ...[
+                                          SizedBox(height: 16.h),
+                                          Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Icon(
+                                                Icons.note,
+                                                color: AppColors.primaryColor,
+                                                size: 24.sp,
+                                              ),
+                                              SizedBox(width: 12.w),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'notes'.tr,
+                                                      style:
+                                                          GoogleFonts.raleway(
+                                                            fontSize: 14.sp,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color:
+                                                                Colors
+                                                                    .grey[700],
+                                                          ),
+                                                    ),
+                                                    Text(
+                                                      widget.appointment.notes!,
+                                                      style:
+                                                          GoogleFonts.raleway(
+                                                            fontSize: 16.sp,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+
+                                        // Add consultation fee if available
+                                        /* if (widget
+                                                .appointment
+                                                .consultationFee !=
+                                            null) ...[
+                                          SizedBox(height: 16.h),
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.attach_money,
+                                                color: AppColors.primaryColor,
+                                                size: 24.sp,
+                                              ),
+                                              SizedBox(width: 12.w),
+                                              Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'consultation_fee'.tr,
+                                                    style: GoogleFonts.raleway(
+                                                      fontSize: 14.sp,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: Colors.grey[700],
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    widget
+                                                        .appointment
+                                                        .consultationFee
+                                                        .toString(),
+                                                    style: GoogleFonts.raleway(
+                                                      fontSize: 16.sp,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ], */
                                       ],
                                     ),
                                   ),
@@ -1592,7 +1756,7 @@ class _AppointmentDetailsPageState extends State<AppointmentDetailsPage> {
 
     // Check if current time is before the appointment time
     final now = DateTime.now();
-    final isBeforeAppointment = now.isBefore(widget.appointment.startTime);
+    final isBeforeAppointment = now.isBefore(widget.appointment.startDate);
 
     return Container(
       margin: EdgeInsets.only(top: 24.h, bottom: 24.h),

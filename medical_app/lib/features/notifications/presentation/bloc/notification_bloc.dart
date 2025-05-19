@@ -1,16 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:medical_app/core/usecases/usecase.dart';
 import 'package:medical_app/features/notifications/domain/entities/notification_entity.dart';
 import 'package:medical_app/features/notifications/domain/usecases/delete_notification_use_case.dart';
-import 'package:medical_app/features/notifications/domain/usecases/get_notifications_stream_use_case.dart';
 import 'package:medical_app/features/notifications/domain/usecases/get_notifications_use_case.dart';
 import 'package:medical_app/features/notifications/domain/usecases/get_unread_notifications_count_use_case.dart';
 import 'package:medical_app/features/notifications/domain/usecases/mark_all_notifications_as_read_use_case.dart';
 import 'package:medical_app/features/notifications/domain/usecases/mark_notification_as_read_use_case.dart';
-import 'package:medical_app/features/notifications/domain/usecases/save_fcm_token_use_case.dart';
 import 'package:medical_app/features/notifications/domain/usecases/send_notification_use_case.dart';
-import 'package:medical_app/features/notifications/domain/usecases/setup_fcm_use_case.dart';
+import 'package:medical_app/features/notifications/domain/usecases/initialize_onesignal_use_case.dart';
+import 'package:medical_app/features/notifications/domain/usecases/set_external_user_id_use_case.dart';
+import 'package:medical_app/features/notifications/domain/usecases/get_onesignal_player_id_use_case.dart';
+import 'package:medical_app/features/notifications/domain/usecases/save_onesignal_player_id_use_case.dart';
+import 'package:medical_app/features/notifications/domain/usecases/logout_onesignal_use_case.dart';
 import 'package:medical_app/features/notifications/presentation/bloc/notification_event.dart';
 import 'package:medical_app/features/notifications/presentation/bloc/notification_state.dart';
 
@@ -21,11 +24,12 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   final MarkAllNotificationsAsReadUseCase markAllNotificationsAsReadUseCase;
   final DeleteNotificationUseCase deleteNotificationUseCase;
   final GetUnreadNotificationsCountUseCase getUnreadNotificationsCountUseCase;
-  final SetupFCMUseCase setupFCMUseCase;
-  final SaveFCMTokenUseCase saveFCMTokenUseCase;
-  final GetNotificationsStreamUseCase getNotificationsStreamUseCase;
+  final InitializeOneSignalUseCase initializeOneSignalUseCase;
+  final SetExternalUserIdUseCase setExternalUserIdUseCase;
+  final GetOneSignalPlayerIdUseCase getOneSignalPlayerIdUseCase;
+  final SaveOneSignalPlayerIdUseCase saveOneSignalPlayerIdUseCase;
+  final LogoutOneSignalUseCase logoutOneSignalUseCase;
 
-  StreamSubscription<List<NotificationEntity>>? _notificationsSubscription;
   List<NotificationEntity> _notifications = [];
   int _unreadCount = 0;
 
@@ -36,9 +40,11 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     required this.markAllNotificationsAsReadUseCase,
     required this.deleteNotificationUseCase,
     required this.getUnreadNotificationsCountUseCase,
-    required this.setupFCMUseCase,
-    required this.saveFCMTokenUseCase,
-    required this.getNotificationsStreamUseCase,
+    required this.initializeOneSignalUseCase,
+    required this.setExternalUserIdUseCase,
+    required this.getOneSignalPlayerIdUseCase,
+    required this.saveOneSignalPlayerIdUseCase,
+    required this.logoutOneSignalUseCase,
   }) : super(NotificationInitial()) {
     on<GetNotificationsEvent>(_onGetNotifications);
     on<SendNotificationEvent>(_onSendNotification);
@@ -46,9 +52,11 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     on<MarkAllNotificationsAsReadEvent>(_onMarkAllNotificationsAsRead);
     on<DeleteNotificationEvent>(_onDeleteNotification);
     on<GetUnreadNotificationsCountEvent>(_onGetUnreadNotificationsCount);
-    on<SetupFCMEvent>(_onSetupFCM);
-    on<SaveFCMTokenEvent>(_onSaveFCMToken);
-    on<GetNotificationsStreamEvent>(_onGetNotificationsStream);
+    on<InitializeOneSignalEvent>(_onInitializeOneSignal);
+    on<SetExternalUserIdEvent>(_onSetExternalUserId);
+    on<GetOneSignalPlayerIdEvent>(_onGetOneSignalPlayerId);
+    on<SaveOneSignalPlayerIdEvent>(_onSaveOneSignalPlayerId);
+    on<LogoutOneSignalEvent>(_onLogoutOneSignal);
     on<NotificationReceivedEvent>(_onNotificationReceived);
     on<NotificationErrorEvent>(_onNotificationError);
   }
@@ -58,11 +66,9 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     Emitter<NotificationState> emit,
   ) async {
     emit(NotificationLoading());
-    final result = await getNotificationsUseCase(userId: event.userId);
+    final result = await getNotificationsUseCase(NoParams());
     result.fold(
-      (failure) => emit(
-        const NotificationError(message: 'Failed to load notifications'),
-      ),
+      (failure) => emit(NotificationError(message: failure.message)),
       (notifications) {
         _notifications = notifications;
         emit(NotificationsLoaded(notifications: notifications));
@@ -76,19 +82,19 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   ) async {
     emit(NotificationLoading());
     final result = await sendNotificationUseCase(
-      title: event.title,
-      body: event.body,
-      senderId: event.senderId,
-      recipientId: event.recipientId,
-      type: event.type,
-      appointmentId: event.appointmentId,
-      prescriptionId: event.prescriptionId,
-      ratingId: event.ratingId,
-      data: event.data,
+      SendNotificationParams(
+        title: event.title,
+        body: event.body,
+        senderId: event.senderId,
+        recipientId: event.recipientId,
+        type: event.type,
+        appointmentId: event.appointmentId,
+        prescriptionId: event.prescriptionId,
+        data: event.data,
+      ),
     );
     result.fold(
-      (failure) =>
-          emit(const NotificationError(message: 'Failed to send notification')),
+      (failure) => emit(NotificationError(message: failure.message)),
       (_) => emit(NotificationSent()),
     );
   }
@@ -99,12 +105,10 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   ) async {
     emit(NotificationLoading());
     final result = await markNotificationAsReadUseCase(
-      notificationId: event.notificationId,
+      MarkNotificationAsReadParams(notificationId: event.notificationId),
     );
     result.fold(
-      (failure) => emit(
-        const NotificationError(message: 'Failed to mark notification as read'),
-      ),
+      (failure) => emit(NotificationError(message: failure.message)),
       (_) => emit(NotificationMarkedAsRead()),
     );
   }
@@ -114,15 +118,9 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     Emitter<NotificationState> emit,
   ) async {
     emit(NotificationLoading());
-    final result = await markAllNotificationsAsReadUseCase(
-      userId: event.userId,
-    );
+    final result = await markAllNotificationsAsReadUseCase(NoParams());
     result.fold(
-      (failure) => emit(
-        const NotificationError(
-          message: 'Failed to mark all notifications as read',
-        ),
-      ),
+      (failure) => emit(NotificationError(message: failure.message)),
       (_) => emit(AllNotificationsMarkedAsRead()),
     );
   }
@@ -133,12 +131,10 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   ) async {
     emit(NotificationLoading());
     final result = await deleteNotificationUseCase(
-      notificationId: event.notificationId,
+      DeleteNotificationParams(notificationId: event.notificationId),
     );
     result.fold(
-      (failure) => emit(
-        const NotificationError(message: 'Failed to delete notification'),
-      ),
+      (failure) => emit(NotificationError(message: failure.message)),
       (_) => emit(NotificationDeleted()),
     );
   }
@@ -148,12 +144,9 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     Emitter<NotificationState> emit,
   ) async {
     emit(NotificationLoading());
-    final result = await getUnreadNotificationsCountUseCase(
-      userId: event.userId,
-    );
+    final result = await getUnreadNotificationsCountUseCase(NoParams());
     result.fold(
-      (failure) =>
-          emit(const NotificationError(message: 'Failed to get unread count')),
+      (failure) => emit(NotificationError(message: failure.message)),
       (count) {
         _unreadCount = count;
         emit(UnreadNotificationsCountLoaded(count: count));
@@ -161,65 +154,68 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     );
   }
 
-  Future<void> _onSetupFCM(
-    SetupFCMEvent event,
+  Future<void> _onInitializeOneSignal(
+    InitializeOneSignalEvent event,
     Emitter<NotificationState> emit,
   ) async {
     emit(NotificationLoading());
-    final result = await setupFCMUseCase();
+    final result = await initializeOneSignalUseCase(NoParams());
     result.fold(
-      (failure) =>
-          emit(const NotificationError(message: 'Failed to setup FCM')),
-      (token) => emit(FCMSetupSuccess(token: token)),
+      (failure) => emit(NotificationError(message: failure.message)),
+      (_) => emit(OneSignalInitialized()),
     );
   }
 
-  Future<void> _onSaveFCMToken(
-    SaveFCMTokenEvent event,
+  Future<void> _onSetExternalUserId(
+    SetExternalUserIdEvent event,
     Emitter<NotificationState> emit,
   ) async {
     emit(NotificationLoading());
-    final result = await saveFCMTokenUseCase(
-      userId: event.userId,
-      token: event.token,
+    final result = await setExternalUserIdUseCase(
+      SetExternalUserIdParams(userId: event.userId),
     );
     result.fold(
-      (failure) =>
-          emit(const NotificationError(message: 'Failed to save FCM token')),
-      (_) => emit(FCMTokenSaved()),
+      (failure) => emit(NotificationError(message: failure.message)),
+      (_) => emit(ExternalUserIdSet()),
     );
   }
 
-  void _onGetNotificationsStream(
-    GetNotificationsStreamEvent event,
+  Future<void> _onGetOneSignalPlayerId(
+    GetOneSignalPlayerIdEvent event,
     Emitter<NotificationState> emit,
   ) async {
     emit(NotificationLoading());
-
-    // Cancel existing subscription if there is one
-    _notificationsSubscription?.cancel();
-
-    // Subscribe to notifications stream
-    _notificationsSubscription = getNotificationsStreamUseCase(
-      userId: event.userId,
-    ).listen(
-      (notifications) {
-        // Update notifications and unread count
-        _notifications = notifications;
-        _unreadCount = notifications.where((n) => !n.isRead).length;
-
-        // Use add() to dispatch events instead of emitting directly from the listener
-        if (notifications.isNotEmpty) {
-          add(NotificationReceivedEvent(notification: notifications.first));
-        }
-      },
-      onError: (error) {
-        // Use add() to dispatch error event instead of emitting directly
-        add(NotificationErrorEvent(message: 'Stream error: $error'));
-      },
+    final result = await getOneSignalPlayerIdUseCase(NoParams());
+    result.fold(
+      (failure) => emit(NotificationError(message: failure.message)),
+      (playerId) => emit(OneSignalPlayerIdLoaded(playerId: playerId)),
     );
+  }
 
-    emit(NotificationStreamActive());
+  Future<void> _onSaveOneSignalPlayerId(
+    SaveOneSignalPlayerIdEvent event,
+    Emitter<NotificationState> emit,
+  ) async {
+    emit(NotificationLoading());
+    final result = await saveOneSignalPlayerIdUseCase(
+      SaveOneSignalPlayerIdParams(userId: event.userId),
+    );
+    result.fold(
+      (failure) => emit(NotificationError(message: failure.message)),
+      (_) => emit(OneSignalPlayerIdSaved()),
+    );
+  }
+
+  Future<void> _onLogoutOneSignal(
+    LogoutOneSignalEvent event,
+    Emitter<NotificationState> emit,
+  ) async {
+    emit(NotificationLoading());
+    final result = await logoutOneSignalUseCase(NoParams());
+    result.fold(
+      (failure) => emit(NotificationError(message: failure.message)),
+      (_) => emit(OneSignalLoggedOut()),
+    );
   }
 
   void _onNotificationReceived(
@@ -235,11 +231,5 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     Emitter<NotificationState> emit,
   ) {
     emit(NotificationError(message: event.message));
-  }
-
-  @override
-  Future<void> close() {
-    _notificationsSubscription?.cancel();
-    return super.close();
   }
 }

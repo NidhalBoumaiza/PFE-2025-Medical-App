@@ -10,66 +10,84 @@ class NotificationModel extends NotificationEntity {
     required NotificationType type,
     String? appointmentId,
     String? prescriptionId,
-    String? ratingId,
     required DateTime createdAt,
     bool isRead = false,
     Map<String, dynamic>? data,
   }) : super(
-          id: id,
-          title: title,
-          body: body,
-          senderId: senderId,
-          recipientId: recipientId,
-          type: type,
-          appointmentId: appointmentId,
-          prescriptionId: prescriptionId,
-          ratingId: ratingId,
-          createdAt: createdAt,
-          isRead: isRead,
-          data: data,
-        );
+         id: id,
+         title: title,
+         body: body,
+         senderId: senderId,
+         recipientId: recipientId,
+         type: type,
+         appointmentId: appointmentId,
+         prescriptionId: prescriptionId,
+         createdAt: createdAt,
+         isRead: isRead,
+         data: data,
+       );
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
-      id: json['id'] as String,
+      id: json['_id'] as String? ?? json['id'] as String,
       title: json['title'] as String,
       body: json['body'] as String,
       senderId: json['senderId'] as String,
       recipientId: json['recipientId'] as String,
-      type: NotificationType.values.firstWhere(
-          (e) => e.toString() == 'NotificationType.${json['type']}'),
+      type: _parseNotificationType(json['type'] as String),
       appointmentId: json['appointmentId'] as String?,
       prescriptionId: json['prescriptionId'] as String?,
-      ratingId: json['ratingId'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt:
+          json['createdAt'] != null
+              ? DateTime.parse(json['createdAt'] as String)
+              : DateTime.now(),
       isRead: json['isRead'] as bool? ?? false,
-      data: json['data'] != null
-          ? Map<String, dynamic>.from(json['data'] as Map)
-          : null,
+      data:
+          json['data'] != null
+              ? Map<String, dynamic>.from(json['data'] as Map)
+              : null,
     );
+  }
+
+  static NotificationType _parseNotificationType(String type) {
+    switch (type) {
+      case 'general':
+        return NotificationType.general;
+      case 'appointment':
+        return NotificationType.appointment;
+      case 'prescription':
+        return NotificationType.prescription;
+      case 'message':
+        return NotificationType.message;
+      case 'medical_record':
+        return NotificationType.medical_record;
+      default:
+        return NotificationType.general;
+    }
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {
-      'id': id,
       'title': title,
       'body': body,
       'senderId': senderId,
       'recipientId': recipientId,
       'type': type.toString().split('.').last,
-      'createdAt': createdAt.toIso8601String(),
       'isRead': isRead,
     };
+
+    if (id.isNotEmpty) {
+      data['_id'] = id;
+    }
 
     if (appointmentId != null) {
       data['appointmentId'] = appointmentId;
     }
+
     if (prescriptionId != null) {
       data['prescriptionId'] = prescriptionId;
     }
-    if (ratingId != null) {
-      data['ratingId'] = ratingId;
-    }
+
     if (this.data != null) {
       data['data'] = this.data;
     }
@@ -86,7 +104,6 @@ class NotificationModel extends NotificationEntity {
     NotificationType? type,
     String? appointmentId,
     String? prescriptionId,
-    String? ratingId,
     DateTime? createdAt,
     bool? isRead,
     Map<String, dynamic>? data,
@@ -100,10 +117,9 @@ class NotificationModel extends NotificationEntity {
       type: type ?? this.type,
       appointmentId: appointmentId ?? this.appointmentId,
       prescriptionId: prescriptionId ?? this.prescriptionId,
-      ratingId: ratingId ?? this.ratingId,
       createdAt: createdAt ?? this.createdAt,
       isRead: isRead ?? this.isRead,
       data: data ?? this.data,
     );
   }
-} 
+}

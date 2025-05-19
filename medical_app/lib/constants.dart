@@ -4,20 +4,66 @@ class AppConstants {
   static const String baseUrl = 'http://192.168.1.18:3000/api/v1';
 
   // API Endpoints
-  static String get sendNotification => '$baseUrl/notifications/send';
-  static String get sendNotificationV1 => '$baseUrl/notifications/send-v1';
-  static String get saveNotification => '$baseUrl/notifications/save';
-  static String get getUserToken => '$baseUrl/notifications/user-token';
-  static String get getFcmToken => '$baseUrl/notifications/get-fcm-token';
-  static String get usersEndpoint =>
-      '$baseUrl/users'; // Authentication endpoints
+  // User and Authentication endpoints
+  static String get usersEndpoint => '$baseUrl/users';
+  static String get loginEndpoint => '$baseUrl/users/login';
+  static String get signupEndpoint => '$baseUrl/users/signup';
+  static String get verifyAccountEndpoint => '$baseUrl/users/verifyAccount';
+  static String get forgotPasswordEndpoint => '$baseUrl/users/forgotPassword';
+  static String get verifyResetCodeEndpoint => '$baseUrl/users/verifyResetCode';
+  static String get resetPasswordEndpoint => '$baseUrl/users/resetPassword';
+  static String get updatePasswordEndpoint => '$baseUrl/users/updateMyPassword';
+  static String get updateProfileEndpoint => '$baseUrl/users/updateMe';
+  static String get getUserProfileEndpoint => '$baseUrl/users/me';
+  static String get updateOneSignalPlayerIdEndpoint =>
+      '$baseUrl/users/updateOneSignalPlayerId';
+  static String get getAllDoctorsEndpoint => '$baseUrl/users/doctors';
+  static String get getDoctorEndpoint =>
+      '$baseUrl/users/doctors'; // Add ID when calling
+
+  // Appointment endpoints
+  static String get appointmentsEndpoint => '$baseUrl/appointments';
+
+  // Conversation and messaging endpoints
+  static String get conversationsEndpoint => '$baseUrl/conversations';
+
+  // Notification endpoints
+  static String get notificationsEndpoint => '$baseUrl/notifications';
+  static String get myNotificationsEndpoint =>
+      '$baseUrl/notifications/my-notifications';
+  static String get markNotificationReadEndpoint =>
+      '$baseUrl/notifications/mark-read'; // Add ID when calling
+  static String get markAllNotificationsReadEndpoint =>
+      '$baseUrl/notifications/mark-all-read';
+  static String get unreadNotificationsCountEndpoint =>
+      '$baseUrl/notifications/unread-count';
+
+  // Dashboard endpoints
+  static String get dashboardEndpoint => '$baseUrl/dashboard';
+
+  // Prescription endpoints
+  static String get prescriptionsEndpoint => '$baseUrl/prescriptions';
+
+  // Rating endpoints
+  static String get ratingsEndpoint => '$baseUrl/ratings';
+
+  // Speciality endpoints
+  static String get specialitiesEndpoint => '$baseUrl/specialities';
+
+  // Medical records endpoints
+  static String get medicalRecordsEndpoint => '$baseUrl/medical-records';
+
+  // Dossier Medical endpoints
+  static String get dossierMedicalEndpoint => '$baseUrl/dossier-medical';
+
+  // Other endpoints
+  static String get refreshTokenEndpoint => '$baseUrl/users/refreshToken';
 
   // Firebase Configuration
-  static const String firebaseProjectId =
-      'medicalapp-f1951'; // Replace with your project ID
+  static String get firebaseProjectId =>
+      'medilink-aac32'; // Replace with your actual Firebase Project ID
 
-
-  static const String emailServiceUrl = '$baseUrl/email';
-  static const String dossierMedicalEndpoint =
-      '$baseUrl/dossier-medical';
+  // OneSignal Configuration
+  static String get oneSignalAppId =>
+      'YOUR-ONESIGNAL-APP-ID'; // Replace with your actual OneSignal App ID
 }

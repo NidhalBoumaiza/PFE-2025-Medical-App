@@ -58,8 +58,19 @@ exports.updateMe = catchAsync(async (req, res, next) => {
       filteredBody.speciality = req.body.speciality;
     if (req.body.numLicence)
       filteredBody.numLicence = req.body.numLicence;
-    if (req.body.appointmentDuration)
-      filteredBody.appointmentDuration = req.body.appointmentDuration;
+    if (req.body.appointmentDuration) {
+      // Ensure appointmentDuration is a number and within reasonable limits
+      const duration = parseInt(req.body.appointmentDuration);
+      if (isNaN(duration) || duration < 5 || duration > 180) {
+        return next(
+          new AppError(
+            "La durée de consultation doit être comprise entre 5 et 180 minutes",
+            400
+          )
+        );
+      }
+      filteredBody.appointmentDuration = duration;
+    }
   }
 
   // 3) Update user document

@@ -17,6 +17,15 @@ class UserModel extends UserEntity {
     int? verificationCode,
     DateTime? validationCodeExpiresAt,
     this.fcmToken,
+    Map<String, String?>? address,
+    Map<String, dynamic>? location,
+    String? profilePicture,
+    bool? isOnline,
+    DateTime? lastActive,
+    String? oneSignalPlayerId,
+    String? passwordResetCode,
+    DateTime? passwordResetExpires,
+    String? refreshToken,
   }) : super(
          id: id,
          name: name,
@@ -29,6 +38,16 @@ class UserModel extends UserEntity {
          accountStatus: accountStatus,
          verificationCode: verificationCode,
          validationCodeExpiresAt: validationCodeExpiresAt,
+         fcmToken: fcmToken,
+         address: address,
+         location: location,
+         profilePicture: profilePicture,
+         isOnline: isOnline,
+         lastActive: lastActive,
+         oneSignalPlayerId: oneSignalPlayerId,
+         passwordResetCode: passwordResetCode,
+         passwordResetExpires: passwordResetExpires,
+         refreshToken: refreshToken,
        );
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -94,6 +113,64 @@ class UserModel extends UserEntity {
       fcmToken = json['fcmToken'] as String;
     }
 
+    // Handle new fields
+    Map<String, String?>? address;
+    if (json['address'] is Map) {
+      address = (json['address'] as Map).cast<String, String?>();
+    }
+
+    Map<String, dynamic>? location;
+    if (json['location'] is Map) {
+      location = (json['location'] as Map).cast<String, dynamic>();
+    }
+
+    String? profilePicture;
+    if (json['profilePicture'] is String) {
+      profilePicture = json['profilePicture'] as String;
+    }
+
+    bool? isOnline;
+    if (json['isOnline'] is bool) {
+      isOnline = json['isOnline'] as bool;
+    }
+
+    DateTime? lastActive;
+    if (json['lastActive'] is String &&
+        (json['lastActive'] as String).isNotEmpty) {
+      try {
+        lastActive = DateTime.parse(json['lastActive'] as String);
+      } catch (_) {
+        lastActive = null;
+      }
+    }
+
+    String? oneSignalPlayerId;
+    if (json['oneSignalPlayerId'] is String) {
+      oneSignalPlayerId = json['oneSignalPlayerId'] as String;
+    }
+
+    String? passwordResetCode;
+    if (json['passwordResetCode'] is String) {
+      passwordResetCode = json['passwordResetCode'] as String;
+    }
+
+    DateTime? passwordResetExpires;
+    if (json['passwordResetExpires'] is String &&
+        (json['passwordResetExpires'] as String).isNotEmpty) {
+      try {
+        passwordResetExpires = DateTime.parse(
+          json['passwordResetExpires'] as String,
+        );
+      } catch (_) {
+        passwordResetExpires = null;
+      }
+    }
+
+    String? refreshToken;
+    if (json['refreshToken'] is String) {
+      refreshToken = json['refreshToken'] as String;
+    }
+
     return UserModel(
       id: id,
       name: name,
@@ -107,6 +184,15 @@ class UserModel extends UserEntity {
       verificationCode: verificationCode,
       validationCodeExpiresAt: validationCodeExpiresAt,
       fcmToken: fcmToken,
+      address: address,
+      location: location,
+      profilePicture: profilePicture,
+      isOnline: isOnline,
+      lastActive: lastActive,
+      oneSignalPlayerId: oneSignalPlayerId,
+      passwordResetCode: passwordResetCode,
+      passwordResetExpires: passwordResetExpires,
+      refreshToken: refreshToken,
     );
   }
 
@@ -141,6 +227,21 @@ class UserModel extends UserEntity {
       if (docData['fcmToken'] is String)
         safeData['fcmToken'] = docData['fcmToken'];
 
+      // Handle new fields
+      if (docData['address'] is Map) safeData['address'] = docData['address'];
+      if (docData['location'] is Map)
+        safeData['location'] = docData['location'];
+      if (docData['profilePicture'] is String)
+        safeData['profilePicture'] = docData['profilePicture'];
+      if (docData['isOnline'] is bool)
+        safeData['isOnline'] = docData['isOnline'];
+      if (docData['oneSignalPlayerId'] is String)
+        safeData['oneSignalPlayerId'] = docData['oneSignalPlayerId'];
+      if (docData['passwordResetCode'] is String)
+        safeData['passwordResetCode'] = docData['passwordResetCode'];
+      if (docData['refreshToken'] is String)
+        safeData['refreshToken'] = docData['refreshToken'];
+
       // Handle dateOfBirth properly
       if (docData['dateOfBirth'] is String &&
           (docData['dateOfBirth'] as String).isNotEmpty) {
@@ -156,6 +257,47 @@ class UserModel extends UserEntity {
         try {
           DateTime dateOfBirth = (docData['dateOfBirth'] as Timestamp).toDate();
           safeData['dateOfBirth'] = dateOfBirth.toIso8601String();
+        } catch (_) {
+          // Invalid timestamp, don't add to safeData
+        }
+      }
+
+      // Handle lastActive
+      if (docData['lastActive'] is String &&
+          (docData['lastActive'] as String).isNotEmpty) {
+        try {
+          DateTime lastActive = DateTime.parse(docData['lastActive'] as String);
+          safeData['lastActive'] = lastActive.toIso8601String();
+        } catch (_) {
+          // Invalid date format, don't add to safeData
+        }
+      } else if (docData['lastActive'] is Timestamp) {
+        try {
+          DateTime lastActive = (docData['lastActive'] as Timestamp).toDate();
+          safeData['lastActive'] = lastActive.toIso8601String();
+        } catch (_) {
+          // Invalid timestamp, don't add to safeData
+        }
+      }
+
+      // Handle passwordResetExpires
+      if (docData['passwordResetExpires'] is String &&
+          (docData['passwordResetExpires'] as String).isNotEmpty) {
+        try {
+          DateTime passwordResetExpires = DateTime.parse(
+            docData['passwordResetExpires'] as String,
+          );
+          safeData['passwordResetExpires'] =
+              passwordResetExpires.toIso8601String();
+        } catch (_) {
+          // Invalid date format, don't add to safeData
+        }
+      } else if (docData['passwordResetExpires'] is Timestamp) {
+        try {
+          DateTime passwordResetExpires =
+              (docData['passwordResetExpires'] as Timestamp).toDate();
+          safeData['passwordResetExpires'] =
+              passwordResetExpires.toIso8601String();
         } catch (_) {
           // Invalid timestamp, don't add to safeData
         }
@@ -194,6 +336,36 @@ class UserModel extends UserEntity {
     if (fcmToken != null) {
       data['fcmToken'] = fcmToken;
     }
+
+    // Add new fields
+    if (address != null) {
+      data['address'] = address;
+    }
+    if (location != null) {
+      data['location'] = location;
+    }
+    if (profilePicture != null) {
+      data['profilePicture'] = profilePicture;
+    }
+    if (isOnline != null) {
+      data['isOnline'] = isOnline;
+    }
+    if (lastActive != null) {
+      data['lastActive'] = lastActive!.toIso8601String();
+    }
+    if (oneSignalPlayerId != null) {
+      data['oneSignalPlayerId'] = oneSignalPlayerId;
+    }
+    if (passwordResetCode != null) {
+      data['passwordResetCode'] = passwordResetCode;
+    }
+    if (passwordResetExpires != null) {
+      data['passwordResetExpires'] = passwordResetExpires!.toIso8601String();
+    }
+    if (refreshToken != null) {
+      data['refreshToken'] = refreshToken;
+    }
+
     return data;
   }
 
@@ -210,6 +382,15 @@ class UserModel extends UserEntity {
     int? verificationCode,
     DateTime? validationCodeExpiresAt,
     String? fcmToken,
+    Map<String, String?>? address,
+    Map<String, dynamic>? location,
+    String? profilePicture,
+    bool? isOnline,
+    DateTime? lastActive,
+    String? oneSignalPlayerId,
+    String? passwordResetCode,
+    DateTime? passwordResetExpires,
+    String? refreshToken,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -225,6 +406,15 @@ class UserModel extends UserEntity {
       validationCodeExpiresAt:
           validationCodeExpiresAt ?? this.validationCodeExpiresAt,
       fcmToken: fcmToken ?? this.fcmToken,
+      address: address ?? this.address,
+      location: location ?? this.location,
+      profilePicture: profilePicture ?? this.profilePicture,
+      isOnline: isOnline ?? this.isOnline,
+      lastActive: lastActive ?? this.lastActive,
+      oneSignalPlayerId: oneSignalPlayerId ?? this.oneSignalPlayerId,
+      passwordResetCode: passwordResetCode ?? this.passwordResetCode,
+      passwordResetExpires: passwordResetExpires ?? this.passwordResetExpires,
+      refreshToken: refreshToken ?? this.refreshToken,
     );
   }
 }

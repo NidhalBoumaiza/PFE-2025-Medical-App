@@ -6,6 +6,7 @@ import '../../../../core/utils/app_colors.dart';
 import '../../../../core/widgets/reusable_text_field_widget.dart';
 import '../../domain/entities/medecin_entity.dart';
 import '../../../../core/specialties.dart';
+import 'package:medical_app/core/utils/navigation_with_transition.dart';
 import 'password_screen.dart';
 
 class SignupMedecinScreen extends StatefulWidget {
@@ -20,11 +21,17 @@ class SignupMedecinScreen extends StatefulWidget {
 class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController numLicenceController = TextEditingController();
+  final TextEditingController consultationFeeController =
+      TextEditingController();
+  final TextEditingController appointmentDurationController =
+      TextEditingController(text: "30");
   String? selectedSpecialty;
 
   @override
   void dispose() {
     numLicenceController.dispose();
+    consultationFeeController.dispose();
+    appointmentDurationController.dispose();
     super.dispose();
   }
 
@@ -268,6 +275,177 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                             },
                           ),
                         ),
+
+                        SizedBox(height: 24.h),
+
+                        // Consultation Fee label
+                        Text(
+                          "consultation_fee_label".tr,
+                          style: GoogleFonts.raleway(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+
+                        SizedBox(height: 10.h),
+
+                        // Consultation Fee field
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16.r),
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                spreadRadius: 1,
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: TextFormField(
+                            controller: consultationFeeController,
+                            keyboardType: TextInputType.number,
+                            style: GoogleFonts.raleway(
+                              fontSize: 15.sp,
+                              color: Colors.black87,
+                            ),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20.w,
+                                vertical: 16.h,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                                borderSide: BorderSide(
+                                  color: AppColors.primaryColor,
+                                  width: 1,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
+                                ),
+                              ),
+                              hintText: "consultation_fee_hint".tr,
+                              hintStyle: GoogleFonts.raleway(
+                                color: Colors.grey[400],
+                                fontSize: 15.sp,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.attach_money,
+                                color: AppColors.primaryColor,
+                                size: 22.sp,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: 24.h),
+
+                        // Appointment Duration label
+                        Text(
+                          "consultation_duration_label".tr,
+                          style: GoogleFonts.raleway(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+
+                        SizedBox(height: 10.h),
+
+                        // Appointment Duration field
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16.r),
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                spreadRadius: 1,
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: TextFormField(
+                            controller: appointmentDurationController,
+                            keyboardType: TextInputType.number,
+                            style: GoogleFonts.raleway(
+                              fontSize: 15.sp,
+                              color: Colors.black87,
+                            ),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20.w,
+                                vertical: 16.h,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                                borderSide: BorderSide(
+                                  color: AppColors.primaryColor,
+                                  width: 1,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
+                                ),
+                              ),
+                              hintText: "consultation_duration_hint".tr,
+                              hintStyle: GoogleFonts.raleway(
+                                color: Colors.grey[400],
+                                fontSize: 15.sp,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.timer,
+                                color: AppColors.primaryColor,
+                                size: 22.sp,
+                              ),
+                              suffixText: "minutes".tr,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -299,9 +477,18 @@ class _SignupMedecinScreenState extends State<SignupMedecinScreen> {
                             dateOfBirth: widget.medecinEntity.dateOfBirth,
                             speciality: selectedSpecialty!,
                             numLicence: numLicenceController.text,
+                            appointmentDuration:
+                                int.tryParse(
+                                  appointmentDurationController.text,
+                                ) ??
+                                30,
+                            consultationFee: double.tryParse(
+                              consultationFeeController.text,
+                            ),
                           );
-                          Get.to(
-                            () => PasswordScreen(entity: updatedMedecinEntity),
+                          navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                            context,
+                            PasswordScreen(entity: updatedMedecinEntity),
                           );
                         }
                       },

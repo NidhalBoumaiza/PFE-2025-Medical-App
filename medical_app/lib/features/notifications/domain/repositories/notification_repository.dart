@@ -3,9 +3,9 @@ import 'package:medical_app/core/error/failures.dart';
 import 'package:medical_app/features/notifications/domain/entities/notification_entity.dart';
 
 abstract class NotificationRepository {
-  /// Get all notifications for a specific user
-  Future<Either<Failure, List<NotificationEntity>>> getNotifications(String userId);
-  
+  /// Get all notifications for the current user
+  Future<Either<Failure, List<NotificationEntity>>> getNotifications();
+
   /// Send a notification
   Future<Either<Failure, Unit>> sendNotification({
     required String title,
@@ -15,28 +15,33 @@ abstract class NotificationRepository {
     required NotificationType type,
     String? appointmentId,
     String? prescriptionId,
-    String? ratingId,
     Map<String, dynamic>? data,
   });
 
   /// Mark a notification as read
   Future<Either<Failure, Unit>> markNotificationAsRead(String notificationId);
-  
-  /// Mark all notifications as read for a specific user
-  Future<Either<Failure, Unit>> markAllNotificationsAsRead(String userId);
-  
+
+  /// Mark all notifications as read for the current user
+  Future<Either<Failure, Unit>> markAllNotificationsAsRead();
+
   /// Delete a notification
   Future<Either<Failure, Unit>> deleteNotification(String notificationId);
-  
+
   /// Get unread notifications count
-  Future<Either<Failure, int>> getUnreadNotificationsCount(String userId);
-  
-  /// Setup FCM to receive notifications
-  Future<Either<Failure, String?>> setupFCM();
-  
-  /// Save FCM token to the server
-  Future<Either<Failure, Unit>> saveFCMToken(String userId, String token);
-  
-  /// Stream of notifications for a specific user
-  Stream<List<NotificationEntity>> notificationsStream(String userId);
-} 
+  Future<Either<Failure, int>> getUnreadNotificationsCount();
+
+  /// Initialize OneSignal
+  Future<Either<Failure, Unit>> initializeOneSignal();
+
+  /// Set external user ID for OneSignal
+  Future<Either<Failure, Unit>> setExternalUserId(String userId);
+
+  /// Get OneSignal player ID
+  Future<Either<Failure, String?>> getOneSignalPlayerId();
+
+  /// Save OneSignal player ID to the backend
+  Future<Either<Failure, Unit>> saveOneSignalPlayerId(String userId);
+
+  /// Clear OneSignal user data for logout
+  Future<Either<Failure, Unit>> logout();
+}

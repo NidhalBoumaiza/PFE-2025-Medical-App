@@ -1,80 +1,93 @@
 import 'package:equatable/equatable.dart';
 import '../../data/models/message_model.dart';
 
-enum MessageStatus { sending, sent, delivered, read, failed }
+enum MessageStatus { sent, delivered, read }
+
+enum MessageType { text, image, file }
 
 abstract class MessageEntity extends Equatable {
-  final String id;
+  final String? id;
   final String conversationId;
-  final String senderId;
+  final String sender;
   final String content;
   final String type;
-  final String? url;
-  final String? fileName;
   final DateTime timestamp;
-  final MessageStatus status;
   final List<String> readBy;
+  final String? fileUrl;
+  final String? fileName;
+  final int? fileSize;
+  final String? fileMimeType;
+  final String status;
 
   const MessageEntity({
-    required this.id,
+    this.id,
     required this.conversationId,
-    required this.senderId,
+    required this.sender,
     required this.content,
     required this.type,
-    this.url,
-    this.fileName,
     required this.timestamp,
-    required this.status,
     required this.readBy,
+    this.fileUrl,
+    this.fileName,
+    this.fileSize,
+    this.fileMimeType,
+    required this.status,
   });
 
   MessageEntity copyWith({
     String? id,
     String? conversationId,
-    String? senderId,
+    String? sender,
     String? content,
     String? type,
-    String? url,
-    String? fileName,
     DateTime? timestamp,
-    MessageStatus? status,
     List<String>? readBy,
+    String? fileUrl,
+    String? fileName,
+    int? fileSize,
+    String? fileMimeType,
+    String? status,
   });
 
   @override
   List<Object?> get props => [
     id,
     conversationId,
-    senderId,
+    sender,
     content,
     type,
-    url,
-    fileName,
     timestamp,
-    status,
     readBy,
+    fileUrl,
+    fileName,
+    fileSize,
+    fileMimeType,
+    status,
   ];
 
   static MessageEntity create({
     required String conversationId,
-    required String senderId,
+    required String sender,
     required String content,
     required String type,
+    String? fileUrl,
     String? fileName,
-    required DateTime timestamp,
-    String? url,
+    int? fileSize,
+    String? fileMimeType,
   }) {
     return MessageModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       conversationId: conversationId,
-      senderId: senderId,
+      sender: sender,
       content: content,
       type: type,
+      timestamp: DateTime.now(),
+      readBy: [sender], // Sender has read their own message
+      fileUrl: fileUrl,
       fileName: fileName,
-      url: url,
-      timestamp: timestamp,
-      status: MessageStatus.sending,
-      readBy: [],
+      fileSize: fileSize,
+      fileMimeType: fileMimeType,
+      status: 'sent',
     );
   }
 }
