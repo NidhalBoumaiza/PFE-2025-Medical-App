@@ -8,7 +8,14 @@ abstract class NotificationEvent extends Equatable {
   List<Object> get props => [];
 }
 
-class GetNotificationsEvent extends NotificationEvent {}
+class GetNotificationsEvent extends NotificationEvent {
+  final String userId;
+
+  const GetNotificationsEvent({required this.userId});
+
+  @override
+  List<Object> get props => [userId];
+}
 
 class SendNotificationEvent extends NotificationEvent {
   final String title;
@@ -44,7 +51,14 @@ class MarkNotificationAsReadEvent extends NotificationEvent {
   List<Object> get props => [notificationId];
 }
 
-class MarkAllNotificationsAsReadEvent extends NotificationEvent {}
+class MarkAllNotificationsAsReadEvent extends NotificationEvent {
+  final String userId;
+
+  const MarkAllNotificationsAsReadEvent({required this.userId});
+
+  @override
+  List<Object> get props => [userId];
+}
 
 class DeleteNotificationEvent extends NotificationEvent {
   final String notificationId;
@@ -97,4 +111,13 @@ class NotificationErrorEvent extends NotificationEvent {
 
   @override
   List<Object> get props => [message];
+}
+
+class GetNotificationsStreamEvent extends NotificationEvent {
+  final String userId;
+
+  const GetNotificationsStreamEvent({required this.userId});
+
+  @override
+  List<Object> get props => [userId];
 }

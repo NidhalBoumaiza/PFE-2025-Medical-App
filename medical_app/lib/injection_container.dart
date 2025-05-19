@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -401,7 +400,7 @@ Future<void> init() async {
     () => MongoDBDashboardRemoteDataSourceImpl(client: sl()),
   );
   sl.registerLazySingleton<PrescriptionRemoteDataSource>(
-    () => PrescriptionRemoteDataSourceImpl(apiService: sl()),
+    () => PrescriptionRemoteDataSourceImpl(),
   );
   sl.registerLazySingleton<NotificationRemoteDataSource>(
     () =>
@@ -415,9 +414,7 @@ Future<void> init() async {
   );
 
   // Services
-  sl.registerLazySingleton<OneSignalService>(
-    () => OneSignalService(oneSignal: OneSignal.shared),
-  );
+  sl.registerLazySingleton<OneSignalService>(() => OneSignalService());
 
   // Core
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));

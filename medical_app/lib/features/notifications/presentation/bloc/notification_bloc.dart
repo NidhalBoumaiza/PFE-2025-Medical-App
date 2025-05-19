@@ -121,7 +121,15 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     final result = await markAllNotificationsAsReadUseCase(NoParams());
     result.fold(
       (failure) => emit(NotificationError(message: failure.message)),
-      (_) => emit(AllNotificationsMarkedAsRead()),
+      (_) {
+        // Update local notifications list
+        _notifications =
+            _notifications.map((notification) {
+              return notification.copyWith(isRead: true);
+            }).toList();
+        emit(AllNotificationsMarkedAsRead());
+        emit(NotificationsLoaded(notifications: _notifications));
+      },
     );
   }
 

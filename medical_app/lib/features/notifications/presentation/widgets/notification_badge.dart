@@ -7,8 +7,7 @@ import 'package:medical_app/features/authentication/data/data%20sources/auth_loc
 import 'package:medical_app/features/notifications/presentation/bloc/notification_bloc.dart';
 import 'package:medical_app/features/notifications/presentation/bloc/notification_event.dart';
 import 'package:medical_app/features/notifications/presentation/bloc/notification_state.dart';
-import 'package:medical_app/features/notifications/presentation/pages/notifications_medecin.dart';
-import 'package:medical_app/features/notifications/presentation/pages/notifications_patient.dart';
+import 'package:medical_app/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:medical_app/injection_container.dart' as di;
 
 class NotificationBadge extends StatefulWidget {
@@ -97,18 +96,24 @@ class _NotificationBadgeState extends State<NotificationBadge>
       GetNotificationsEvent(userId: userId!),
     );
 
-    // Initialize FCM
-    context.read<NotificationBloc>().add(SetupFCMEvent());
+    // Initialize OneSignal
+    context.read<NotificationBloc>().add(InitializeOneSignalEvent());
+
+    // Set external user ID
+    context.read<NotificationBloc>().add(
+      SetExternalUserIdEvent(userId: userId!),
+    );
+
+    // Get OneSignal player ID
+    context.read<NotificationBloc>().add(GetOneSignalPlayerIdEvent());
+
+    // Save OneSignal player ID
+    context.read<NotificationBloc>().add(
+      SaveOneSignalPlayerIdEvent(userId: userId!),
+    );
 
     // Load unread count
-    context.read<NotificationBloc>().add(
-      GetUnreadNotificationsCountEvent(userId: userId!),
-    );
-
-    // Setup stream
-    context.read<NotificationBloc>().add(
-      GetNotificationsStreamEvent(userId: userId!),
-    );
+    context.read<NotificationBloc>().add(GetUnreadNotificationsCountEvent());
 
     // Set refreshing to false after a short delay
     Future.delayed(Duration(milliseconds: 500), () {
@@ -128,18 +133,14 @@ class _NotificationBadgeState extends State<NotificationBadge>
       MarkAllNotificationsAsReadEvent(userId: userId!),
     );
 
-    if (userRole == 'medecin') {
-      navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-        context,
-        const NotificationsMedecin(),
-      ).then((_) => _refreshNotifications());
-    } else {
-      // Default to patient notifications
-      navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-        context,
-        const NotificationsPatient(),
-      ).then((_) => _refreshNotifications());
-    }
+    // Navigate to notifications page
+    navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+      context,
+      const NotificationsPage(),
+    );
+
+    // Refresh notifications after navigation
+    _refreshNotifications();
   }
 
   @override
@@ -179,55 +180,37 @@ class _NotificationBadgeState extends State<NotificationBadge>
             }
 
             return Stack(
-              clipBehavior: Clip.none,
               children: [
                 IconButton(
-                  icon:
-                      _isRefreshing
-                          ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: widget.iconColor,
-                              strokeWidth: 2,
-                            ),
-                          )
-                          : Icon(
-                            count > 0
-                                ? Icons.notifications_active
-                                : Icons.notifications_none,
-                            color: widget.iconColor,
-                            size: widget.iconSize ?? 24,
-                          ),
+                  icon: Icon(
+                    Icons.notifications_none,
+                    color: widget.iconColor,
+                    size: widget.iconSize ?? 24,
+                  ),
                   onPressed: _navigateToNotificationsPage,
                 ),
-                if (count > 0 && !_isRefreshing)
+                if (count > 0)
                   Positioned(
-                    right: 5,
-                    top: 5,
+                    right: 0,
+                    top: 0,
                     child: Container(
                       padding: EdgeInsets.all(4.r),
                       decoration: BoxDecoration(
                         color: Colors.red,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Theme.of(context).scaffoldBackgroundColor,
-                          width: 1.5,
-                        ),
+                        borderRadius: BorderRadius.circular(10.r),
                       ),
                       constraints: BoxConstraints(
-                        minWidth: 16.r,
-                        minHeight: 16.r,
+                        minWidth: 16.w,
+                        minHeight: 16.h,
                       ),
-                      child: Center(
-                        child: Text(
-                          count > 99 ? '99+' : count.toString(),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      child: Text(
+                        count.toString(),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.bold,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),

@@ -71,8 +71,8 @@ class RendezVousRemoteDataSourceImpl implements RendezVousRemoteDataSource {
       final rendezVous =
           appointmentsData
               .map((appointment) => RendezVousModel.fromJson(appointment))
-              .toList();
-
+          .toList();
+      
       await localDataSource.cacheRendezVous(rendezVous);
       return rendezVous;
     } catch (e) {
@@ -82,9 +82,9 @@ class RendezVousRemoteDataSourceImpl implements RendezVousRemoteDataSource {
 
   @override
   Future<void> updateRendezVousStatus(
-    String rendezVousId,
-    String status,
-  ) async {
+      String rendezVousId,
+      String status,
+      ) async {
     try {
       String endpoint;
       switch (status) {
@@ -207,7 +207,7 @@ class RendezVousRemoteDataSourceImpl implements RendezVousRemoteDataSource {
   Future<List<RendezVousModel>> getDoctorAppointmentsForDay(
     String doctorId,
     DateTime date,
-  ) async {
+      ) async {
     try {
       final response = await ApiService.postRequest(
         '${AppConstants.appointmentsEndpoint}/doctorAppointmentsForDay',
@@ -219,7 +219,7 @@ class RendezVousRemoteDataSourceImpl implements RendezVousRemoteDataSource {
       final rendezVous =
           appointmentsData
               .map((appointment) => RendezVousModel.fromJson(appointment))
-              .toList();
+          .toList();
 
       return rendezVous;
     } catch (e) {

@@ -162,9 +162,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
 
       // Add specific fields based on user type
-      if (user is PatientModel) {
+        if (user is PatientModel) {
         body['antecedent'] = user.antecedent;
-      } else if (user is MedecinModel) {
+        } else if (user is MedecinModel) {
         body['speciality'] = user.speciality;
         body['numLicence'] = user.numLicence;
         body['appointmentDuration'] = user.appointmentDuration;
@@ -285,8 +285,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           updatedUser = UserModel.fromJson(updatedUserData);
         }
 
-        await localDataSource.cacheUser(updatedUser);
-        return unit;
+      await localDataSource.cacheUser(updatedUser);
+      return unit;
       } else {
         _handleHttpError(response);
         throw ServerException(message: 'Failed to update user');
@@ -318,7 +318,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       if (response.statusCode == 200) {
         return unit;
-      } else {
+        } else {
         _handleHttpError(response);
         throw ServerException(message: 'Failed to send verification code');
       }

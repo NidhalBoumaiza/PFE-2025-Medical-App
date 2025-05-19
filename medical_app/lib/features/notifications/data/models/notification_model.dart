@@ -61,6 +61,14 @@ class NotificationModel extends NotificationEntity {
         return NotificationType.message;
       case 'medical_record':
         return NotificationType.medical_record;
+      case 'newAppointment':
+        return NotificationType.newAppointment;
+      case 'appointmentAccepted':
+        return NotificationType.appointmentAccepted;
+      case 'appointmentRejected':
+        return NotificationType.appointmentRejected;
+      case 'rating':
+        return NotificationType.rating;
       default:
         return NotificationType.general;
     }

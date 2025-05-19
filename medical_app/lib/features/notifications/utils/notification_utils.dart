@@ -14,6 +14,16 @@ class NotificationUtils {
         return NotificationType.message;
       case 'medical_record':
         return NotificationType.medical_record;
+      case 'newAppointment':
+        return NotificationType.newAppointment;
+      case 'appointmentAccepted':
+        return NotificationType.appointmentAccepted;
+      case 'appointmentRejected':
+        return NotificationType.appointmentRejected;
+      case 'rating':
+        return NotificationType.rating;
+      case 'newPrescription':
+        return NotificationType.newPrescription;
       default:
         return NotificationType.general;
     }
@@ -32,6 +42,16 @@ class NotificationUtils {
         return 'message';
       case NotificationType.medical_record:
         return 'medical_record';
+      case NotificationType.newAppointment:
+        return 'newAppointment';
+      case NotificationType.appointmentAccepted:
+        return 'appointmentAccepted';
+      case NotificationType.appointmentRejected:
+        return 'appointmentRejected';
+      case NotificationType.rating:
+        return 'rating';
+      case NotificationType.newPrescription:
+        return 'newPrescription';
     }
   }
 
@@ -48,6 +68,16 @@ class NotificationUtils {
         return 'New Message';
       case NotificationType.medical_record:
         return 'Medical Record';
+      case NotificationType.newAppointment:
+        return 'New Appointment Request';
+      case NotificationType.appointmentAccepted:
+        return 'Appointment Accepted';
+      case NotificationType.appointmentRejected:
+        return 'Appointment Rejected';
+      case NotificationType.rating:
+        return 'New Rating';
+      case NotificationType.newPrescription:
+        return 'New Prescription';
     }
   }
 }

@@ -26,11 +26,22 @@ class NotificationsPage extends StatefulWidget {
 class _NotificationsPageState extends State<NotificationsPage> {
   late UserEntity _currentUser;
   bool _isLoading = true;
+  String _selectedFilter = 'all';
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isLoading && _currentUser.id != null) {
+      _refreshNotifications(showLoading: false);
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -40,23 +51,19 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
       setState(() {
         _currentUser = user;
-        _isLoading = false;
       });
 
-      // Set up notifications stream first to ensure we're listening for updates
       if (user.id != null) {
         print('Setting up notifications stream for user: ${user.id}');
         context.read<NotificationBloc>().add(
           GetNotificationsStreamEvent(userId: user.id!),
         );
 
-        // Load notifications for the current user
         print('Loading notifications for user: ${user.id}');
         context.read<NotificationBloc>().add(
           GetNotificationsEvent(userId: user.id!),
         );
 
-        // Mark all as read when the page is opened
         context.read<NotificationBloc>().add(
           MarkAllNotificationsAsReadEvent(userId: user.id!),
         );
@@ -69,6 +76,48 @@ class _NotificationsPageState extends State<NotificationsPage> {
         context,
       ).showSnackBar(SnackBar(content: Text('error_loading_user_data'.tr)));
     }
+  }
+
+  Future<void> _refreshNotifications({bool showLoading = true}) async {
+    if (_currentUser.id == null) return;
+
+    if (showLoading) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      Future.delayed(Duration(seconds: 5), () {
+        if (mounted && _isLoading) {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('loading_timeout'.tr)));
+        }
+      });
+    }
+
+    try {
+      context.read<NotificationBloc>().add(
+        GetNotificationsEvent(userId: _currentUser.id!),
+      );
+
+      context.read<NotificationBloc>().add(
+        MarkAllNotificationsAsReadEvent(userId: _currentUser.id!),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('error_refreshing'.tr)));
+      }
+    }
+
+    return Future.delayed(const Duration(milliseconds: 500));
   }
 
   @override
@@ -110,13 +159,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           IconButton(
             icon: Icon(Icons.refresh, color: Colors.white),
             tooltip: 'refresh'.tr,
-            onPressed: () {
-              if (_currentUser.id != null) {
-                context.read<NotificationBloc>().add(
-                  GetNotificationsEvent(userId: _currentUser.id!),
-                );
-              }
-            },
+            onPressed: () => _refreshNotifications(),
           ),
         ],
       ),
@@ -138,6 +181,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   backgroundColor: Colors.red,
                 ),
               );
+            } else if (state is NotificationsLoaded) {
+              if (_isLoading) {
+                setState(() {
+                  _isLoading = false;
+                });
+              }
             }
           },
           builder: (context, state) {
@@ -165,147 +214,158 @@ class _NotificationsPageState extends State<NotificationsPage> {
               print('Loaded ${notifications.length} notifications');
 
               if (notifications.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(24.r),
-                        decoration: BoxDecoration(
-                          color:
-                              isDarkMode ? Colors.grey[800] : Colors.grey[100],
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.notifications_off_outlined,
-                          size: 80.sp,
-                          color:
-                              isDarkMode ? Colors.grey[400] : Colors.grey[500],
-                        ),
-                      ),
-                      SizedBox(height: 24.h),
-                      Text(
-                        'no_notifications'.tr,
-                        style: GoogleFonts.raleway(
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.bold,
-                          color: isDarkMode ? Colors.white : Colors.grey[800],
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      Text(
-                        'you_have_no_notifications_yet'.tr,
-                        style: GoogleFonts.raleway(
-                          fontSize: 16.sp,
-                          color: Colors.grey[600],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                );
+                return _buildEmptyState(isDarkMode);
               }
 
-              return RefreshIndicator(
-                onRefresh: () async {
-                  if (_currentUser.id != null) {
-                    context.read<NotificationBloc>().add(
-                      GetNotificationsEvent(userId: _currentUser.id!),
-                    );
-                  }
-                },
-                color: AppColors.primaryColor,
-                child: ListView.builder(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 12.h,
-                  ),
-                  itemCount: notifications.length,
-                  itemBuilder: (context, index) {
-                    // Add staggered animation for each item
-                    return AnimatedOpacity(
-                      duration: Duration(milliseconds: 500),
-                      opacity: 1.0,
-                      curve: Curves.easeInOut,
-                      child: AnimatedPadding(
-                        duration: Duration(milliseconds: 300),
-                        padding: EdgeInsets.only(
-                          top: index == 0 ? 8.h : 0,
-                          bottom: 12.h,
-                        ),
-                        child: _buildNotificationCard(notifications[index]),
-                      ),
-                    );
-                  },
-                ),
-              );
-            }
-
-            // If we're not loading and don't have notifications loaded yet,
-            // show a message to encourage refreshing
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              return Column(
                 children: [
-                  Container(
-                    padding: EdgeInsets.all(24.r),
-                    decoration: BoxDecoration(
-                      color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.notifications_none,
-                      size: 80.sp,
-                      color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
-                    ),
-                  ),
-                  SizedBox(height: 24.h),
-                  Text(
-                    'no_notifications_found'.tr,
-                    style: GoogleFonts.raleway(
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors.grey[800],
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    'try_refreshing_the_page'.tr,
-                    style: GoogleFonts.raleway(
-                      fontSize: 16.sp,
-                      color: Colors.grey[600],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 24.h),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      if (_currentUser.id != null) {
-                        context.read<NotificationBloc>().add(
-                          GetNotificationsEvent(userId: _currentUser.id!),
-                        );
-                      }
-                    },
-                    icon: Icon(Icons.refresh),
-                    label: Text('refresh'.tr),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 32.w,
-                        vertical: 16.h,
+                  _buildFilterChips(),
+                  Expanded(
+                    child: RefreshIndicator(
+                      key: _refreshIndicatorKey,
+                      onRefresh: _refreshNotifications,
+                      color: AppColors.primaryColor,
+                      child: ListView.builder(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 12.h,
+                        ),
+                        itemCount: notifications.length,
+                        itemBuilder: (context, index) {
+                          return AnimatedOpacity(
+                            duration: Duration(milliseconds: 500),
+                            opacity: 1.0,
+                            curve: Curves.easeInOut,
+                            child: AnimatedPadding(
+                              duration: Duration(milliseconds: 300),
+                              padding: EdgeInsets.only(
+                                top: index == 0 ? 8.h : 0,
+                                bottom: 12.h,
+                              ),
+                              child: _buildNotificationCard(
+                                notifications[index],
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      elevation: 2,
                     ),
                   ),
                 ],
-              ),
-            );
+              );
+            }
+
+            return _buildEmptyState(isDarkMode);
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildEmptyState(bool isDarkMode) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(24.r),
+            decoration: BoxDecoration(
+              color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.notifications_off_outlined,
+              size: 80.sp,
+              color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+            ),
+          ),
+          SizedBox(height: 24.h),
+          Text(
+            'no_notifications'.tr,
+            style: GoogleFonts.raleway(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.bold,
+              color: isDarkMode ? Colors.white : Colors.grey[800],
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            'you_have_no_notifications_yet'.tr,
+            style: GoogleFonts.raleway(
+              fontSize: 16.sp,
+              color: Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 24.h),
+          ElevatedButton.icon(
+            onPressed: () => _refreshNotifications(),
+            icon: Icon(Icons.refresh),
+            label: Text('refresh'.tr),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryColor,
+              padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 16.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              elevation: 2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      child: Row(
+        children: [
+          _buildFilterChip('all', 'all'.tr),
+          SizedBox(width: 10.w),
+          _buildFilterChip('appointment', 'appointments'.tr),
+          SizedBox(width: 10.w),
+          _buildFilterChip('prescription', 'prescriptions'.tr),
+          if (_currentUser.role == 'patient') ...[
+            SizedBox(width: 10.w),
+            _buildFilterChip('rating', 'ratings'.tr),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String value, String label) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
+    final isSelected = _selectedFilter == value;
+    return FilterChip(
+      label: Text(
+        label,
+        style: GoogleFonts.raleway(
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w500,
+          color: isSelected ? Colors.white : theme.textTheme.bodyMedium?.color,
+        ),
+      ),
+      selected: isSelected,
+      onSelected: (bool selected) {
+        if (selected) {
+          setState(() {
+            _selectedFilter = value;
+          });
+        }
+      },
+      selectedColor: AppColors.primaryColor,
+      backgroundColor:
+          isDarkMode ? theme.cardColor.withOpacity(0.3) : Colors.grey.shade100,
+      checkmarkColor: Colors.white,
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+      elevation: 0,
+      shadowColor: Colors.transparent,
     );
   }
 
@@ -313,7 +373,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
 
-    // Extract sender name from data if available
     String senderName = '';
     if (notification.data != null) {
       senderName =
@@ -386,12 +445,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
         ),
         child: InkWell(
           onTap: () {
-            // Mark as read when tapped
             context.read<NotificationBloc>().add(
               MarkNotificationAsReadEvent(notificationId: notification.id),
             );
-
-            // Navigate to details if applicable
             _navigateToDetails(notification);
           },
           borderRadius: BorderRadius.circular(16.r),
@@ -544,8 +600,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     ),
                   ],
                 ),
-
-                // Show action buttons for appointment notifications
                 if (notification.type == NotificationType.newAppointment &&
                     _currentUser.role == 'medecin' &&
                     !notification.isRead)
@@ -558,23 +612,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
-  String _getFormattedTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inDays > 7) {
-      return DateFormat('MMM d, yyyy').format(dateTime);
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
-    } else {
-      return 'just now';
-    }
-  }
-
   Widget _getNotificationIcon(NotificationType type) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
@@ -584,22 +621,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
     String label = '';
 
     switch (type) {
-      case NotificationType.newAppointment:
-        icon = Icons.calendar_today_rounded;
-        color = Colors.green;
-        label = 'appointment'.tr;
-        break;
-      case NotificationType.appointmentAccepted:
-        icon = Icons.check_circle_rounded;
-        color = Colors.green;
-        label = 'accepted'.tr;
-        break;
       case NotificationType.appointmentRejected:
         icon = Icons.cancel_rounded;
         color = Colors.red;
         label = 'rejected'.tr;
         break;
-      case NotificationType.newRating:
+      case NotificationType.rating:
         icon = Icons.star_rounded;
         color = Colors.amber;
         label = 'rating'.tr;
@@ -608,6 +635,41 @@ class _NotificationsPageState extends State<NotificationsPage> {
         icon = Icons.medical_services_rounded;
         color = AppColors.primaryColor;
         label = 'prescription'.tr;
+        break;
+      case NotificationType.prescription:
+        icon = Icons.medical_services_rounded;
+        color = AppColors.primaryColor;
+        label = 'prescription'.tr;
+        break;
+      case NotificationType.message:
+        icon = Icons.message_rounded;
+        color = Colors.blue;
+        label = 'message'.tr;
+        break;
+      case NotificationType.medical_record:
+        icon = Icons.folder_rounded;
+        color = Colors.green;
+        label = 'medical_record'.tr;
+        break;
+      case NotificationType.general:
+        icon = Icons.notifications_rounded;
+        color = Colors.grey;
+        label = 'notification'.tr;
+        break;
+      case NotificationType.appointment:
+        icon = Icons.calendar_today_rounded;
+        color = Colors.blue;
+        label = 'appointment'.tr;
+        break;
+      case NotificationType.newAppointment:
+        icon = Icons.calendar_today_rounded;
+        color = Colors.blue;
+        label = 'new_appointment'.tr;
+        break;
+      case NotificationType.appointmentAccepted:
+        icon = Icons.check_circle_rounded;
+        color = Colors.green;
+        label = 'accepted'.tr;
         break;
     }
 
@@ -646,181 +708,230 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Widget _buildActionButtons(NotificationEntity notification) {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
+    return Padding(
+      padding: EdgeInsets.only(top: 16.h),
+      child: Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              icon: Icon(
+                Icons.check_circle_outline,
+                color: Colors.white,
+                size: 18.sp,
+              ),
+              label: Text(
+                'accept'.tr,
+                style: GoogleFonts.raleway(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14.sp,
+                ),
+              ),
+              onPressed: () => _acceptAppointment(notification),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding: EdgeInsets.symmetric(vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                elevation: 2,
+              ),
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: ElevatedButton.icon(
+              icon: Icon(
+                Icons.cancel_outlined,
+                color: Colors.white,
+                size: 18.sp,
+              ),
+              label: Text(
+                'reject'.tr,
+                style: GoogleFonts.raleway(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14.sp,
+                ),
+              ),
+              onPressed: () => _rejectAppointment(notification),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                padding: EdgeInsets.symmetric(vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                elevation: 2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    // Only show action buttons for appointment notifications to doctors
-    if (notification.type == NotificationType.newAppointment &&
-        _currentUser.role == 'medecin') {
-      return Padding(
-        padding: EdgeInsets.only(top: 16.h),
-        child: Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                icon: Icon(
-                  Icons.check_circle_outline,
-                  color: Colors.white,
-                  size: 18.sp,
-                ),
-                label: Text(
-                  'accept'.tr,
-                  style: GoogleFonts.raleway(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14.sp,
-                  ),
-                ),
-                onPressed: () {
-                  if (notification.appointmentId != null) {
-                    _acceptAppointment(notification.appointmentId!);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding: EdgeInsets.symmetric(vertical: 12.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  elevation: 2,
-                ),
+  void _acceptAppointment(NotificationEntity notification) {
+    if (notification.appointmentId != null) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: AppColors.primaryColor),
+                  SizedBox(width: 20),
+                  Text("Processing...", style: TextStyle(fontSize: 16)),
+                ],
               ),
             ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: ElevatedButton.icon(
-                icon: Icon(
-                  Icons.cancel_outlined,
-                  color: Colors.white,
-                  size: 18.sp,
-                ),
-                label: Text(
-                  'reject'.tr,
-                  style: GoogleFonts.raleway(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14.sp,
-                  ),
-                ),
-                onPressed: () {
-                  if (notification.appointmentId != null) {
-                    _rejectAppointment(notification.appointmentId!);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  padding: EdgeInsets.symmetric(vertical: 12.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  elevation: 2,
-                ),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       );
-    } else {
-      return Padding(
-        padding: EdgeInsets.only(top: 16.h),
-        child: ElevatedButton.icon(
-          icon: Icon(Icons.visibility, color: Colors.white, size: 18.sp),
-          label: Text(
-            'view_details'.tr,
-            style: GoogleFonts.raleway(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 14.sp,
-            ),
-          ),
-          onPressed: () {
-            _navigateToDetails(notification);
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryColor,
-            padding: EdgeInsets.symmetric(vertical: 12.h),
-            minimumSize: Size(double.infinity, 45.h),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            elevation: 2,
-          ),
+
+      String patientId = notification.senderId;
+      String patientName = notification.data?['patientName'] ?? '';
+
+      final blocListener = BlocListener<RendezVousBloc, RendezVousState>(
+        listener: (context, state) {
+          if (state is RendezVousStatusUpdatedState ||
+              state is RendezVousError ||
+              state is RendezVousErrorState) {
+            Navigator.of(context, rootNavigator: true).pop();
+
+            if (state is RendezVousErrorState || state is RendezVousError) {
+              String errorMessage =
+                  state is RendezVousErrorState
+                      ? state.message
+                      : (state as RendezVousError).message;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error: $errorMessage'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            } else if (state is RendezVousStatusUpdatedState) {
+              context.read<NotificationBloc>().add(
+                MarkNotificationAsReadEvent(notificationId: notification.id),
+              );
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('appointment_accepted'.tr),
+                  backgroundColor: Colors.green,
+                ),
+              );
+
+              if (_currentUser.id != null) {
+                context.read<NotificationBloc>().add(
+                  GetNotificationsEvent(userId: _currentUser.id!),
+                );
+              }
+            }
+          }
+        },
+        child: Container(),
+      );
+
+      Navigator.of(
+        context,
+      ).overlay?.insert(OverlayEntry(builder: (context) => blocListener));
+
+      context.read<RendezVousBloc>().add(
+        UpdateRendezVousStatus(
+          rendezVousId: notification.appointmentId!,
+          status: 'accepted',
         ),
       );
     }
   }
 
-  void _acceptAppointment(String appointmentId) {
-    context.read<RendezVousBloc>().add(
-      UpdateRendezVousStatus(
-        rendezVousId: appointmentId,
-        status: 'accepted',
-        patientId: '', // This would need to be fetched
-        doctorId: _currentUser.id!,
-        patientName: '', // This would need to be fetched
-        doctorName: _currentUser.name + ' ' + _currentUser.lastName,
-      ),
-    );
+  void _rejectAppointment(NotificationEntity notification) {
+    if (notification.appointmentId != null) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: AppColors.primaryColor),
+                  SizedBox(width: 20),
+                  Text("Processing...", style: TextStyle(fontSize: 16)),
+                ],
+              ),
+            ),
+          );
+        },
+      );
 
-    // Send notification to patient
-    final notification = context.read<NotificationBloc>();
-    notification.add(
-      SendNotificationEvent(
-        title: 'appointment_accepted'.tr,
-        body: 'appointment_accepted_message'.tr,
-        senderId: _currentUser.id!,
-        recipientId: '', // You need to get the patient ID from the appointment
-        type: NotificationType.appointmentAccepted,
-        appointmentId: appointmentId,
-      ),
-    );
+      String patientId = notification.senderId;
+      String patientName = notification.data?['patientName'] ?? '';
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('appointment_accepted'.tr),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.green,
-      ),
-    );
-  }
+      final blocListener = BlocListener<RendezVousBloc, RendezVousState>(
+        listener: (context, state) {
+          if (state is RendezVousStatusUpdatedState ||
+              state is RendezVousError ||
+              state is RendezVousErrorState) {
+            Navigator.of(context, rootNavigator: true).pop();
 
-  void _rejectAppointment(String appointmentId) {
-    context.read<RendezVousBloc>().add(
-      UpdateRendezVousStatus(
-        rendezVousId: appointmentId,
-        status: 'rejected',
-        patientId: '', // This would need to be fetched
-        doctorId: _currentUser.id!,
-        patientName: '', // This would need to be fetched
-        doctorName: _currentUser.name + ' ' + _currentUser.lastName,
-      ),
-    );
+            if (state is RendezVousErrorState || state is RendezVousError) {
+              String errorMessage =
+                  state is RendezVousErrorState
+                      ? state.message
+                      : (state as RendezVousError).message;
 
-    // Send notification to patient
-    final notification = context.read<NotificationBloc>();
-    notification.add(
-      SendNotificationEvent(
-        title: 'appointment_rejected'.tr,
-        body: 'appointment_rejected_message'.tr,
-        senderId: _currentUser.id!,
-        recipientId: '', // You need to get the patient ID from the appointment
-        type: NotificationType.appointmentRejected,
-        appointmentId: appointmentId,
-      ),
-    );
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error: $errorMessage'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            } else if (state is RendezVousStatusUpdatedState) {
+              context.read<NotificationBloc>().add(
+                MarkNotificationAsReadEvent(notificationId: notification.id),
+              );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('appointment_rejected'.tr),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.red,
-      ),
-    );
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('appointment_rejected'.tr),
+                  backgroundColor: Colors.red,
+                ),
+              );
+
+              if (_currentUser.id != null) {
+                context.read<NotificationBloc>().add(
+                  GetNotificationsEvent(userId: _currentUser.id!),
+                );
+              }
+            }
+          }
+        },
+        child: Container(),
+      );
+
+      Navigator.of(
+        context,
+      ).overlay?.insert(OverlayEntry(builder: (context) => blocListener));
+
+      context.read<RendezVousBloc>().add(
+        UpdateRendezVousStatus(
+          rendezVousId: notification.appointmentId!,
+          status: 'cancelled',
+        ),
+      );
+    }
   }
 
   void _navigateToDetails(NotificationEntity notification) {
     if (notification.appointmentId != null) {
-      // Navigate to appointment details
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -830,11 +941,26 @@ class _NotificationsPageState extends State<NotificationsPage> {
         ),
       );
     } else if (notification.prescriptionId != null) {
-      // Navigate to prescription details
       // TODO: Implement prescription details navigation
-    } else if (notification.ratingId != null) {
-      // Navigate to rating details
+    } else if (notification.type == NotificationType.rating) {
       // TODO: Implement rating details navigation
+    }
+  }
+
+  String _getFormattedTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 7) {
+      return DateFormat('MMM d, yyyy').format(dateTime);
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'just now';
     }
   }
 }

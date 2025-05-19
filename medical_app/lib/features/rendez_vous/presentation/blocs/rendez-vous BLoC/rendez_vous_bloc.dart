@@ -60,11 +60,11 @@ class RendezVousBloc extends Bloc<RendezVousEvent, RendezVousState> {
   }
 
   Future<void> _onFetchRendezVous(
-    FetchRendezVous event,
-    Emitter<RendezVousState> emit,
-  ) async {
+      FetchRendezVous event,
+      Emitter<RendezVousState> emit,
+      ) async {
     emit(RendezVousLoading());
-
+    
     if (event.appointmentId != null) {
       try {
         // This would need to be updated to use the getRendezVousDetails use case
@@ -78,7 +78,7 @@ class RendezVousBloc extends Bloc<RendezVousEvent, RendezVousState> {
       }
       return;
     }
-
+    
     // Fetch appointments based on patient or doctor ID
     final failureOrRendezVous = await fetchRendezVousUseCase(
       patientId: event.patientId,
@@ -87,28 +87,28 @@ class RendezVousBloc extends Bloc<RendezVousEvent, RendezVousState> {
 
     emit(
       failureOrRendezVous.fold(
-        (failure) => RendezVousError(_mapFailureToMessage(failure)),
-        (rendezVous) => RendezVousLoaded(rendezVous),
+          (failure) => RendezVousError(_mapFailureToMessage(failure)),
+          (rendezVous) => RendezVousLoaded(rendezVous),
       ),
     );
   }
 
   Future<void> _onUpdateRendezVousStatus(
-    UpdateRendezVousStatus event,
-    Emitter<RendezVousState> emit,
-  ) async {
+      UpdateRendezVousStatus event,
+      Emitter<RendezVousState> emit,
+      ) async {
     try {
       emit(UpdatingRendezVousState());
-
+      
       // Update the status using the use case
       final failureOrUnit = await updateRendezVousStatusUseCase(
         rendezVousId: event.rendezVousId,
         status: event.status,
       );
-
+      
       emit(
         failureOrUnit.fold(
-          (failure) => RendezVousError(_mapFailureToMessage(failure)),
+            (failure) => RendezVousError(_mapFailureToMessage(failure)),
           (_) => RendezVousStatusUpdatedState(
             id: event.rendezVousId,
             status: event.status,
@@ -121,13 +121,13 @@ class RendezVousBloc extends Bloc<RendezVousEvent, RendezVousState> {
   }
 
   Future<void> _onCreateRendezVous(
-    CreateRendezVous event,
-    Emitter<RendezVousState> emit,
-  ) async {
+      CreateRendezVous event,
+      Emitter<RendezVousState> emit,
+      ) async {
     try {
       emit(AddingRendezVousState());
       final result = await createRendezVousUseCase(event.rendezVous);
-
+      
       result.fold(
         (failure) => emit(RendezVousErrorState(message: failure.message)),
         (_) {
@@ -141,9 +141,9 @@ class RendezVousBloc extends Bloc<RendezVousEvent, RendezVousState> {
   }
 
   Future<void> _onFetchDoctorsBySpecialty(
-    FetchDoctorsBySpecialty event,
-    Emitter<RendezVousState> emit,
-  ) async {
+      FetchDoctorsBySpecialty event,
+      Emitter<RendezVousState> emit,
+      ) async {
     emit(RendezVousLoading());
     final failureOrDoctors = await fetchDoctorsBySpecialtyUseCase(
       event.specialty,
@@ -152,27 +152,27 @@ class RendezVousBloc extends Bloc<RendezVousEvent, RendezVousState> {
     );
     emit(
       failureOrDoctors.fold(
-        (failure) => RendezVousError(_mapFailureToMessage(failure)),
-        (doctors) => DoctorsLoaded(doctors),
+          (failure) => RendezVousError(_mapFailureToMessage(failure)),
+          (doctors) => DoctorsLoaded(doctors),
       ),
     );
   }
 
   Future<void> _onCancelAppointment(
     CancelAppointment event,
-    Emitter<RendezVousState> emit,
-  ) async {
+      Emitter<RendezVousState> emit,
+      ) async {
     try {
       emit(UpdatingRendezVousState());
 
       final result = await cancelAppointmentUseCase(event.appointmentId);
 
-      emit(
+    emit(
         result.fold(
           (failure) => RendezVousError(_mapFailureToMessage(failure)),
           (_) => AppointmentCancelled(event.appointmentId),
-        ),
-      );
+      ),
+    );
     } catch (e) {
       emit(RendezVousErrorState(message: e.toString()));
     }
@@ -349,14 +349,14 @@ class RendezVousBloc extends Bloc<RendezVousEvent, RendezVousState> {
       // Query Firestore to get doctor's FCM token - check in multiple collections
       final firestore = FirebaseFirestore.instance;
       String? fcmToken;
-
+      
       // Try medecins collection first
       final doctorDoc =
           await firestore.collection('medecins').doc(doctorId).get();
       if (doctorDoc.exists && doctorDoc.data()?['fcmToken'] != null) {
         fcmToken = doctorDoc.data()?['fcmToken'] as String?;
       }
-
+      
       // If not found, try users collection
       if (fcmToken == null || fcmToken.isEmpty) {
         final userDoc = await firestore.collection('users').doc(doctorId).get();
@@ -364,7 +364,7 @@ class RendezVousBloc extends Bloc<RendezVousEvent, RendezVousState> {
           fcmToken = userDoc.data()?['fcmToken'] as String?;
         }
       }
-
+      
       if (fcmToken != null && fcmToken.isNotEmpty) {
         // Send the notification directly to FCM via server
         await _sendNotificationViaServer(
@@ -381,7 +381,7 @@ class RendezVousBloc extends Bloc<RendezVousEvent, RendezVousState> {
       print('Error in _directlySendNotification: $e');
     }
   }
-
+  
   // Helper method to send notification via server
   Future<void> _sendNotificationViaServer({
     required String token,
@@ -391,7 +391,7 @@ class RendezVousBloc extends Bloc<RendezVousEvent, RendezVousState> {
   }) async {
     try {
       // Use both localhost (10.0.2.2) for emulator and the IP address for real devices
-      const String baseUrl = 'http://10.0.2.2:3000/api/v1';
+      const String baseUrl = 'http://10.0.2.2:3000/api/v1'; 
       final response = await http.post(
         Uri.parse('$baseUrl/notifications/send'),
         headers: {'Content-Type': 'application/json'},
@@ -410,7 +410,7 @@ class RendezVousBloc extends Bloc<RendezVousEvent, RendezVousState> {
       }
     } catch (e) {
       print('Error sending notification via server: $e');
-
+      
       // Fall back to saving directly to Firestore
       try {
         await FirebaseFirestore.instance.collection('fcm_requests').add({

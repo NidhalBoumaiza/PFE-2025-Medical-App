@@ -16,9 +16,7 @@ abstract class PrescriptionRemoteDataSource {
 }
 
 class PrescriptionRemoteDataSourceImpl implements PrescriptionRemoteDataSource {
-  final ApiService apiService;
-
-  PrescriptionRemoteDataSourceImpl({required this.apiService});
+  PrescriptionRemoteDataSourceImpl();
 
   @override
   Future<PrescriptionModel> createPrescription(

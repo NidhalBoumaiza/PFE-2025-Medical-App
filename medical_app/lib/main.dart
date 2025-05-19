@@ -23,8 +23,7 @@ import 'package:medical_app/features/home/presentation/pages/home_patient.dart';
 import 'package:medical_app/features/notifications/domain/entities/notification_entity.dart';
 import 'package:medical_app/features/notifications/presentation/bloc/notification_bloc.dart';
 import 'package:medical_app/features/notifications/presentation/bloc/notification_event.dart';
-import 'package:medical_app/features/notifications/presentation/pages/notifications_medecin.dart';
-import 'package:medical_app/features/notifications/presentation/pages/notifications_patient.dart';
+
 import 'package:medical_app/features/notifications/utils/notification_utils.dart';
 import 'package:medical_app/features/ratings/presentation/bloc/rating_bloc.dart';
 import 'package:medical_app/features/rendez_vous/presentation/blocs/rendez-vous%20BLoC/rendez_vous_bloc.dart';
@@ -137,7 +136,7 @@ Future<void> main() async {
   notificationBloc.add(InitializeOneSignalEvent());
 
   // Get shared preferences instance
-  final prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
 
   // Get user data from shared preferences
   final userId = prefs.getString('USER_ID');
@@ -238,14 +237,14 @@ class _MyAppState extends State<MyApp> {
 
     return BlocBuilder<ThemeCubit, ThemeState>(
       builder: (context, state) {
-        return GetMaterialApp(
+              return GetMaterialApp(
           title: 'MediLink',
-          debugShowCheckedModeBanner: false,
-          theme: AppThemes.lightTheme,
-          darkTheme: AppThemes.darkTheme,
+                debugShowCheckedModeBanner: false,
+                theme: AppThemes.lightTheme,
+                darkTheme: AppThemes.darkTheme,
           themeMode: themeManager.themeMode,
           // Translations
-          translations: AppTranslations(),
+                translations: AppTranslations(),
           locale: Get.deviceLocale,
           fallbackLocale: const Locale('en', 'US'),
           // Default route

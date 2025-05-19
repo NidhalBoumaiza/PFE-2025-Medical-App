@@ -10,7 +10,7 @@ import 'package:medical_app/core/utils/navigation_with_transition.dart';
 import 'package:medical_app/cubit/theme_cubit/theme_cubit.dart';
 import 'package:medical_app/features/authentication/presentation/pages/login_screen.dart';
 import 'package:medical_app/features/dashboard/presentation/pages/dashboard_medecin.dart';
-import 'package:medical_app/features/notifications/presentation/pages/notifications_medecin.dart';
+import 'package:medical_app/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:medical_app/features/profile/presentation/pages/ProfilMedecin.dart';
 import 'package:medical_app/features/rendez_vous/presentation/pages/appointments_medecins.dart';
 import 'package:medical_app/features/settings/presentation/pages/SettingsPage.dart';
@@ -167,7 +167,7 @@ class _HomeMedecinState extends State<HomeMedecin> {
   void _onNotificationTapped() {
     navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
       context,
-      const NotificationsMedecin(),
+      const NotificationsPage(),
     );
   }
 
