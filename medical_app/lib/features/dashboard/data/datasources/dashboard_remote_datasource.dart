@@ -4,15 +4,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../constants.dart';
 import '../../../../core/error/exceptions.dart';
+import '../../../rendez_vous/data/models/RendezVous.dart';
+import '../../domain/entities/dashboard_stats_entity.dart';
 import '../models/dashboard_stats_model.dart';
 
 abstract class DashboardRemoteDataSource {
   /// Fetch upcoming appointments for a doctor
   /// Throws [ServerException] if something goes wrong
-  Future<List<AppointmentModel>> getUpcomingAppointments(
-      String doctorId, {
-        int limit = 5,
-      });
+  Future<List<RendezVousModel>> getUpcomingAppointments(
+    String doctorId, {
+    int limit = 5,
+  });
 
   /// Count appointments by status for a doctor
   /// Throws [ServerException] if something goes wrong
@@ -28,13 +30,14 @@ abstract class DashboardRemoteDataSource {
 
   /// Method to fetch doctor's patients with pagination
   Future<Map<String, dynamic>> getDoctorPatients(
-      String doctorId, {
-        int limit = 10,
-        String? lastPatientId,
-      });
+    String doctorId, {
+    int limit = 10,
+    String? lastPatientId,
+  });
 }
 
-class MongoDBDashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
+class MongoDBDashboardRemoteDataSourceImpl
+    implements DashboardRemoteDataSource {
   final http.Client client;
 
   MongoDBDashboardRemoteDataSourceImpl({required this.client});
@@ -84,12 +87,17 @@ class MongoDBDashboardRemoteDataSourceImpl implements DashboardRemoteDataSource 
       print('Failed to refresh token: ${response.body}');
       await prefs.remove('TOKEN');
       await prefs.remove('REFRESH_TOKEN');
-      throw ServerException(message: 'Failed to refresh token: ${response.body}');
+      throw ServerException(
+        message: 'Failed to refresh token: ${response.body}',
+      );
     }
   }
 
   // Helper method to make authenticated GET request with retry
-  Future<http.Response> _authenticatedGet(String url, Map<String, String> headers) async {
+  Future<http.Response> _authenticatedGet(
+    String url,
+    Map<String, String> headers,
+  ) async {
     print('Making GET request to: $url');
     final response = await client.get(Uri.parse(url), headers: headers);
     if (response.statusCode == 401) {
@@ -103,10 +111,10 @@ class MongoDBDashboardRemoteDataSourceImpl implements DashboardRemoteDataSource 
   }
 
   @override
-  Future<List<AppointmentModel>> getUpcomingAppointments(
-      String doctorId, {
-        int limit = 5,
-      }) async {
+  Future<List<RendezVousModel>> getUpcomingAppointments(
+    String doctorId, {
+    int limit = 5,
+  }) async {
     try {
       final headers = await _getHeaders();
       final response = await _authenticatedGet(
@@ -122,23 +130,18 @@ class MongoDBDashboardRemoteDataSourceImpl implements DashboardRemoteDataSource 
       }
 
       final jsonData = jsonDecode(response.body);
-      final appointmentsData = jsonData['data']['appointments'] as List<dynamic>;
+      final appointmentsData =
+          jsonData['data']['appointments'] as List<dynamic>;
 
       return appointmentsData.map((appointment) {
-        return AppointmentModel(
-          id: appointment['_id'] ?? '',
-          patientId: appointment['patient']['_id'] ?? '',
-          patientName:
-          '${appointment['patient']['name']} ${appointment['patient']['lastName']}',
-          appointmentDate: DateTime.parse(appointment['startDate']),
-          status: appointment['status'] ?? 'pending',
-          appointmentType: appointment['serviceName'] ?? 'Consultation',
-        );
+        return RendezVousModel.fromJson(appointment);
       }).toList();
     } catch (e) {
       print('Error getting upcoming appointments: $e');
       if (e is ServerException) rethrow;
-      throw ServerException(message: 'Failed to fetch upcoming appointments: $e');
+      throw ServerException(
+        message: 'Failed to fetch upcoming appointments: $e',
+      );
     }
   }
 
@@ -196,7 +199,9 @@ class MongoDBDashboardRemoteDataSourceImpl implements DashboardRemoteDataSource 
     } catch (e) {
       print('Error getting total patients count: $e');
       if (e is ServerException) rethrow;
-      throw ServerException(message: 'Failed to fetch total patients count: $e');
+      throw ServerException(
+        message: 'Failed to fetch total patients count: $e',
+      );
     }
   }
 
@@ -234,10 +239,10 @@ class MongoDBDashboardRemoteDataSourceImpl implements DashboardRemoteDataSource 
 
   @override
   Future<Map<String, dynamic>> getDoctorPatients(
-      String doctorId, {
-        int limit = 10,
-        String? lastPatientId,
-      }) async {
+    String doctorId, {
+    int limit = 10,
+    String? lastPatientId,
+  }) async {
     try {
       final headers = await _getHeaders();
       String url = '${AppConstants.dashboardEndpoint}/patients?limit=$limit';
@@ -257,18 +262,21 @@ class MongoDBDashboardRemoteDataSourceImpl implements DashboardRemoteDataSource 
       final jsonData = jsonDecode(response.body);
       final patientsData = jsonData['data']['patients'] as List<dynamic>;
 
-      List<Map<String, dynamic>> formattedPatients = patientsData.map((patient) {
-        return {
-          'id': patient['id'] ?? '',
-          'name': patient['name'] ?? '',
-          'lastName': patient['lastName'] ?? '',
-          'email': patient['email'] ?? '',
-          'phoneNumber': patient['phoneNumber'] ?? '',
-          'lastAppointment':
-          patient['lastAppointment'] ?? DateTime.now().toIso8601String(),
-          'lastAppointmentStatus': patient['lastAppointmentStatus'] ?? 'unknown',
-        };
-      }).toList();
+      List<Map<String, dynamic>> formattedPatients =
+          patientsData.map((patient) {
+            return {
+              'id': patient['id'] ?? '',
+              'name': patient['name'] ?? '',
+              'lastName': patient['lastName'] ?? '',
+              'email': patient['email'] ?? '',
+              'phoneNumber': patient['phoneNumber'] ?? '',
+              'lastAppointment':
+                  patient['lastAppointment'] ??
+                  DateTime.now().toIso8601String(),
+              'lastAppointmentStatus':
+                  patient['lastAppointmentStatus'] ?? 'unknown',
+            };
+          }).toList();
 
       return {
         'patients': formattedPatients,

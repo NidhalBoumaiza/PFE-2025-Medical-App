@@ -5,8 +5,9 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
 
+import '../../../../constants.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../injection_container.dart' as di;
 import '../../../authentication/data/models/user_model.dart';
@@ -100,15 +101,32 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
     }
   }
 
+  // Helper method to get headers with auth token
+  Future<Map<String, String>> _getHeaders() async {
+    final headers = {'Content-Type': 'application/json'};
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final authToken = prefs.getString('TOKEN');
+      if (authToken != null && authToken.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $authToken';
+      }
+    } catch (e) {
+      print('Error getting auth token: $e');
+    }
+    return headers;
+  }
+
   // Check if appointment duration is set, if not show dialog
   Future<void> _checkAppointmentDuration(String doctorId) async {
     try {
-      final FirebaseFirestore firestore = FirebaseFirestore.instance;
-      final doctorDoc =
-          await firestore.collection('medecins').doc(doctorId).get();
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('${AppConstants.usersEndpoint}/doctors/$doctorId'),
+        headers: headers,
+      );
 
-      if (doctorDoc.exists) {
-        final data = doctorDoc.data() as Map<String, dynamic>;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body)['data']['doctor'];
 
         // If appointmentDuration doesn't exist or is null, show dialog
         if (!data.containsKey('appointmentDuration') ||
@@ -189,31 +207,34 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
           actions: [
             TextButton(
               onPressed: () async {
-                // Save the selected duration to Firestore
+                // Save the selected duration using the API
                 try {
                   if (currentUser?.id != null) {
-                    final FirebaseFirestore firestore =
-                        FirebaseFirestore.instance;
-                    await firestore
-                        .collection('medecins')
-                        .doc(currentUser!.id)
-                        .update({'appointmentDuration': selectedDuration});
+                    final headers = await _getHeaders();
+                    final response = await http.patch(
+                      Uri.parse(
+                        '${AppConstants.usersEndpoint}/doctors/${currentUser!.id}',
+                      ),
+                      headers: headers,
+                      body: jsonEncode({
+                        'appointmentDuration': selectedDuration,
+                      }),
+                    );
 
-                    // Show success message
+                    if (response.statusCode != 200) {
+                      throw Exception('Failed to update appointment duration');
+                    }
+
+                    Navigator.of(context).pop();
+
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'consultation_duration_set'.tr.replaceAll(
-                            '{0}',
-                            selectedDuration.toString(),
-                          ),
+                          'duration_saved'.tr,
                           style: GoogleFonts.raleway(),
                         ),
                         backgroundColor: Colors.green,
                         behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
                       ),
                     );
                   }
@@ -222,25 +243,20 @@ class _DashboardMedecinState extends State<DashboardMedecin> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        'error_saving'.tr.replaceAll('{0}', e.toString()),
+                        'error_saving_duration'.tr,
                         style: GoogleFonts.raleway(),
                       ),
                       backgroundColor: Colors.red,
                       behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
                     ),
                   );
                 }
-                Navigator.of(context).pop();
               },
               child: Text(
-                'confirm'.tr,
+                'save'.tr,
                 style: GoogleFonts.raleway(
                   color: AppColors.primaryColor,
                   fontWeight: FontWeight.bold,
-                  fontSize: 16.sp,
                 ),
               ),
             ),

@@ -59,10 +59,6 @@ class AppConstants {
   // Other endpoints
   static String get refreshTokenEndpoint => '$baseUrl/users/refreshToken';
 
-  // Firebase Configuration
-  static String get firebaseProjectId =>
-      'medilink-aac32'; // Replace with your actual Firebase Project ID
-
   // OneSignal Configuration
   static String get oneSignalAppId =>
       'YOUR-ONESIGNAL-APP-ID'; // Replace with your actual OneSignal App ID

@@ -3,6 +3,7 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/network/network_info.dart';
+import '../../../rendez_vous/data/models/RendezVous.dart';
 import '../../domain/entities/dashboard_stats_entity.dart';
 import '../../domain/repositories/dashboard_repository.dart';
 import '../datasources/dashboard_remote_datasource.dart';
@@ -66,7 +67,24 @@ class DashboardRepositoryImpl implements DashboardRepository {
           doctorId,
           limit: limit,
         );
-        return Right(appointments);
+
+        // Convert RendezVousModel to AppointmentEntity
+        final appointmentEntities =
+            appointments
+                .map(
+                  (rdv) => AppointmentEntity(
+                    id: rdv.id ?? '',
+                    patientId: rdv.patient,
+                    patientName:
+                        '${rdv.patientName ?? ''} ${rdv.patientLastName ?? ''}',
+                    appointmentDate: rdv.startDate,
+                    status: rdv.status,
+                    appointmentType: rdv.serviceName,
+                  ),
+                )
+                .toList();
+
+        return Right(appointmentEntities);
       } on ServerException catch (e) {
         return Left(ServerMessageFailure(e.message));
       } catch (e) {

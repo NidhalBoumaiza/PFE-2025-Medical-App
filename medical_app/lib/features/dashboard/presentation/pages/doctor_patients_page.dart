@@ -5,13 +5,16 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
 
+import '../../../../constants.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../authentication/data/models/user_model.dart';
 import '../../../authentication/domain/entities/patient_entity.dart';
 import '../../../profile/presentation/pages/patient_profile_page.dart';
+import '../../domain/repositories/dashboard_repository.dart';
+import '../../../../injection_container.dart' as di;
 
 class DoctorPatientsPage extends StatefulWidget {
   const DoctorPatientsPage({Key? key}) : super(key: key);
@@ -21,7 +24,7 @@ class DoctorPatientsPage extends StatefulWidget {
 }
 
 class _DoctorPatientsPageState extends State<DoctorPatientsPage> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final DashboardRepository _dashboardRepository = di.sl<DashboardRepository>();
   UserModel? currentUser;
   bool isLoading = true;
   bool isLoadingMore = false;
@@ -43,6 +46,21 @@ class _DoctorPatientsPageState extends State<DoctorPatientsPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  // Helper method to get headers with auth token
+  Future<Map<String, String>> _getHeaders() async {
+    final headers = {'Content-Type': 'application/json'};
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final authToken = prefs.getString('TOKEN');
+      if (authToken != null && authToken.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $authToken';
+      }
+    } catch (e) {
+      print('Error getting auth token: $e');
+    }
+    return headers;
   }
 
   Future<void> _loadUserData() async {
@@ -98,229 +116,71 @@ class _DoctorPatientsPageState extends State<DoctorPatientsPage> {
         if (!refresh) isLoadingMore = true;
       });
 
-      // Query without complex ordering to avoid index errors
-      final result =
-          await _firestore
-              .collection('rendez_vous')
-              .where('doctorId', isEqualTo: currentUser!.id)
-              .get();
-
-      print(
-        'Found ${result.docs.length} appointments for doctor ${currentUser!.id}',
+      // Use the repository to fetch patients
+      final result = await _dashboardRepository.getDoctorPatients(
+        currentUser!.id!,
+        limit: patientsPerPage,
+        lastPatientId: nextPatientId,
       );
 
-      // Extract unique patients
-      Set<String> uniquePatientIds = {};
-      List<Map<String, dynamic>> newPatients = [];
-
-      for (var doc in result.docs) {
-        final data = doc.data();
-        final patientId = data['patientId'] as String?;
-
-        if (patientId != null && !uniquePatientIds.contains(patientId)) {
-          uniquePatientIds.add(patientId);
-
-          try {
-            // Get patient details from patients collection
-            final patientDoc =
-                await _firestore.collection('patients').doc(patientId).get();
-
-            if (patientDoc.exists) {
-              final patientData = patientDoc.data() as Map<String, dynamic>;
-              patientData['id'] = patientId;
-
-              // Add last appointment info
-              final appointmentData = data;
-              final timestamp = appointmentData['startTime'];
-
-              DateTime appointmentDate;
-              if (timestamp is Timestamp) {
-                appointmentDate = timestamp.toDate();
-              } else if (timestamp is String) {
-                appointmentDate = DateTime.parse(timestamp);
-              } else {
-                appointmentDate = DateTime.now();
-              }
-
-              patientData['lastAppointment'] =
-                  appointmentDate.toIso8601String();
-              patientData['lastAppointmentStatus'] = appointmentData['status'];
-
-              newPatients.add(patientData);
-            } else {
-              // Patient document doesn't exist, create a minimal record
-              final patientName =
-                  data['patientName'] as String? ?? 'unknown_patient'.tr;
-              newPatients.add({
-                'id': patientId,
-                'name': patientName.split(' ').first,
-                'lastName':
-                    patientName.split(' ').length > 1
-                        ? patientName.split(' ').last
-                        : '',
-                'email': 'patient@example.com',
-                'phoneNumber': '',
-                'lastAppointment':
-                    (data['startTime'] is Timestamp)
-                        ? (data['startTime'] as Timestamp)
-                            .toDate()
-                            .toIso8601String()
-                        : DateTime.now().toIso8601String(),
-                'lastAppointmentStatus': data['status'] ?? 'unknown',
-              });
-            }
-          } catch (e) {
-            print('Error fetching patient $patientId: $e');
-          }
-        }
-      }
-
-      // Sort by most recent appointment
-      newPatients.sort((a, b) {
-        final aDate = a['lastAppointment'] as String?;
-        final bDate = b['lastAppointment'] as String?;
-
-        if (aDate == null && bDate == null) return 0;
-        if (aDate == null) return 1;
-        if (bDate == null) return -1;
-
-        return DateTime.parse(bDate).compareTo(DateTime.parse(aDate));
-      });
-
-      // Apply search filter if query exists
-      if (searchQuery != null && searchQuery!.isNotEmpty) {
-        final query = searchQuery!.toLowerCase();
-        newPatients =
-            newPatients.where((patient) {
-              final name = ((patient['name'] ?? '') as String).toLowerCase();
-              final lastName =
-                  ((patient['lastName'] ?? '') as String).toLowerCase();
-              final fullName = '$name $lastName';
-              return fullName.contains(query);
-            }).toList();
-      }
-
-      // Apply pagination in memory
-      final paginatedPatients = newPatients.take(patientsPerPage).toList();
-
-      setState(() {
-        if (refresh) {
-          patients = paginatedPatients;
-        } else {
-          patients.addAll(paginatedPatients);
-        }
-
-        isLoading = false;
-        isLoadingMore = false;
-        hasMore = newPatients.length > patientsPerPage;
-
-        // Store all patients for in-memory pagination
-        if (hasMore) {
-          _allPatients = newPatients;
-          _currentPage = 1;
-        } else {
-          _allPatients = [];
-        }
-      });
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-        isLoadingMore = false;
-      });
-      _showErrorSnackBar("Error loading patients: $e");
-      print("Error loading patients: $e");
-    }
-  }
-
-  // All patients for in-memory pagination
-  List<Map<String, dynamic>> _allPatients = [];
-  int _currentPage = 0;
-
-  Future<void> _loadMorePatients() async {
-    if (!hasMore || isLoadingMore) return;
-
-    setState(() {
-      isLoadingMore = true;
-    });
-
-    try {
-      // In-memory pagination
-      if (_allPatients.isNotEmpty) {
-        _currentPage++;
-        final startIndex = _currentPage * patientsPerPage;
-        final endIndex = startIndex + patientsPerPage;
-
-        if (startIndex < _allPatients.length) {
-          final nextPagePatients = _allPatients.sublist(
-            startIndex,
-            endIndex > _allPatients.length ? _allPatients.length : endIndex,
-          );
-
+      result.fold(
+        (failure) {
+          _showErrorSnackBar("Failed to load patients: ${failure.message}");
           setState(() {
-            patients.addAll(nextPagePatients);
-            hasMore = endIndex < _allPatients.length;
+            isLoading = false;
             isLoadingMore = false;
           });
-          return;
-        }
-      }
+        },
+        (data) {
+          final newPatients = List<Map<String, dynamic>>.from(data['patients']);
 
-      // If we don't have all patients in memory or we've reached the end,
-      // mark as no more data
-      setState(() {
-        hasMore = false;
-        isLoadingMore = false;
-      });
+          // Apply search filter if query exists
+          if (searchQuery != null && searchQuery!.isNotEmpty) {
+            final query = searchQuery!.toLowerCase();
+            final filteredPatients =
+                newPatients.where((patient) {
+                  final name =
+                      ((patient['name'] ?? '') as String).toLowerCase();
+                  final lastName =
+                      ((patient['lastName'] ?? '') as String).toLowerCase();
+                  final fullName = '$name $lastName';
+                  return fullName.contains(query);
+                }).toList();
+
+            setState(() {
+              if (refresh || nextPatientId == null) {
+                patients = filteredPatients;
+              } else {
+                patients.addAll(filteredPatients);
+              }
+              hasMore = data['hasMore'] ?? false;
+              nextPatientId = data['nextPatientId'];
+              isLoading = false;
+              isLoadingMore = false;
+            });
+          } else {
+            setState(() {
+              if (refresh || nextPatientId == null) {
+                patients = newPatients;
+              } else {
+                patients.addAll(newPatients);
+              }
+              hasMore = data['hasMore'] ?? false;
+              nextPatientId = data['nextPatientId'];
+              isLoading = false;
+              isLoadingMore = false;
+            });
+          }
+        },
+      );
     } catch (e) {
+      print('Error loading patients: $e');
+      _showErrorSnackBar("Error loading patients: $e");
       setState(() {
+        isLoading = false;
         isLoadingMore = false;
       });
-      _showErrorSnackBar("Error loading more patients: $e");
-      print("Error loading more patients: $e");
     }
-  }
-
-  void _searchPatients(String query) {
-    setState(() {
-      searchQuery = query;
-    });
-    _loadPatients(refresh: true);
-  }
-
-  void _clearSearch() {
-    _searchController.clear();
-    setState(() {
-      searchQuery = null;
-    });
-    _loadPatients(refresh: true);
-  }
-
-  void _navigateToPatientProfile(Map<String, dynamic> patientData) {
-    if (patientData['id'] == null) return;
-
-    final patientEntity = PatientEntity(
-      id: patientData['id'] as String,
-      name: patientData['name'] as String? ?? '',
-      lastName: patientData['lastName'] as String? ?? '',
-      email: patientData['email'] as String? ?? '',
-      role: 'patient',
-      gender: patientData['gender'] as String? ?? 'unknown',
-      phoneNumber: patientData['phoneNumber'] as String? ?? '',
-      dateOfBirth:
-          patientData['dateOfBirth'] != null
-              ? (patientData['dateOfBirth'] is Timestamp)
-                  ? (patientData['dateOfBirth'] as Timestamp).toDate()
-                  : DateTime.parse(patientData['dateOfBirth'] as String)
-              : null,
-      antecedent: patientData['antecedent'] as String? ?? '',
-    );
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PatientProfilePage(patient: patientEntity),
-      ),
-    );
   }
 
   void _showErrorSnackBar(String message) {
@@ -329,7 +189,6 @@ class _DoctorPatientsPageState extends State<DoctorPatientsPage> {
         content: Text(message, style: GoogleFonts.raleway()),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -669,6 +528,65 @@ class _DoctorPatientsPageState extends State<DoctorPatientsPage> {
         return Colors.blue;
       default:
         return Colors.grey;
+    }
+  }
+
+  void _searchPatients(String query) {
+    setState(() {
+      searchQuery = query;
+    });
+    _loadPatients(refresh: true);
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      searchQuery = null;
+    });
+    _loadPatients(refresh: true);
+  }
+
+  void _navigateToPatientProfile(Map<String, dynamic> patientData) {
+    if (patientData['id'] == null) return;
+
+    final patientEntity = PatientEntity(
+      id: patientData['id'] as String,
+      name: patientData['name'] as String? ?? '',
+      lastName: patientData['lastName'] as String? ?? '',
+      email: patientData['email'] as String? ?? '',
+      role: 'patient',
+      gender: patientData['gender'] as String? ?? 'unknown',
+      phoneNumber: patientData['phoneNumber'] as String? ?? '',
+      dateOfBirth:
+          patientData['dateOfBirth'] != null
+              ? DateTime.tryParse(patientData['dateOfBirth'].toString())
+              : null,
+      antecedent: patientData['antecedent'] as String? ?? '',
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PatientProfilePage(patient: patientEntity),
+      ),
+    );
+  }
+
+  Future<void> _loadMorePatients() async {
+    if (!hasMore || isLoadingMore) return;
+
+    setState(() {
+      isLoadingMore = true;
+    });
+
+    try {
+      await _loadPatients(refresh: false);
+    } catch (e) {
+      setState(() {
+        isLoadingMore = false;
+      });
+      _showErrorSnackBar("Error loading more patients: $e");
+      print("Error loading more patients: $e");
     }
   }
 }

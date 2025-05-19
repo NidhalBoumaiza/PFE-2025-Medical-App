@@ -133,6 +133,9 @@ exports.getDoctorDashboardStats = catchAsync(
     }
 
     const now = new Date();
+    // Truncate to start of day for consistent date handling
+    const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(now.setHours(23, 59, 59, 999));
 
     // Get appointment counts
     const appointmentCounts = {
@@ -173,10 +176,10 @@ exports.getDoctorDashboardStats = catchAsync(
         select: "name lastName",
       });
 
-    // Create or update dashboard stats
+    // Create dashboard stats object with truncated date
     const dashboardStats = {
       medecin: doctorId,
-      date: now,
+      date: startOfDay, // Use start of day to match index
       totalPatients: uniquePatients.length,
       totalAppointments: appointmentCounts.total,
       pendingAppointments: appointmentCounts.pending,
@@ -187,18 +190,59 @@ exports.getDoctorDashboardStats = catchAsync(
       ),
     };
 
-    // Save stats to database for historical tracking
-    await DashboardStats.findOneAndUpdate(
-      {
-        medecin: doctorId,
-        date: {
-          $gte: new Date(now.setHours(0, 0, 0, 0)),
-          $lt: new Date(now.setHours(23, 59, 59, 999)),
+    try {
+      // Save or update stats
+      const updatedStats = await DashboardStats.findOneAndUpdate(
+        {
+          medecin: doctorId,
+          date: {
+            $gte: startOfDay,
+            $lte: endOfDay,
+          },
         },
-      },
-      dashboardStats,
-      { upsert: true, new: true }
-    );
+        dashboardStats,
+        { upsert: true, new: true }
+      );
+      console.log(
+        `Dashboard stats updated for doctor ${doctorId} on ${startOfDay}`
+      );
+    } catch (error) {
+      if (error.code === 11000) {
+        console.log(
+          `Duplicate key error for doctor ${doctorId} on ${startOfDay}, fetching existing stats`
+        );
+        // Fetch existing stats instead of failing
+        const existingStats = await DashboardStats.findOne({
+          medecin: doctorId,
+          date: {
+            $gte: startOfDay,
+            $lte: endOfDay,
+          },
+        });
+        if (existingStats) {
+          console.log(
+            `Returning existing stats for doctor ${doctorId}`
+          );
+        } else {
+          return next(
+            new AppError(
+              "Erreur lors de la récupération des statistiques existantes",
+              500
+            )
+          );
+        }
+      } else {
+        console.error(
+          `Error saving dashboard stats: ${error.message}`
+        );
+        return next(
+          new AppError(
+            "Erreur lors de la sauvegarde des statistiques",
+            500
+          )
+        );
+      }
+    }
 
     res.status(200).json({
       status: "success",
